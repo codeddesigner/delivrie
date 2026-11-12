@@ -723,6 +723,11 @@ async function askDelivrie(question: string) {
 // ---------------------------------------------------------------- public endpoints
 async function publicRoutes(req: Request, path: string, url: URL): Promise<Response | null> {
   if (path === "/public/status") return json({ status: "operational", sending: hasAws() });
+  // ChatGPT plugin domain verification: the token from the OpenAI portal, stored in system_settings, as plain text.
+  if (path === "/public/openai-apps-challenge") {
+    const token = await setting("openai_apps_challenge");
+    return new Response(token || "", { status: token ? 200 : 404, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });
+  }
   if (path.startsWith("/public/share/")) {
     const token = path.split("/")[3];
     const { data: s } = await db.from("email_shares").select("*").eq("token", token).maybeSingle();

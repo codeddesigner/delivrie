@@ -1,0 +1,46 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "delivrie",
+  "version": "1.1.0",
+  "description": "Send email, run broadcasts and automations, and answer your inbox with Delivrie.",
+  "author": {
+    "name": "South Circle",
+    "email": "support@delivrie.io",
+    "url": "https://delivrie.io"
+  },
+  "homepage": "https://delivrie.io/docs/mcp",
+  "license": "Proprietary",
+  "keywords": [
+    "email",
+    "transactional email",
+    "newsletters",
+    "inbox",
+    "automation"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Delivrie",
+        "shortDescription": "Send email, run broadcasts and answer your inbox.",
+        "longDescription": "Delivrie is an email platform for people building with AI. Send transactional email from your verified domains, schedule or cancel sends, and use published templates. Manage contacts, segments and broadcasts, build simple automations and send the events that trigger them. Read and reply to customer conversations in your Delivrie Inbox, keeping replies in the same thread. Check domain DNS, delivery metrics, API logs and usage. You choose what ChatGPT can do when you connect: send, read, or make changes.",
+        "developerName": "South Circle",
+        "category": "Productivity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://delivrie.io",
+        "privacyPolicyURL": "https://delivrie.io/privacy",
+        "termsOfServiceURL": "https://delivrie.io/terms",
+        "defaultPrompt": [
+          "Show my Delivrie usage this month",
+          "Which inbox conversations need a reply?",
+          "Send a test email to delivered@test.delivrie.io"
+        ],
+        "brandColor": "#F9D602",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}

@@ -23,6 +23,10 @@
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/oauth/resource"
     },
     {
+      "source": "/.well-known/openai-apps-challenge",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/public/openai-apps-challenge"
+    },
+    {
       "source": "/.well-known/oauth-protected-resource",
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/oauth/resource"
     },
