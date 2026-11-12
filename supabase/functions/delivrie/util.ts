@@ -73,8 +73,10 @@ export function waitUntil(p: Promise<unknown>) {
   if (rt?.waitUntil) rt.waitUntil(guarded);
 }
 
-export const LIMITS = {
+export const LIMITS: Record<string, { month: number; day: number; contacts: number; segments: number; domains: number }> = {
   free: { month: 3000, day: 100, contacts: 1000, segments: 3, domains: 5 },
+  pro: { month: 50_000, day: 0, contacts: 0, segments: 0, domains: 0 },   // 0 = no limit
+  scale: { month: 100_000, day: 0, contacts: 0, segments: 0, domains: 0 },
 };
 
 export function asArray(v: unknown): string[] {

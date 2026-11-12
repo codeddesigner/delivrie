@@ -3,6 +3,10 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/api/billing/:path*",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/billing/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/:path*"
     },

@@ -30,15 +30,65 @@ async function usage(body) {
     <h3 class="section-title">Sending infrastructure</h3><div class="card card-pad">${!aws?.configured ? `<div class="row-flex">${icon("alert", 14)} <span>Mail provider not connected. Sending, domains and receiving need AWS credentials on the server.</span></div>` : aws.error ? `<div class="row-flex" style="color:var(--orange)">${icon("alert", 14)} ${esc(aws.error)}</div>` : `<div class="kv"><span class="k">Account</span><span>${aws.production ? badge("Production", "green") : badge("Sandbox — verified recipients only", "yellow")}</span><span class="k">Sending</span><span>${aws.sending ? "Enabled" : "Paused"}</span><span class="k">Rate</span><span>${num(aws.max_send_rate)} emails / second</span><span class="k">24h quota</span><span>${num(aws.sent_24h)} of ${num(aws.max_24h)} used</span></div>`}</div>`;
 }
 
-async function billing(body) {
-  const { data: t } = await sb.from("teams").select("plan_transactional,plan_marketing,billing").eq("id", T()).single();
-  const plan = (p, name, price, feats, cur) => `<div class="card card-pad" style="${cur ? "border-color:var(--yellow)" : ""}"><div class="row-flex"><h3>${name}</h3>${cur ? badge("Current", "yellow") : ""}</div><div style="font-size:22px;font-weight:600;margin:8px 0">${price}</div><ul class="muted" style="margin:0;padding-left:18px;line-height:1.8;font-size:12.5px">${feats.map((f) => `<li>${f}</li>`).join("")}</ul><div style="margin-top:14px">${cur ? `<button class="btn btn-secondary btn-block" disabled>Current plan</button>` : `<button class="btn btn-primary btn-block" data-upgrade="${p}">Upgrade</button>`}</div></div>`;
-  const tp = t?.plan_transactional || "free";
-  body.innerHTML = `<h3 class="section-title" style="margin-top:0">Transactional plan</h3><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">${plan("free", "Free", "$0", ["3,000 emails / month", "100 emails / day", "1 team member", "Logs kept 1 day"], tp === "free")}${plan("pro", "Pro", "$20<span class='dim' style='font-size:13px'>/mo</span>", ["50,000 emails / month", "No daily limit", "Unlimited members", "Logs kept 30 days"], tp === "pro")}${plan("scale", "Scale", "$90<span class='dim' style='font-size:13px'>/mo</span>", ["100,000 emails / month", "Dedicated IP add-on", "Priority support", "Logs kept 60 days"], tp === "scale")}</div>
-    <h3 class="section-title">Payment method</h3><div class="card card-pad row-flex">${icon("card", 16, "dim")}<span class="muted">${t?.billing?.card ? esc(t.billing.card) : "No payment method on file"}</span><span class="grow"></span><button class="btn btn-secondary btn-sm" data-card>Add card</button></div>
-    <h3 class="section-title">Invoices</h3><div class="card">${emptyState({ icon: "list", title: "No invoices yet", desc: "Invoices appear here after your first paid month." })}</div>`;
-  const notReady = () => modal({ title: "Billing isn’t connected yet", body: `<p class="desc">Self-serve checkout isn’t live on this workspace yet. To change plans, contact support and we’ll set it up for you.</p>`, foot: `<button class="btn btn-ghost" data-cancel>Close</button><a class="btn btn-primary" href="/help?contact=1">Contact support</a>` });
-  on(body, "click", "[data-upgrade],[data-card]", notReady);
+// ------------------------------------------------------------ billing (Paystack)
+const FREE_FEATURES = ["3,000 emails / month", "100 emails / day", "5 domains", "1,000 contacts"];
+const PLAN_FEATURES = { pro: ["50,000 emails / month", "No daily limit", "Unlimited domains", "Email support"], scale: ["100,000 emails / month", "No daily limit", "Unlimited domains", "Priority support"] };
+const money = (amount, currency) => new Intl.NumberFormat(currency === "NGN" ? "en-NG" : "en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount / 100);
+const prefCurrency = () => { try { const v = localStorage.getItem("dlv_currency"); if (v) return v; } catch {} return /Lagos/.test(Intl.DateTimeFormat().resolvedOptions().timeZone || "") ? "NGN" : "USD"; };
+
+async function billing(body, ctx) {
+  const ref = ctx.query.reference || ctx.query.trxref;
+  let s;
+  if (ref) {
+    body.innerHTML = `<div class="card card-pad row-flex"><span class="spinner"></span><span class="muted">Confirming your payment…</span></div>`;
+    try {
+      s = await api("POST", "/billing/verify", { reference: ref });
+      toast(s.status === "success" ? `You're on ${s.plan[0].toUpperCase() + s.plan.slice(1)}. Thanks!` : "Payment wasn't completed. You haven't been charged.", s.status === "success" ? "ok" : "info", 6000);
+    } catch (e) { errToast(e); }
+    history.replaceState(null, "", "/settings/billing");
+  }
+  if (ctx.query.canceled) { toast("Checkout canceled. You haven't been charged.", "info"); history.replaceState(null, "", "/settings/billing"); }
+  if (!s) s = await api("GET", "/billing/summary");
+  let currency = s.subscription?.currency || prefCurrency();
+  const admin = s.admin;
+  const sub = s.subscription;
+
+  const draw = () => {
+    const card = (id, name, priceHtml, feats) => {
+      const cur = s.plan === id;
+      const btn = !admin ? `<button class="btn btn-secondary btn-block" disabled title="Only admins can change billing">${cur ? "Current plan" : "Ask an admin"}</button>`
+        : cur ? `<button class="btn btn-secondary btn-block" disabled>Current plan</button>`
+        : id === "free" ? (s.plan !== "free" && sub?.can_manage && sub.status !== "cancelling" ? `<button class="btn btn-secondary btn-block" data-cancel-sub>Downgrade to Free</button>` : `<button class="btn btn-secondary btn-block" disabled>Free</button>`)
+        : `<button class="btn btn-primary btn-block" data-checkout="${id}" ${s.payments_ready ? "" : "disabled"}>${s.plan === "free" ? "Upgrade" : "Switch"} to ${name}</button>`;
+      return `<div class="card card-pad" style="${cur ? "border-color:var(--yellow)" : ""};display:flex;flex-direction:column"><div class="row-flex"><h3>${name}</h3>${cur ? badge("Current", "yellow") : ""}</div><div style="font-size:24px;font-weight:600;margin:8px 0;font-variant-numeric:tabular-nums">${priceHtml}</div><ul class="muted" style="margin:0 0 14px;padding-left:18px;line-height:1.8;font-size:12.5px;flex:1">${feats.map((f) => `<li>${f}</li>`).join("")}</ul>${btn}</div>`;
+    };
+    const per = `<span class="dim" style="font-size:13px;font-weight:400">/mo</span>`;
+    const plans = [card("free", "Free", money(0, currency), FREE_FEATURES), ...s.plans.map((p) => card(p.id, p.name, money(p.prices[currency], currency) + per, PLAN_FEATURES[p.id] || []))].join("");
+    const status = !sub ? "" : sub.status === "cancelling" ? badge(`Ends ${fmtDate(sub.cancel_at)}`, "orange") : sub.status === "past_due" ? badge("Payment failed", "red") : sub.status === "canceled" ? badge("Canceled", "gray") : badge("Active", "green");
+    body.innerHTML = `${!s.payments_ready ? `<div class="banner">${icon("info", 14)} Payments aren't connected yet. Plans can't be bought until the Paystack key is added.</div>` : s.mode === "test" ? `<div class="banner">${icon("info", 14)} Test mode: use Paystack's test card <b>4084 0840 8408 4081</b>, any future expiry, CVV <b>408</b>. No real money moves.</div>` : ""}
+      <div class="row-flex" style="margin-bottom:12px"><h3 class="section-title" style="margin:0">Plans</h3><span class="grow"></span><div class="row-flex" style="gap:4px" role="group" aria-label="Currency">${s.currencies.map((c) => `<button class="btn btn-sm ${c === currency ? "btn-secondary" : "btn-ghost"}" data-cur="${c}" ${sub && sub.status !== "canceled" && s.plan !== "free" && c !== sub.currency ? "disabled title='Your subscription is billed in " + sub.currency + "'" : ""}>${c === "USD" ? "$ USD" : "₦ NGN"}</button>`).join("")}</div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">${plans}</div>
+      ${sub && s.plan !== "free" ? `<h3 class="section-title">Subscription</h3><div class="card card-pad"><div class="kv"><span class="k">Plan</span><span>${esc((sub.plan || s.plan).replace(/^\w/, (c) => c.toUpperCase()))} ${status}</span><span class="k">${sub.status === "cancelling" ? "Access until" : "Next payment"}</span><span>${sub.status === "cancelling" ? fmtDate(sub.cancel_at) : sub.next_payment_date ? fmtDate(sub.next_payment_date) : "—"}</span><span class="k">Card</span><span>${esc(sub.card || "—")}</span><span class="k">Currency</span><span>${esc(sub.currency || "")}</span></div>
+        ${admin && sub.can_manage ? `<div class="row-flex" style="margin-top:14px;gap:8px"><button class="btn btn-secondary btn-sm" data-card>${icon("card", 13)} Update card</button>${sub.status !== "cancelling" ? `<button class="btn btn-ghost btn-sm" data-cancel-sub style="color:var(--red)">Cancel subscription</button>` : ""}</div>` : ""}</div>` : ""}
+      <h3 class="section-title">Invoices</h3>${s.invoices.length ? `<div class="table-wrap"><table class="t"><thead><tr><th>Date</th><th>Plan</th><th>Card</th><th class="r">Amount</th><th>Status</th></tr></thead><tbody>${s.invoices.map((i) => `<tr><td>${fmtDate(i.paid_at)}</td><td>${esc((i.plan || "").replace(/^\w/, (c) => c.toUpperCase()))}</td><td class="muted">${esc(i.card || "—")}</td><td class="r" style="font-variant-numeric:tabular-nums">${money(i.amount, i.currency)}</td><td>${i.status === "success" ? badge("Paid", "green") : badge("Failed", "red")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="card">${emptyState({ icon: "list", title: "No invoices yet", desc: "Payments appear here after you upgrade." })}</div>`}`;
+  };
+  draw();
+
+  on(body, "click", "[data-cur]", (_e, b) => { currency = b.dataset.cur; try { localStorage.setItem("dlv_currency", currency); } catch {} draw(); });
+  on(body, "click", "[data-checkout]", async (_e, b) => {
+    b.disabled = true; b.innerHTML = `<span class="spinner"></span> Opening checkout`;
+    try { const r = await api("POST", "/billing/checkout", { plan: b.dataset.checkout, currency }); location.href = r.url; }
+    catch (e) { errToast(e); draw(); }
+  });
+  on(body, "click", "[data-card]", async (_e, b) => {
+    b.disabled = true;
+    try { const r = await api("POST", "/billing/card"); location.href = r.url; } catch (e) { errToast(e); b.disabled = false; }
+  });
+  on(body, "click", "[data-cancel-sub]", async () => {
+    const until = sub?.next_payment_date ? fmtDate(sub.next_payment_date) : "the end of this billing period";
+    if (!(await confirmModal({ title: "Cancel subscription", desc: `You'll keep ${esc(s.plan)} until <b>${until}</b>, then move to the Free plan. You won't be charged again.`, confirm: "Cancel subscription" }))) return;
+    try { s = await api("POST", "/billing/cancel"); toast(`Canceled. You keep your plan until ${until}.`); draw(); } catch (e) { errToast(e); }
+  });
 }
 
 async function team(body, ctx) {

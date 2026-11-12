@@ -1,0 +1,33 @@
+# Deploys the Supabase edge functions whenever their code changes on main.
+# Needs one repository secret: SUPABASE_ACCESS_TOKEN (supabase.com/dashboard/account/tokens).
+name: Deploy Supabase functions
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/functions/**"]
+  workflow_dispatch:
+
+concurrency: supabase-functions
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: hnjejflinvaoxbduxeiu
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for access token
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::Add the SUPABASE_ACCESS_TOKEN repository secret to deploy functions."
+            exit 1
+          fi
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # Both functions check their own credentials (API keys, user sessions, Paystack signatures),
+      # so Supabase's JWT gate stays off.
+      - run: supabase functions deploy delivrie --project-ref "$PROJECT_REF" --no-verify-jwt
+      - run: supabase functions deploy billing --project-ref "$PROJECT_REF" --no-verify-jwt

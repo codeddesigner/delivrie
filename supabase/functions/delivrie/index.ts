@@ -75,14 +75,20 @@ async function checkFrom(c: Ctx, from: string, recipients: string[]) {
 async function checkQuota(c: Ctx, n: number) {
   if (!ENFORCE_LIMITS) return;
   const { data: t } = await db.from("teams").select("plan_transactional").eq("id", c.teamId).single();
-  if (t?.plan_transactional !== "free") return;
+  const plan = t?.plan_transactional || "free";
+  const L = LIMITS[plan] || LIMITS.free;
+  const name = plan.charAt(0).toUpperCase() + plan.slice(1);
   const now = new Date();
   const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
   const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const { count: d } = await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").gte("created_at", day);
-  if ((d || 0) + n > LIMITS.free.day) throw new HttpError(429, "daily_quota_exceeded", `You've reached the free plan's daily limit of ${LIMITS.free.day} emails.`);
-  const { count: m } = await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").gte("created_at", month);
-  if ((m || 0) + n > LIMITS.free.month) throw new HttpError(429, "monthly_quota_exceeded", `You've reached the free plan's monthly limit of ${LIMITS.free.month} emails.`);
+  if (L.day) {
+    const { count: d } = await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").gte("created_at", day);
+    if ((d || 0) + n > L.day) throw new HttpError(429, "daily_quota_exceeded", `You've reached the ${name} plan's daily limit of ${L.day.toLocaleString("en-US")} emails. Upgrade in Settings → Billing.`);
+  }
+  if (L.month) {
+    const { count: m } = await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").gte("created_at", month);
+    if ((m || 0) + n > L.month) throw new HttpError(429, "monthly_quota_exceeded", `You've reached the ${name} plan's monthly limit of ${L.month.toLocaleString("en-US")} emails. Upgrade in Settings → Billing.`);
+  }
 }
 
 async function prepareEmail(c: Ctx, b: Any, idempotencyKey?: string | null) {
@@ -492,7 +498,8 @@ const dash = (h: Handler): Handler => (req, c, p, u, b) => { if (c.via !== "dash
 
 route("GET", "/dashboard/status", dash(async (_r, c) => {
   const { data: d } = await db.from("domains").select("region").eq("team_id", c.teamId).limit(1);
-  return { aws: await accountStatus(d?.[0]?.region || "eu-west-1"), system_from: SYSTEM_FROM ? SYSTEM_FROM : null, regions: Object.entries(SES_REGIONS).map(([id]) => ({ id, label: regionLabel(id) })), limits_enforced: ENFORCE_LIMITS, limits: LIMITS.free };
+  const { data: t } = await db.from("teams").select("plan_transactional").eq("id", c.teamId).single();
+  return { aws: await accountStatus(d?.[0]?.region || "eu-west-1"), system_from: SYSTEM_FROM ? SYSTEM_FROM : null, regions: Object.entries(SES_REGIONS).map(([id]) => ({ id, label: regionLabel(id) })), limits_enforced: ENFORCE_LIMITS, plan: t?.plan_transactional || "free", limits: LIMITS[t?.plan_transactional || "free"] || LIMITS.free };
 }));
 route("POST", "/dashboard/test-email", dash(async (_r, c, _p, _u, b) => {
   const to = asArray(b?.to);
