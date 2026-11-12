@@ -803,6 +803,7 @@ Deno.serve(async (req) => {
       let c: Ctx | null = null;
       if (req.method === "POST") {
         try { c = await authenticate(req); } catch (e) {
+          if (!(e instanceof HttpError)) console.error("mcp auth failed", e);
           const err = e instanceof HttpError ? e : new HttpError(401, "invalid_api_key", "Authentication failed");
           return json({ statusCode: err.status, name: err.name, message: err.message }, err.status, { "www-authenticate": `Bearer realm="delivrie", resource_metadata="${APP_URL}/.well-known/oauth-protected-resource"` });
         }

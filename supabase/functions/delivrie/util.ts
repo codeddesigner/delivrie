@@ -69,7 +69,7 @@ export async function setSetting(key: string, value: string) {
 
 export function waitUntil(p: Promise<unknown>) {
   const rt = (globalThis as Any).EdgeRuntime;
-  const guarded = p.catch((e) => console.error("background task failed", e));
+  const guarded = Promise.resolve(p).catch((e) => console.error("background task failed", e)); // query builders are thenables without .catch
   if (rt?.waitUntil) rt.waitUntil(guarded);
 }
 
