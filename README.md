@@ -12,12 +12,14 @@ Live at https://delivrie.io
 | `app.html`, `app/` | Dashboard SPA (vanilla JS ES modules, no build step) |
 | `assets/` | Logos, favicon and icons (from the Figma brand page) |
 | `supabase/functions/delivrie/` | Edge function: REST API, SES/SNS integration, webhooks, cron, MCP server |
+| `supabase/migrations/` | Database schema: tables, row-level security, RPCs, cron job, storage bucket |
 | `vercel.json` | Rewrites `/api/*` to the edge function and app routes to `app.html` |
 
 ## Deploy
 
 - **Frontend:** static files on Vercel. No build command; output directory is the repo root.
 - **Backend:** Supabase (Postgres + Auth + Storage) with the `delivrie` edge function.
+  To recreate the database on a new project, run the files in `supabase/migrations/` in order (or `supabase db push`). The cron migration contains the project's function URL; change it if you deploy to a different project.
 
 ## Configuration (Supabase edge function secrets)
 

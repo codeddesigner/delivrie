@@ -29,7 +29,7 @@ export async function help(ctx) {
     <h3 class="section-title" id="contact">Contact support</h3>
     <form class="card card-pad" data-support style="display:flex;flex-direction:column;gap:12px">
       <div class="field"><label>Subject</label><input class="input" name="subject" value="${esc(ctx.query.subject || "")}" placeholder="Emails to Outlook are delayed"></div>
-      <div class="field"><label>Impact</label>${selectHtml("impact", [{ value: "low", label: "Low — a question or minor issue" }, { value: "normal", label: "Normal — something isn’t working" }, { value: "high", label: "High — production sending is affected" }, { value: "urgent", label: "Urgent — all sending is down" }], "normal")}</div>
+      <div class="field"><label>Impact</label>${selectHtml("impact", [{ value: "low", label: "Low — a question or minor issue" }, { value: "medium", label: "Normal — something isn’t working" }, { value: "high", label: "High — production sending is affected" }, { value: "critical", label: "Urgent — all sending is down" }], "medium")}</div>
       <div class="field"><label>Message</label><textarea class="textarea" name="message" rows="6" placeholder="What happened, what you expected, and any email or request IDs."></textarea></div>
       <div class="row-flex"><span class="hint grow">We reply to ${esc(state.user.email)} within one business day.</span><button class="btn btn-primary" type="submit">Send</button></div></form></div>`;
   bindSelects(root);
