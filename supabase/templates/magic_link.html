@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Sign in to Delivrie</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">Your one-time link to sign in to Delivrie.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f4f5">
+  <tr>
+    <td align="center" style="padding:32px 16px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px">
+        <tr>
+          <td bgcolor="#08090a" style="background:#08090a;border-radius:12px 12px 0 0;padding:22px 28px">
+            <a href="https://delivrie.io" style="text-decoration:none"><img src="https://delivrie.io/assets/email-logo.png" width="118" height="22" alt="Delivrie" style="display:block;border:0;width:118px;height:22px"></a>
+          </td>
+        </tr>
+        <tr>
+          <td bgcolor="#ffffff" style="background:#ffffff;border-radius:0 0 12px 12px;padding:32px 28px 30px;font-family:Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#111">
+            <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;font-weight:600;color:#111">Sign in to Delivrie</h1>
+            <p style="margin:0;font-size:15px;line-height:1.6;color:#3f4147">Click the button below to sign in as <b>{{ .Email }}</b>. The link works once.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 8px"><tr><td bgcolor="#FAD600" style="border-radius:8px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:13px 22px;font-family:Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;color:#141314;text-decoration:none;border-radius:8px">Sign in</a></td></tr></table>
+              <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#6b6e76">If the button doesn't work, copy this link into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#3b5bdb;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+            <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#6b6e76">If you didn't ask to sign in, you can ignore this email. Your account is safe.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 28px 0;font-family:Inter,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#8b8e96;text-align:center">
+            Delivrie · Email for developers · <a href="https://delivrie.io" style="color:#8b8e96">delivrie.io</a><br>
+            Questions? Reply to <a href="mailto:support@delivrie.io" style="color:#8b8e96">support@delivrie.io</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
