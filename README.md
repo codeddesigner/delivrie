@@ -1,0 +1,33 @@
+# Delivrie
+
+Email for developers: transactional and marketing email with a REST API, signed webhooks, a visual broadcast editor, audiences, metrics, and an MCP server for AI agents. Sending runs on Amazon SES.
+
+Live at https://delivrie.io
+
+## Structure
+
+| Path | What it is |
+|---|---|
+| `index.html`, `styles.css`, `script.js` | Marketing landing page |
+| `app.html`, `app/` | Dashboard SPA (vanilla JS ES modules, no build step) |
+| `assets/` | Logos, favicon and icons (from the Figma brand page) |
+| `supabase/functions/delivrie/` | Edge function: REST API, SES/SNS integration, webhooks, cron, MCP server |
+| `vercel.json` | Rewrites `/api/*` to the edge function and app routes to `app.html` |
+
+## Deploy
+
+- **Frontend:** static files on Vercel. No build command; output directory is the repo root.
+- **Backend:** Supabase (Postgres + Auth + Storage) with the `delivrie` edge function.
+
+## Configuration (Supabase edge function secrets)
+
+| Secret | Required | Purpose |
+|---|---|---|
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Yes | IAM user with `ses:*` and SNS access to `delivrie-events` topics |
+| `APP_URL` | Yes | Public URL, e.g. `https://delivrie.io` |
+| `SYSTEM_FROM` | Optional | Sender for invites/system mail, e.g. `Delivrie <notifications@delivrie.io>` |
+| `SYSTEM_REGION` | Optional | Default SES region (default `eu-west-1`) |
+| `ANTHROPIC_API_KEY` | Optional | Enables AI answers in Help → Ask Delivrie |
+| `ENFORCE_LIMITS` | Optional | `true` to enforce plan limits |
+
+The Supabase anon key in `app/js/lib/sb.js` is public by design; data access is protected by row-level security.

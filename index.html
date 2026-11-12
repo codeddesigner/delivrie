@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delivrie · Email for individuals building with intelligence</title>
+  <meta name="description" content="Purpose-built for transactional and marketing email. A simple REST API, signed webhooks, deliverability built in, and an MCP server for your agents.">
+  <meta name="theme-color" content="#08090a">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <style>.nav .logo img{width:118px;height:22px}.footer .brand img{width:27px;height:19px}</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="Delivrie home"><img src="assets/logo.svg" width="118" height="22" alt="Delivrie"></a>
+    <div class="spacer"></div>
+    <a class="nav-link" href="#features">Product</a>
+    <a class="nav-link opt" href="#mcp">Resources</a>
+    <a class="nav-link opt" href="#">Customers</a>
+    <a class="nav-link" href="/docs">Docs</a>
+    <a class="nav-link opt" href="#">Changelog</a>
+    <a class="nav-link opt" href="/docs#api-reference">API</a>
+    <span class="divider" aria-hidden="true"></span>
+    <a class="nav-link keep" href="/login">Log in</a>
+    <a class="btn-signup" href="/signup">Sign up</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <h1>Email for individuals building<br> with intelligence.</h1>
+      <div class="hero-sub">
+        <p>Purpose-built for transactional and marketing email. Designed for the inbox.</p>
+        <div class="spacer"></div>
+        <a class="announce" href="/signup">
+          <span class="dot" aria-hidden="true"><img src="assets/hero-dot.svg" width="12" height="16" alt=""></span>
+          <strong>Inbound email is here</strong>
+          <span>Get started →</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="shot" aria-label="Delivrie dashboard preview">
+    <div class="shot-inner">
+      <div class="window" id="window">
+        <div class="app" id="app" aria-hidden="true">
+          <aside class="app-side">
+            <div class="ws">
+              <div class="avatar">K</div>
+              <span class="name">Kora</span>
+              <img class="ico11" src="assets/sb-chevron.svg" alt="">
+              <span class="grow"></span>
+              <span class="ibtn"><img src="assets/sb-search.svg" alt=""></span>
+              <span class="ibtn round boxed"><img src="assets/sb-edit.svg" alt=""></span>
+            </div>
+            <div class="side-item active"><img src="assets/nav-emails.svg" alt="">Emails</div>
+            <div class="side-item"><img src="assets/nav-broadcasts.svg" alt="">Broadcasts</div>
+            <div class="side-item"><img src="assets/nav-templates.svg" alt="">Templates</div>
+            <div class="side-gap"></div>
+            <div class="side-section">Audience <img src="assets/section-caret.svg" alt=""></div>
+            <div class="side-item"><img src="assets/nav-contacts.svg" alt="">Contacts</div>
+            <div class="side-item"><img src="assets/nav-segments.svg" alt="">Segments</div>
+            <div class="side-gap"></div>
+            <div class="side-section">Insights <img src="assets/section-caret.svg" alt=""></div>
+            <div class="side-item"><img src="assets/nav-metrics.svg" alt="">Metrics</div>
+            <div class="side-item"><img src="assets/nav-logs.svg" alt="">Logs</div>
+            <div class="side-gap"></div>
+            <div class="side-section">Configure <img src="assets/section-caret.svg" alt=""></div>
+            <div class="side-item"><img src="assets/nav-domains.svg" alt="">Domains</div>
+            <div class="side-item"><img src="assets/nav-keys.svg" alt="">API keys</div>
+            <div class="side-item"><img src="assets/nav-webhooks.svg" alt="">Webhooks</div>
+            <div class="side-item"><img src="assets/nav-settings.svg" alt="">Settings</div>
+            <div class="side-spacer"></div>
+            <div class="whatsnew"><span class="k">What’s new</span><span class="v">Inbound email is now in beta</span></div>
+          </aside>
+
+          <div class="app-panel">
+            <div class="panel-head">
+              <img class="ico13" src="assets/hdr-mail.svg" alt="">
+              <span class="title">Emails</span>
+              <span class="grow"></span>
+              <span class="ibtn"><img src="assets/hdr-bell.svg" alt=""></span>
+            </div>
+            <div class="viewbar">
+              <span class="chip on">All emails</span>
+              <span class="chip">Sending</span>
+              <span class="chip">Receiving</span>
+              <span class="chip">Scheduled</span>
+              <img class="ico13" src="assets/view-layers.svg" alt="">
+              <span class="grow"></span>
+              <span class="ibtn boxed"><img src="assets/vb-filter.svg" alt=""></span>
+              <span class="ibtn boxed"><img src="assets/vb-sidebar.svg" alt=""></span>
+            </div>
+            <div class="list" id="email-list"></div>
+          </div>
+        </div>
+        <div class="fade"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Made for teams that<br> ship from code</h2>
+        <div class="grow"></div>
+        <p class="lede">Delivrie is shaped by the practices of great engineering teams: a clean REST API, test addresses, webhooks for every event, and logs you can actually read.</p>
+      </div>
+
+      <div class="cards">
+        <article class="card">
+          <div class="card-visual">
+<pre class="code">POST /emails
+{
+  "from": <span class="s">"hello@kora.ng"</span>,
+  "to": <span class="s">"ada@kora.ng"</span>,
+  "subject": <span class="s">"Welcome"</span>,
+  "html": <span class="s">"&lt;p&gt;Hi Ada&lt;/p&gt;"</span>
+}</pre>
+          </div>
+          <h3>Send in one call</h3>
+          <p class="desc">One request with HTML or text. Retries, DKIM signing and bounces handled.</p>
+        </article>
+
+        <article class="card">
+          <div class="card-visual">
+            <div class="ev"><img src="assets/ev-sent.svg" alt=""><span class="n">email.sent</span><span class="t">200 · 9:12:04</span></div>
+            <div class="ev"><img src="assets/ev-delivered.svg" alt=""><span class="n">email.delivered</span><span class="t">200 · 9:12:05</span></div>
+            <div class="ev"><img src="assets/ev-opened.svg" alt=""><span class="n">email.opened</span><span class="t">200 · 7:40:11</span></div>
+            <div class="ev"><img src="assets/ev-opened.svg" alt=""><span class="n">email.clicked</span><span class="t">200 · 7:41:02</span></div>
+          </div>
+          <h3>Every event, on time</h3>
+          <p class="desc">Sent, delivered, opened, clicked, bounced. Signed webhooks, retried for 72 hours.</p>
+        </article>
+
+        <article class="card">
+          <div class="card-visual">
+            <div class="dns"><span class="ty">TXT</span><span class="n">delivrie._domainkey</span><span class="badge">verified</span></div>
+            <div class="dns"><span class="ty">MX</span><span class="n">send</span><span class="badge">verified</span></div>
+            <div class="dns"><span class="ty">TXT</span><span class="n">send · SPF</span><span class="badge">verified</span></div>
+            <div class="dns"><span class="ty">TXT</span><span class="n">_dmarc</span><span class="badge muted">optional</span></div>
+          </div>
+          <h3>Deliverability built in</h3>
+          <p class="desc">DNS records checked continuously. Insights tell you what to fix before it hurts.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section mcp" id="mcp">
+    <div class="wrap">
+      <div class="section-head end">
+        <div class="mcp-title">
+          <span class="tag-mcp"><img src="assets/mcp-dot.svg" alt="">MCP server</span>
+          <h2>Let your agents<br> send the email</h2>
+        </div>
+        <div class="grow"></div>
+        <p class="lede">The Delivrie MCP server gives Claude, Cursor and any MCP client the same API you use: send, schedule, verify domains and read the logs, scoped to a key you control.</p>
+      </div>
+
+      <div class="mcp-grid">
+        <div class="pane">
+          <div class="tabs" role="tablist" aria-label="MCP client">
+            <button class="tab" role="tab" aria-selected="true" data-client="claude">Claude Code</button>
+            <button class="tab" role="tab" aria-selected="false" data-client="cursor">Cursor</button>
+            <button class="tab" role="tab" aria-selected="false" data-client="vscode">VS Code</button>
+            <button class="tab" role="tab" aria-selected="false" data-client="windsurf">Windsurf</button>
+            <button class="tab" role="tab" aria-selected="false" data-client="json">JSON</button>
+            <span class="grow"></span>
+            <button class="copy-btn" id="copy" aria-label="Copy setup command"><span class="ok">Copied</span><img src="assets/copy.svg" alt=""></button>
+          </div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-h"><span class="num">1</span>Create a scoped API key</div>
+<pre class="term"><span class="p">→</span> <span class="w">Dashboard</span> › <span class="y">API keys</span> › <span class="w">Create API key</span></pre>
+            </div>
+            <div class="step">
+              <div class="step-h"><span class="num">2</span><span id="step2-title">Add the server</span></div>
+              <pre class="term" id="step2"></pre>
+            </div>
+            <div class="step">
+              <div class="step-h"><span class="num">3</span>Ask in plain language</div>
+<pre class="term"><span class="p">&gt;</span> <span class="w">Verify kora.ng and send the welcome</span>
+  <span class="w">email to everyone who signed up today.</span></pre>
+            </div>
+          </div>
+          <div class="grow-v"></div>
+          <div class="pane-foot"><img src="assets/shield.svg" alt="">Use a sending-access key to limit what an agent can do.</div>
+        </div>
+
+        <div class="pane">
+          <div class="agent-bar">
+            <img class="wd" src="assets/win-dot.svg" alt=""><img class="wd" src="assets/win-dot.svg" alt=""><img class="wd" src="assets/win-dot.svg" alt="">
+            <span class="grow"></span>
+            <span class="status">delivrie · connected</span>
+            <img class="cd" src="assets/conn-dot.svg" alt="">
+          </div>
+          <div class="chat">
+            <div class="bubble-row"><p class="bubble">Verify kora.ng and send the welcome email to everyone who signed up today.</p></div>
+            <div class="call">
+              <div class="call-h"><img src="assets/terminal.svg" alt=""><span class="fn">verify_domain</span><span class="args">{ domain: "kora.ng" }</span><span class="grow"></span><img src="assets/check.svg" alt="done"></div>
+              <div class="call-r">SPF ✓  DKIM ✓  DMARC ✓  → verified</div>
+            </div>
+            <div class="call">
+              <div class="call-h"><img src="assets/terminal.svg" alt=""><span class="fn">list_contacts</span><span class="args">{ created_after: "today" }</span><span class="grow"></span><img src="assets/check.svg" alt="done"></div>
+              <div class="call-r">42 contacts</div>
+            </div>
+            <div class="call">
+              <div class="call-h"><img src="assets/terminal.svg" alt=""><span class="fn">send_batch</span><span class="args">{ template: "welcome", to: 42 }</span><span class="grow"></span><img src="assets/check.svg" alt="done"></div>
+              <div class="call-r">42 queued · batch_7f3a2c</div>
+            </div>
+            <p class="reply">Done. kora.ng is verified and 42 welcome emails are on their way. 41 delivered so far, 1 still queued. I’ll flag any bounces.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tools">
+        <div class="tools-h"><p>24 tools</p><span class="rule"></span></div>
+        <ul class="tool-list">
+          <li>send_email</li><li>send_batch</li><li>schedule_email</li><li>cancel_email</li><li>get_email</li><li>list_emails</li><li>create_broadcast</li><li>send_broadcast</li><li>create_template</li><li>list_templates</li><li>create_contact</li><li>list_contacts</li><li>create_segment</li><li>create_domain</li><li>verify_domain</li><li>list_domains</li><li>create_webhook</li><li>list_webhook_events</li><li>create_api_key</li><li>list_api_keys</li><li>get_metrics</li><li>get_log</li><li>add_suppression</li><li>list_suppressions</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="brand"><img src="assets/footer-mark.svg" width="27" height="19" alt="Delivrie"></div>
+    <nav class="fcol"><h4>Product</h4><a href="/emails">Emails</a><a href="/broadcasts">Broadcasts</a><a href="/templates">Templates</a><a href="#">Pricing</a><a href="#">Changelog</a></nav>
+    <nav class="fcol"><h4>Developers</h4><a href="/docs">Docs</a><a href="/docs#api-reference">API reference</a><a href="/help">Status</a></nav>
+    <nav class="fcol"><h4>Company</h4><a href="#">About</a><a href="#">Customers</a><a href="#">Careers</a><a href="#">Brand</a></nav>
+    <nav class="fcol"><h4>Legal</h4><a href="#">Terms</a><a href="#">Privacy</a><a href="/settings/documents">DPA</a><a href="/docs#deliverability">Security</a></nav>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
