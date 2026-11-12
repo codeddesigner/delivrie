@@ -1,0 +1,13 @@
+{
+  "name": "Delivrie",
+  "short_name": "Delivrie",
+  "description": "Resend alternative for people building with AI",
+  "start_url": "/emails",
+  "display": "standalone",
+  "background_color": "#211f20",
+  "theme_color": "#211f20",
+  "icons": [
+    { "src": "/assets/brand/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/brand/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
