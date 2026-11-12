@@ -275,6 +275,21 @@ def contact_sales():
     </form></div></section>"""
     page("/contact-sales", "Contact sales", "Talk to the Delivrie team about volume pricing, dedicated IPs and security reviews.", body)
 
+def support():
+    feats = [("book", "Documentation", "Guides for sending, domains, webhooks, the API and the MCP server.", "/docs", "Read the docs"),
+             ("mail", "Email support", "Write to support@delivrie.io. We reply within one business day, Monday to Friday (WAT).", "mailto:support@delivrie.io", "Email support"),
+             ("zap", "System status", "Live status of the API, delivery, webhooks, dashboard and MCP server.", "/status", "View status"),
+             ("shield", "Security", "Report a vulnerability or ask about how we protect your data.", "mailto:security@delivrie.io", "Email security")]
+    cards_html = "".join(f'<article class="fcard"><span class="fic">{ICON.get(i, ICON["spark"])}</span><h3>{E(t)}</h3><p>{E(d)}</p><p><a href="{h}">{E(l)} &rarr;</a></p></article>' for i, t, d, h, l in feats)
+    faq = [("I connected Delivrie to ChatGPT or Claude. How do I disconnect it?", "In Delivrie, open Settings, then Connected apps, and revoke the app. You can also remove it from the AI app's connector settings."),
+           ("Why can't the assistant send from my address?", "Delivrie only sends from domains you have verified in Domains. Add your domain, publish the DNS records, then try again."),
+           ("Which plan am I on and how much have I used?", "Open Billing in the dashboard, or ask your assistant to show your Delivrie usage.")]
+    faq_html = "".join(f'<article class="fcard"><h3>{E(q)}</h3><p>{E(a)}</p></article>' for q, a in faq)
+    body = hero("Support", "How can we help?", "Docs for most questions, and a person for the rest. Email support@delivrie.io and we reply within one business day.", [("Email support", "mailto:support@delivrie.io", "b-primary"), ("Read the docs", "/docs", "b-secondary")])
+    body += f'<section class="section"><div class="wrap"><div class="grid4 reveal-stagger">{cards_html}</div></div></section>'
+    body += f'<section class="section"><div class="wrap"><h2 style="margin:0 0 20px">Common questions</h2><div class="grid3">{faq_html}</div></div></section>'
+    page("/support", "Support", "Get help with Delivrie: documentation, email support, system status and security contacts.", body)
+
 def not_found():
     body = f"""<section class="nf"><div class="wrap reveal in"><span class="code">404</span><h1>This page bounced</h1><p class="lede">The link may be old or mistyped. Even our best deliverability can’t route this one.</p>
     <div class="btn-row"><a class="b-primary" href="/">Back to home</a><a class="b-secondary" href="/docs">Search docs</a></div>
@@ -290,6 +305,6 @@ def refresh_shell(fname):
 
 if __name__ == "__main__":
     for d in LEGAL: legal(d)
-    about(); customers(); careers(); brand(); changelog(); blog(); status(); contact_sales(); not_found()
+    about(); customers(); careers(); brand(); changelog(); blog(); status(); contact_sales(); support(); not_found()
     for f in ("index.html", "pricing.html"): refresh_shell(f)
     print("built", sum(len(fs) for _, _, fs in os.walk(os.path.join(ROOT, "pages"))), "pages")

@@ -39,7 +39,7 @@
       "destination": "/pricing.html"
     },
     {
-      "source": "/:page(terms|privacy|dpa|acceptable-use|cookies|subprocessors|security|about|customers|careers|brand|changelog|blog|status|contact-sales)",
+      "source": "/:page(terms|privacy|dpa|acceptable-use|cookies|subprocessors|security|about|customers|careers|brand|changelog|blog|status|contact-sales|support)",
       "destination": "/pages/:page.html"
     },
     {

@@ -21,8 +21,8 @@
     "com.openai": {
       "interface": {
         "displayName": "Delivrie",
-        "shortDescription": "Send email, run broadcasts and answer your inbox.",
-        "longDescription": "Delivrie is an email platform for people building with AI. Send transactional email from your verified domains, schedule or cancel sends, and use published templates. Manage contacts, segments and broadcasts, build simple automations and send the events that trigger them. Read and reply to customer conversations in your Delivrie Inbox, keeping replies in the same thread. Check domain DNS, delivery metrics, API logs and usage. You choose what ChatGPT can do when you connect: send, read, or make changes.",
+        "shortDescription": "Send email, run your inbox",
+        "longDescription": "Delivrie is an email sending and customer inbox service for businesses and developers. Send transactional email from your verified domains, schedule or cancel sends, and use published templates. Manage contacts, segments and broadcasts, build simple automations and send the events that trigger them. Read and reply to customer conversations in your Delivrie Inbox, keeping replies in the same thread. Check domain DNS, delivery metrics, API logs and usage. You choose what ChatGPT can do when you connect: send, read, or make changes.",
         "developerName": "South Circle",
         "category": "Productivity",
         "capabilities": [
@@ -37,9 +37,66 @@
           "Which inbox conversations need a reply?",
           "Send a test email to delivered@test.delivrie.io"
         ],
-        "brandColor": "#F9D602",
+        "brandColor": "#B89A00",
         "composerIcon": "./assets/icon.png",
-        "logo": "./assets/logo.png"
+        "logo": "./assets/logo.png",
+        "supportURL": "https://delivrie.io/support",
+        "brandColorDark": "#F9D602"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Check plan usage",
+              "prompt": "Show my Delivrie usage this month",
+              "tools_triggered": "get_usage",
+              "expected_behavior": "Calls get_usage and reports emails sent today and this month against the plan limits."
+            },
+            {
+              "description": "List sending domains",
+              "prompt": "Which domains can I send from?",
+              "tools_triggered": "list_domains",
+              "expected_behavior": "Calls list_domains and lists each domain with its verification status."
+            },
+            {
+              "description": "Send a test email",
+              "prompt": "Send a test email from hello@delivrie.io to delivered@test.delivrie.io with the subject 'Review test'",
+              "tools_triggered": "send_email",
+              "expected_behavior": "Calls send_email and returns the new email ID with a queued or sent status."
+            },
+            {
+              "description": "Create a segment and add a contact",
+              "prompt": "Create a segment called 'Review testers' and add delivered@test.delivrie.io to it",
+              "tools_triggered": "create_segment, add_contacts_to_segment",
+              "expected_behavior": "Calls create_segment, then add_contacts_to_segment, and confirms the contact was added."
+            },
+            {
+              "description": "Delivery metrics",
+              "prompt": "How did my emails perform over the last 7 days?",
+              "tools_triggered": "get_metrics",
+              "expected_behavior": "Calls get_metrics and summarises sent, delivered, bounced, opened and clicked counts."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Unrelated question (weather). Does not call any Delivrie tool; the request is unrelated to email.",
+              "prompt": "What's the weather in Lagos today?"
+            },
+            {
+              "description": "Unrelated creative request. Does not call any Delivrie tool; answers directly.",
+              "prompt": "Write me a poem about the ocean"
+            },
+            {
+              "description": "Sending from an unverified address. Does not send. Explains that Delivrie only sends from domains verified in the account and may call list_domains to show which ones are available.",
+              "prompt": "Send an email from someone@gmail.com to my friend"
+            }
+          ]
+        },
+        "commerce": false,
+        "commerce_description": "This plugin does not sell products or process payments in ChatGPT."
+      },
+      "publication": {
+        "release_notes": "First release: 64 tools for sending email, broadcasts, automations, inbox replies, domains and metrics."
       }
     }
   }
