@@ -6,7 +6,7 @@ export const DOCS = [
 2. Add and verify a domain in Domains so you can send from your own address, for example orders@mail.yourcompany.com.
 3. Send an email with POST /emails, passing from, to, subject and html or text.
 
-Every request is authenticated with the header Authorization: Bearer dlv_your_key. The base URL is https://delivrie.vercel.app/api.` },
+Every request is authenticated with the header Authorization: Bearer dlv_your_key. The base URL is https://delivrie.io/api.` },
   { id: "send-email", title: "Send an email", body: `POST /emails sends one email. Body fields:
 from (required) "Name <you@yourdomain.com>" from a verified domain.
 to (required) one address or an array of up to 50.
@@ -16,10 +16,16 @@ cc, bcc, reply_to: an address or array.
 headers: an object of custom headers.
 tags: [{ "name": "category", "value": "transactional" }] (letters, numbers, _ and - only).
 attachments: [{ "filename": "invoice.pdf", "content": "<base64>" }] up to 40 MB total.
-scheduled_at: an ISO 8601 date up to 30 days ahead to schedule the send.
+scheduled_at: an ISO 8601 date, or a phrase like "in 1 hour" or "tomorrow at 9am" (UTC), up to 30 days ahead.
 template: { "id": "order-confirmation", "variables": { "first_name": "Ada" } } to send a published template by id or alias.
 
 Send an Idempotency-Key header to make retries safe. The response is { "id": "<email id>" }. POST /emails/batch takes an array of up to 100 emails.` },
+  { id: "test-mode", title: "Test addresses", body: `Send to these addresses to test your integration without touching your sending reputation. They go through the full pipeline and fire real events and webhooks.
+delivered@test.delivrie.io is accepted and delivered.
+bounced@test.delivrie.io hard-bounces, so you can test bounce handling.
+complained@test.delivrie.io is delivered and then marked as spam.
+suppressed@test.delivrie.io behaves like an address on a provider suppression list.
+Test sends count toward your plan like any other email. They are never added to your own suppression list.` },
   { id: "email-status", title: "Email statuses and events", body: `Each email moves through statuses: queued, scheduled, sent, delivered, delivery_delayed, opened, clicked, bounced, complained, failed, canceled and suppressed.
 sent means Amazon SES accepted the message. delivered means the recipient's mail server accepted it. opened and clicked need open or click tracking turned on for the sending domain.
 bounced means the receiving server rejected the message. Permanent bounces add the address to your suppression list automatically. complained means the recipient marked it as spam; the address is suppressed and the contact unsubscribed.
@@ -49,10 +55,13 @@ Failed deliveries are retried with backoff for up to 72 hours. You can replay an
   { id: "templates", title: "Templates", body: `Templates are reusable emails with variables. Write {{{first_name}}} in the subject or body; give each variable a type and a fallback used when the value is missing. Publish to make a version live for API sends, then send with template: { "id": "your-alias", "variables": { ... } }. Every publish is kept in version history and reverting creates a new version.` },
   { id: "broadcasts", title: "Broadcasts", body: `Broadcasts send one email to a segment. Pick a verified sender, a segment and optionally a topic so recipients can opt out of that kind of email. Use {{first_name}} or any contact property, with fallbacks. Every broadcast should include an unsubscribe footer; Delivrie also adds one-click List-Unsubscribe headers. Send a test to up to five inboxes, then send now or schedule.` },
   { id: "contacts", title: "Contacts, segments and topics", body: `Contacts belong to your team and can be added by hand, imported from CSV or created with POST /contacts. Properties store custom data like plan or city. Segments group contacts for broadcasts. Topics power the hosted unsubscribe page so people can opt out of one kind of email without leaving entirely.` },
-  { id: "mcp", title: "Can agents send through MCP?", body: `Yes. Delivrie runs a remote MCP server at https://delivrie.vercel.app/api/mcp. Create a scoped API key, then add the server to Claude Code with: claude mcp add --transport http delivrie https://delivrie.vercel.app/api/mcp --header "Authorization: Bearer dlv_your_key". Agents get tools to send, schedule, verify domains, manage contacts and read logs, limited to what the key allows.` },
+  { id: "mcp", title: "Can agents send through MCP?", body: `Yes. Delivrie runs a remote MCP server at https://delivrie.io/api/mcp. Create a scoped API key, then add the server to Claude Code with: claude mcp add --transport http delivrie https://delivrie.io/api/mcp --header "Authorization: Bearer dlv_your_key". Agents get tools to send, schedule, verify domains, manage contacts and read logs, limited to what the key allows.` },
   { id: "cors", title: "How do I fix CORS errors?", body: `Never call the Delivrie API directly from a browser: it would expose your API key to anyone who opens the page. Call it from your server, a serverless function or an edge function, and keep the key in an environment variable.` },
   { id: "smtp", title: "SMTP", body: `Delivrie is API-first. To send from software that only speaks SMTP, use Amazon SES SMTP credentials for the same AWS account behind Delivrie, or call the REST API from a small relay. Native Delivrie SMTP is on the roadmap.` },
-  { id: "errors", title: "Errors", body: `Errors return JSON with statusCode, name and message. 401 missing_api_key or invalid_api_key, 403 restricted_api_key, 404 not_found, 409 conflict, 422 validation_error (for example an unverified from domain), 429 rate_limit_exceeded or daily_quota_exceeded, 503 sending_not_configured. Every API call appears in Logs with its request and response body.` },
+  { id: "limits", title: "Plans and limits", body: `Free includes 3,000 emails a month with a limit of 100 a day, 1 custom domain and 1 webhook endpoint. Pro includes 20,000 emails a month, 10 domains and 10 webhooks with no daily limit. Scale includes 100,000 emails a month and 1,000 domains.
+On Pro and Scale, emails over the allowance keep sending and are billed per 1,000 at the end of the month. Set a spending cap in Settings → Billing to stop sending instead; the API then returns 429 spending_cap_reached.
+On Free, sending pauses at the limit with 429 daily_quota_exceeded or monthly_quota_exceeded. Pay-as-you-go credits keep you sending: one credit is one email, credits never expire, and they are used after the free allowance runs out.` },
+  { id: "errors", title: "Errors", body: `Errors return JSON with statusCode, name and message. 401 missing_api_key or invalid_api_key, 403 restricted_api_key, 404 not_found, 409 conflict, 422 validation_error (for example an unverified from domain), 429 daily_quota_exceeded, monthly_quota_exceeded or spending_cap_reached, 403 plan_limit_reached when you hit your plan's domain or webhook limit, 503 sending_not_configured. Every API call appears in Logs with its request and response body.` },
 ];
 
 export function searchDocs(q, n = 3) {

@@ -24,7 +24,7 @@ export async function help(ctx) {
       <form data-ask class="row-flex" style="padding:12px 14px;border-top:1px solid var(--border)"><input class="input" data-q placeholder="Ask a question…" autocomplete="off"><button class="btn btn-primary" type="submit">${icon("send", 13)}</button></form></div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px">
       <a class="card card-pad" href="/docs"><div class="row-flex">${icon("book", 15)}<b style="font-weight:500">Documentation</b></div><p class="muted" style="font-size:12.5px;margin-top:6px">Guides and the API reference.</p></a>
-      <a class="card card-pad" href="/docs#deliverability"><div class="row-flex">${icon("shield", 15)}<b style="font-weight:500">Deliverability</b></div><p class="muted" style="font-size:12.5px;margin-top:6px">Stay out of spam folders.</p></a>
+      <a class="card card-pad" href="/docs/deliverability"><div class="row-flex">${icon("shield", 15)}<b style="font-weight:500">Deliverability</b></div><p class="muted" style="font-size:12.5px;margin-top:6px">Stay out of spam folders.</p></a>
       <a class="card card-pad" href="/logs"><div class="row-flex">${icon("list", 15)}<b style="font-weight:500">Logs</b></div><p class="muted" style="font-size:12.5px;margin-top:6px">Debug API requests.</p></a></div>
     <h3 class="section-title" id="contact">Contact support</h3>
     <form class="card card-pad" data-support style="display:flex;flex-direction:column;gap:12px">

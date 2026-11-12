@@ -8,7 +8,7 @@ const ROUTES = [
   ["/login", "auth", "login", "public"], ["/signup", "auth", "signup", "public"], ["/reset", "auth", "reset", "public"], ["/reset/new", "auth", "resetNew", "public"],
   ["/confirm", "auth", "confirm", "public"], ["/verify", "auth", "verify", "public"], ["/mfa", "auth", "mfa", "public"],
   ["/new-team", "auth", "newTeam", "auth"], ["/invite/:token", "auth", "invite", "public"],
-  ["/unsubscribe", "public", "unsubscribe", "public"], ["/share/:token", "public", "share", "public"], ["/docs", "help", "docs", "public"],
+  ["/unsubscribe", "public", "unsubscribe", "public"], ["/share/:token", "public", "share", "public"], ["/docs", "docs", "default", "public"], ["/docs/:a", "docs", "default", "public"], ["/docs/:a/:b", "docs", "default", "public"],
   ["/onboarding", "onboarding", "default", "app"],
   ["/emails", "emails", "list", "app"], ["/emails/:id", "emails", "detail", "app"],
   ["/broadcasts", "broadcasts", "list", "app"], ["/broadcasts/:id", "broadcasts", "report", "app"], ["/broadcasts/:id/edit", "broadcast-edit", "default", "full"], ["/broadcasts/:id/scheduled", "broadcasts", "scheduled", "full"],
@@ -69,7 +69,7 @@ function shellHtml() {
       </div>
       ${NAV.map((n) => n.section ? `<div class="nav-sec ${closed[n.section] ? "closed" : ""}" data-sec="${n.section}">${n.section}<span class="caret"></span></div><div class="nav-group ${closed[n.section] ? "closed" : ""}" data-group="${n.section}">${n.items.map(navLink).join("")}</div>` : navLink(n)).join("")}
       <div class="side-spacer"></div>
-      <a class="whatsnew" href="/docs#getting-started"><span class="k">What’s new</span><span class="v">Inbound email is now in beta</span></a>
+      <a class="whatsnew" href="/docs"><span class="k">What’s new</span><span class="v">Inbound email is now in beta</span></a>
     </nav>
     <div class="main"><section class="panel">
       <header class="topbar"><button class="ibtn mobile-only" id="side-toggle">${icon("sidebar", 15)}</button><div class="crumbs" id="crumbs"></div>
@@ -113,7 +113,7 @@ function accountMenu(anchor) {
     { label: "Create team", icon: "plus", onClick: () => createTeamModal() },
     { sep: true },
     { label: "Documentation", icon: "book", onClick: () => navigate("/docs") },
-    { label: "Changelog", icon: "zap", onClick: () => navigate("/docs#getting-started") },
+    { label: "Changelog", icon: "zap", onClick: () => navigate("/docs") },
     { label: "Onboarding", icon: "terminal", onClick: () => navigate("/onboarding") },
     ...(state.platformAdmin ? [{ sep: true }, { label: "Admin", icon: "shield", onClick: () => navigate("/admin") }] : []),
     { sep: true },

@@ -23,7 +23,7 @@
       "destination": "/app.html"
     },
     {
-      "source": "/(reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings|admin)/:rest*",
+      "source": "/(docs|reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings|admin)/:rest*",
       "destination": "/app.html"
     }
   ],

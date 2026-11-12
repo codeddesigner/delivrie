@@ -6,7 +6,7 @@ const env = (k: string) => Deno.env.get(k) ?? "";
 
 export const SUPABASE_URL = env("SUPABASE_URL");
 export const db = createClient(SUPABASE_URL, env("SUPABASE_SERVICE_ROLE_KEY"), { auth: { persistSession: false, autoRefreshToken: false } });
-export const APP_URL = (env("APP_URL") || "https://delivrie.vercel.app").replace(/\/$/, "");
+export const APP_URL = (env("APP_URL") || "https://delivrie.io").replace(/\/$/, "");
 export const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/delivrie`;
 /** Optional platform sender used for onboarding, invites and system mail, e.g. "Delivrie <onboarding@mail.example.com>" */
 export const SYSTEM_FROM = env("SYSTEM_FROM");

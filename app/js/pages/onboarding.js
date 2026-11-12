@@ -128,7 +128,7 @@ export default async function onboarding(ctx) {
   const explore = () => `<h2 class="section-title" style="font-size:16px;margin-top:36px">Explore more</h2><p class="muted" style="margin-bottom:14px">Keep going with the rest of Delivrie.</p>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
       ${[["globe", "Add a domain", `Send from your own domain instead of the shared sender and lift deliverability.`, "/domains/new", "Add domain", true],
-         ["zap", "Test emails", "Simulate delivered, bounced and complained events with Amazon SES test addresses: success@, bounce@ and complaint@simulator.amazonses.com.", "/docs#email-status", "Learn more"],
+         ["zap", "Test emails", "Simulate delivered, bounced and complained events with test addresses: delivered@, bounced@ and complained@test.delivrie.io.", "/docs/test-mode", "Learn more"],
          ["webhook", "Webhooks", "Get a signed HTTP callback for every delivery, bounce, open and click.", "/webhooks?new=1", "Add webhook"],
          ["users", "Invite your team", "Add teammates as Admins or Members.", "/settings/team", "Invite"]]
         .map(([ic, t, d, href, cta, rec]) => `<div class="card card-pad" style="display:flex;flex-direction:column;gap:8px"><div class="row-flex"><span class="head-ico" style="width:30px;height:30px">${icon(ic, 14)}</span><b style="font-weight:500">${t}</b>${rec ? '<span class="badge yellow">Recommended</span>' : ""}</div><p class="muted" style="font-size:12.5px">${d}</p><a class="btn btn-secondary btn-sm" style="align-self:flex-start;margin-top:4px" href="${href}">${cta}</a></div>`).join("")}
