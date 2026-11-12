@@ -1,11 +1,11 @@
 :root {
-  --bg: #08090a;
-  --bg-2: #0e0f11;
-  --panel: #0f1011;
-  --surface: #141516;
-  --bg-muted: #18191b;
-  --bg-active: #1c1d1f;
-  --border-app: #23252a;
+  --bg: #211f20;
+  --bg-2: #262425;
+  --panel: #262425;
+  --surface: #2b2829;
+  --bg-muted: #302d2e;
+  --bg-active: #363334;
+  --border-app: #3d3a3b;
   --fg: #f7f8f8;
   --fg-2: #8a8f98;
   --fg-3: #62666d;
@@ -49,12 +49,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .nav-link { font-size: 14px; color: var(--fg-2); white-space: nowrap; transition: color 0.15s; }
 .nav-link:hover { color: var(--fg); }
 .nav .divider { width: 1px; height: 16px; background: rgba(255, 255, 255, 0.14); }
-.btn-signup { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 7px; background: var(--fg); color: #08090a; font-size: 14px; font-weight: 500; white-space: nowrap; transition: background 0.15s; }
+.btn-signup { height: 34px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 7px; background: var(--fg); color: #211f20; font-size: 14px; font-weight: 500; white-space: nowrap; transition: background 0.15s; }
 .btn-signup:hover { background: #ffffff; }
 .nav-toggle { display: none; }
 
 /* ---------- Hero ---------- */
-.hero { background: linear-gradient(to bottom, #08090a, #0e0f11); }
+.hero { background: linear-gradient(to bottom, #211f20, #1c1a1b); }
 .hero .wrap { padding-top: 150px; padding-bottom: 56px; display: flex; flex-direction: column; gap: 28px; }
 .hero h1 { font-size: 72px; line-height: 1.04; letter-spacing: -2.304px; font-weight: 500; color: var(--fg); }
 .hero-sub { display: flex; align-items: center; gap: 24px; }
@@ -70,9 +70,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- Product shot ---------- */
 .shot { background: var(--bg-2); }
 .shot-inner { max-width: 1440px; margin: 0 auto; padding: 0 94px; }
-.window { position: relative; width: 100%; aspect-ratio: 1252 / 640; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; background: #08090a; overflow: hidden; }
-.window .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 40.625%; background: linear-gradient(to bottom, rgba(14, 15, 17, 0), #0e0f11); pointer-events: none; }
-.app { position: absolute; left: -1px; top: -1px; width: 1252px; height: 782.5px; transform-origin: 0 0; background: #08090a; font-size: 11.303px; letter-spacing: -0.0452px; line-height: 15.65px; }
+.window { position: relative; width: 100%; aspect-ratio: 1252 / 640; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; background: #211f20; overflow: hidden; }
+.window .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 40.625%; background: linear-gradient(to bottom, rgba(14, 15, 17, 0), #1c1a1b); pointer-events: none; }
+.app { position: absolute; left: -1px; top: -1px; width: 1252px; height: 782.5px; transform-origin: 0 0; background: #211f20; font-size: 11.303px; letter-spacing: -0.0452px; line-height: 15.65px; }
 
 .app-side { position: absolute; left: 0; top: 0; width: 208.667px; height: 782.5px; padding: 8.694px 6.956px; display: flex; flex-direction: column; gap: 0.869px; }
 .ws { display: flex; align-items: center; gap: 6.086px; padding: 0 1.739px 12.172px 6.956px; }
@@ -117,7 +117,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .row .grow { flex: 1; }
 .pill { height: 20.867px; display: inline-flex; align-items: center; gap: 5.217px; padding: 0 7.825px; border-radius: 10.433px; border: 0.869px solid var(--border-app); background: var(--surface); font-size: 10.433px; line-height: 13.911px; letter-spacing: -0.0209px; }
 .pill .tdot { width: 6.956px; height: 6.956px; }
-.ava { width: 15.65px; height: 15.65px; border-radius: 7.825px; background: #2a2c31; color: #b4b8c0; font-size: 7.825px; line-height: 1.35; font-weight: 500; display: grid; place-items: center; letter-spacing: 0; }
+.ava { width: 15.65px; height: 15.65px; border-radius: 7.825px; background: #3d3a3b; color: #b4b8c0; font-size: 7.825px; line-height: 1.35; font-weight: 500; display: grid; place-items: center; letter-spacing: 0; }
 .row .date { font-size: 10.433px; line-height: 13.911px; letter-spacing: -0.0209px; color: var(--fg-2); }
 
 /* ---------- Section headers ---------- */
@@ -168,7 +168,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .step { display: flex; flex-direction: column; gap: 10px; }
 .step-h { display: flex; align-items: center; gap: 10px; font-size: 13px; line-height: 18px; letter-spacing: -0.052px; font-weight: 500; }
 .num { width: 18px; height: 18px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 5px; display: grid; place-items: center; font-family: var(--mono); font-size: 12px; line-height: 1.5; color: var(--fg-2); font-weight: 400; }
-.term { margin: 0; background: #08090a; border: 1px solid var(--line-soft); border-radius: 8px; padding: 14px 16px; font-family: var(--mono); font-size: 13px; line-height: 1.6; color: var(--fg-2); white-space: pre; overflow-x: auto; }
+.term { margin: 0; background: #211f20; border: 1px solid var(--line-soft); border-radius: 8px; padding: 14px 16px; font-family: var(--mono); font-size: 13px; line-height: 1.6; color: var(--fg-2); white-space: pre; overflow-x: auto; }
 .term .p { color: var(--fg-3); }
 .term .y { color: var(--yellow); }
 .term .w { color: var(--fg); }
