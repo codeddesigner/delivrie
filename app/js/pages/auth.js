@@ -70,8 +70,15 @@ export async function verify(ctx) {
 
 export async function confirm(ctx) {
   // Supabase lands here with ?code= (PKCE) or #access_token; detectSessionInUrl handles the exchange.
-  const card = layout(ctx.root, `${mark}<h1>Confirm your account</h1><p class="sub" data-msg>Finishing sign-in…</p><button class="btn btn-primary btn-lg btn-block" data-go disabled>Confirm account</button><p class="legal">Trouble confirming? Email <a class="y" href="mailto:support@delivrie.com">support@delivrie.com</a></p>`);
-  const err = ctx.query.error_description || new URLSearchParams(location.hash.slice(1)).get("error_description");
+  const card = layout(ctx.root, `${mark}<h1>Confirm your account</h1><p class="sub" data-msg>Finishing sign-in…</p><button class="btn btn-primary btn-lg btn-block" data-go disabled>Confirm account</button><p class="legal">Trouble confirming? Email <a class="y" href="mailto:support@delivrie.io">support@delivrie.io</a></p>`);
+  let err = ctx.query.error_description || new URLSearchParams(location.hash.slice(1)).get("error_description");
+  // Links in Delivrie's auth emails point at delivrie.io/confirm?token_hash=…&type=… (no supabase.co in the URL).
+  if (ctx.query.token_hash && ctx.query.type) {
+    const { error } = await sb.auth.verifyOtp({ token_hash: ctx.query.token_hash, type: ctx.query.type });
+    history.replaceState(null, "", "/confirm");
+    if (error) err = /expired|invalid/i.test(error.message) ? "This link is invalid or has expired. Log in or request a new link." : error.message;
+    else if (ctx.query.type === "email_change") { toast("Email address updated"); return ctx.navigate("/profile", { replace: true }); }
+  }
   let session = null;
   for (let i = 0; i < 20 && !session && !err; i++) { session = (await sb.auth.getSession()).data.session; if (!session) await new Promise((r) => setTimeout(r, 250)); }
   const msg = card.querySelector("[data-msg]"), btn = card.querySelector("[data-go]");
@@ -155,6 +162,11 @@ export async function reset(ctx) {
 }
 
 export async function resetNew(ctx) {
+  if (ctx.query.token_hash && ctx.query.type === "recovery") {
+    const { error } = await sb.auth.verifyOtp({ token_hash: ctx.query.token_hash, type: "recovery" });
+    history.replaceState(null, "", "/reset/new");
+    if (error) { toast("This reset link is invalid or has expired. Request a new one.", "err", 6000); return ctx.navigate("/reset", { replace: true }); }
+  }
   const card = layout(ctx.root, `${mark}<h1>Set a new password</h1><p class="sub">Must be at least 10 characters and different from your last one.</p>
     <form novalidate>${pwField("pw1", "New password")}${pwField("pw2", "Confirm new password")}<div class="hint" data-match></div>
     <button class="btn btn-primary btn-lg btn-block" type="submit" disabled>Update password</button></form>`);

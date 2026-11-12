@@ -2,13 +2,63 @@
   "cleanUrls": false,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/:path*" },
-    { "source": "/(login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|settings|profile|help)", "destination": "/app.html" },
-    { "source": "/(reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings)/:rest*", "destination": "/app.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/:path*"
+    },
+    {
+      "source": "/media/:path*",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/storage/v1/object/public/email-assets/:path*"
+    },
+    {
+      "source": "/(login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|settings|profile|help)",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/(reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings)/:rest*",
+      "destination": "/app.html"
+    }
   ],
   "headers": [
-    { "source": "/app/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
-    { "source": "/app.html", "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }] },
-    { "source": "/(.*)", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }] }
+    {
+      "source": "/media/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/app/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/app.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
   ]
 }

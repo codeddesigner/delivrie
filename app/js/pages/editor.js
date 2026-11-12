@@ -271,7 +271,7 @@ export function mountEditor(container, opts) {
         const path = `${state.team.id}/${Date.now()}-${file.name.replace(/[^\w.-]/g, "_")}`;
         const { error } = await sb.storage.from("email-assets").upload(path, file, { contentType: file.type, upsert: false });
         if (error) throw error;
-        b.src = sb.storage.from("email-assets").getPublicUrl(path).data.publicUrl;
+        b.src = `${location.origin}/media/${path}`;
         b.alt ||= file.name.replace(/\.\w+$/, "");
         apply("src", b.src); renderInspector(); toast("Image uploaded");
       } catch (e) { errToast(e); }

@@ -63,7 +63,7 @@ async function team(body, ctx) {
     const f = inp.files[0]; if (!f) return; if (f.size > 2 * 1024 * 1024) return toast("Logos must be under 2 MB", "err");
     const path = `${T()}/team-avatar-${Date.now()}.${(f.name.split(".").pop() || "png").toLowerCase()}`;
     const { error } = await sb.storage.from("email-assets").upload(path, f, { contentType: f.type }); if (error) return errToast(error);
-    const url = sb.storage.from("email-assets").getPublicUrl(path).data.publicUrl;
+    const url = `${location.origin}/media/${path}`;
     await sb.from("teams").update({ avatar_url: url }).eq("id", T()); state.team.avatar_url = url; toast("Logo updated"); reload();
   });
   on(body, "click", "[data-invite]", () => formModal({ title: "Invite to team", fields: [{ name: "email", label: "Email", placeholder: "teammate@example.com", type: "email" }, { name: "role", label: "Role", type: "select", value: "member", options: [{ value: "member", label: "Member" }, { value: "admin", label: "Admin" }] }], submit: "Send invite", validate: (v) => EMAIL_RE.test(v.email),
