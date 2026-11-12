@@ -236,6 +236,7 @@ async function handle(req: Request, path: string): Promise<Response> {
 async function webhook(req: Request) {
   const raw = await req.text();
   const sig = req.headers.get("x-paystack-signature") || "";
+  if (!PSK || !sig) return json({ error: "invalid signature" }, 401);
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(PSK), { name: "HMAC", hash: "SHA-512" }, false, ["sign"]);
   const mac = Array.from(new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw)))).map((x) => x.toString(16).padStart(2, "0")).join("");
   if (!PSK || mac !== sig) return json({ error: "invalid signature" }, 401);
