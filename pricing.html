@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pricing · Delivrie</title>
+  <meta name="description" content="Purpose-built for transactional and marketing email. A simple REST API, signed webhooks, deliverability built in, and an MCP server for your agents.">
+  <meta name="theme-color" content="#211f20">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Delivrie">
+  <meta property="og:url" content="https://delivrie.io/pricing">
+  <meta property="og:title" content="Delivrie pricing · Half the price. All of the platform.">
+  <meta property="og:description" content="Purpose-built for transactional and marketing email. A simple REST API, signed webhooks, deliverability built in, and an MCP server for your agents.">
+  <meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Email for individuals building with intelligence, beside the glowing yellow Delivrie mark">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Delivrie pricing · Half the price. All of the platform.">
+  <meta name="twitter:description" content="Purpose-built for transactional and marketing email. A simple REST API, signed webhooks and an MCP server for your agents.">
+  <meta name="twitter:image" content="https://delivrie.io/assets/og-image.jpg">
+  <link rel="canonical" href="https://delivrie.io/pricing">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <style>.nav .logo img{width:118px;height:22px}.footer .brand img{width:27px;height:19px}.cta-mark{width:72px;height:51px}</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.add("js")</script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="Delivrie home"><img src="assets/logo.svg" width="118" height="22" alt="Delivrie"></a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="nav-link" href="/#integrate">Product</a>
+      <a class="nav-link" href="/docs">Docs</a>
+      <a class="nav-link on" href="/pricing">Pricing</a>
+      <a class="nav-link opt" href="/#mcp">MCP</a>
+      <a class="nav-link opt" href="/docs#getting-started">Changelog</a>
+    </nav>
+    <div class="spacer"></div>
+    <a class="nav-link keep" href="/login">Log in</a>
+    <a class="btn-signup" href="/signup">Get started</a>
+  </div>
+</header>
+
+<main class="pricing">
+  <section class="p-head">
+    <div class="wrap reveal in">
+      <span class="eyebrow"><i></i>Pricing</span>
+      <h1>Half the price.<br> All of the platform.</h1>
+      <p>Every plan gets the same API, logs and MCP server. Pay monthly, save with yearly,<br> or skip the subscription and pay only for what you send.</p>
+      <div class="p-toggles">
+        <div class="seg-l" role="group" aria-label="Billing"><button data-mode="monthly" class="on">Monthly</button><button data-mode="yearly">Yearly <span class="save">2 months free</span></button><button data-mode="payg">Pay as you go</button></div>
+        <div class="seg-l" role="group" aria-label="Currency"><button data-cur="NGN">₦ NGN</button><button data-cur="USD">$ USD</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="p-plans" id="plans"><div class="wrap"><div class="plans4" id="plan-grid"></div><p class="p-note" id="plan-note"></p></div></section>
+
+  <section class="p-payg"><div class="wrap"><div class="payg-card reveal" id="payg"></div></div></section>
+
+  <section class="section" id="calculator">
+    <div class="wrap">
+      <div class="section-head reveal"><div><span class="eyebrow"><i></i>Estimate</span><h2>What will I pay?</h2></div><div class="grow"></div><p class="lede">Drag to your expected monthly volume. We recommend the cheapest option, including overage.</p></div>
+      <div class="calc reveal">
+        <div class="calc-l">
+          <div class="row-b"><span class="dim">Emails per month</span><output id="calc-out">50,000</output></div>
+          <input type="range" id="calc" min="0" max="1000" value="566" aria-label="Emails per month">
+          <div class="ticks"><span>1k</span><span>10k</span><span>50k</span><span>100k</span><span>500k</span><span>1M+</span></div>
+          <div class="presets"><span class="dim">Presets</span><button data-v="2000">Side project · 2k</button><button data-v="20000">Startup · 20k</button><button data-v="50000">Growth · 50k</button><button data-v="150000">Scale · 150k</button></div>
+        </div>
+        <div class="calc-r"><div class="dim mono-h">Your estimate</div><div id="calc-opts"></div><p class="dim calc-foot" id="calc-foot"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="marketing">
+    <div class="wrap">
+      <div class="section-head reveal"><div><span class="eyebrow"><i></i>Marketing</span><h2>Broadcasts and audiences</h2></div><div class="grow"></div><p class="lede">Add marketing to any plan. Priced by contacts, with unlimited broadcast sends to them.</p></div>
+      <div class="grid3 reveal-stagger" id="mkt"></div>
+    </div>
+  </section>
+
+  <section class="section" id="compare">
+    <div class="wrap">
+      <div class="section-head reveal"><div><span class="eyebrow"><i></i>Compare</span><h2>Compare plans</h2></div><div class="grow"></div><p class="lede">Every limit, in one place. Enterprise limits are set with you.</p></div>
+      <div class="cmp-wrap reveal"><table class="cmp" id="cmp"></table></div>
+    </div>
+  </section>
+
+  <section class="section" id="faq">
+    <div class="wrap faq-wrap">
+      <div class="reveal"><span class="eyebrow"><i></i>FAQ</span><h2 class="faq-h">Questions, answered</h2><p class="lede">Can’t find it here? Email <a href="mailto:billing@delivrie.io">billing@delivrie.io</a> and a human will reply.</p></div>
+      <div class="faq reveal" id="faq-list"></div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <div class="wrap reveal">
+      <img class="cta-mark" src="assets/mark.svg" width="72" height="51" alt="">
+      <h2>Email for builders.<br> Ready when you are.</h2>
+      <p>3,000 free emails every month. No card required.</p>
+      <div class="row"><a class="b-primary" href="/signup">Start for free</a><a class="b-secondary" href="mailto:sales@delivrie.io?subject=Delivrie%20for%20our%20team">Talk to sales</a></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="brand"><img src="assets/footer-mark.svg" width="27" height="19" alt="Delivrie"></div>
+    <nav class="fcol"><h4>Product</h4><a href="/signup">Emails</a><a href="/signup">Broadcasts</a><a href="/signup">Templates</a><a href="/pricing">Pricing</a><a href="/docs#getting-started">Changelog</a></nav>
+    <nav class="fcol"><h4>Developers</h4><a href="/docs">Docs</a><a href="/docs#api-reference">API reference</a><a href="/#mcp">MCP server</a><a href="/help">Status</a></nav>
+    <nav class="fcol"><h4>Company</h4><a href="mailto:hello@delivrie.io">Contact</a><a href="mailto:sales@delivrie.io">Sales</a><a href="mailto:billing@delivrie.io">Billing</a><a href="assets/logo.svg" data-native>Brand</a></nav>
+    <nav class="fcol"><h4>Legal</h4><a href="/docs#terms">Terms</a><a href="/docs#privacy">Privacy</a><a href="/settings/documents">DPA</a><a href="/docs#deliverability">Security</a></nav>
+  </div>
+  <div class="wrap fbottom"><span>© 2026 South Circle · Lagos · delivrie.io</span><span class="grow"></span><a class="sys" href="/help" id="sys"><i></i><span>All systems operational</span></a></div>
+</footer>
+
+<script src="pricing.js"></script>
+</body>
+</html>

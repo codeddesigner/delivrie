@@ -20,6 +20,7 @@ const ROUTES = [
   ["/api-keys", "keys", "apiKeys", "app"], ["/webhooks", "keys", "webhooks", "app"], ["/webhooks/:id", "keys", "webhook", "app"],
   ["/settings/unsubscribe-page", "settings", "unsubscribeEditor", "full"], ["/settings", "settings", "default", "app"], ["/settings/:tab", "settings", "default", "app"],
   ["/profile", "settings", "profile", "app"], ["/help", "help", "help", "app"],
+  ["/admin", "admin", "default", "auth"], ["/admin/:tab", "admin", "default", "auth"],
 ].map(([p, mod, exp, kind]) => {
   const keys = [];
   const re = new RegExp("^" + p.replace(/:([a-z]+)/g, (_m, k) => { keys.push(k); return "([^/]+)"; }) + "/?$");
@@ -114,6 +115,7 @@ function accountMenu(anchor) {
     { label: "Documentation", icon: "book", onClick: () => navigate("/docs") },
     { label: "Changelog", icon: "zap", onClick: () => navigate("/docs#getting-started") },
     { label: "Onboarding", icon: "terminal", onClick: () => navigate("/onboarding") },
+    ...(state.platformAdmin ? [{ sep: true }, { label: "Admin", icon: "shield", onClick: () => navigate("/admin") }] : []),
     { sep: true },
     { label: "Log out", icon: "logout", kbd: "⇧ Q", onClick: logout },
   ], { width: 250 });
@@ -200,6 +202,7 @@ export async function render(forceShell = false) {
   if (r.kind !== "public" || ["/login", "/signup"].includes(path)) {
     await loadSession();
     if (state.user && !state.teams.length) await loadTeams();
+    if (state.user && state.platformAdmin === undefined) { state.platformAdmin = false; sb.rpc("is_platform_admin").then(({ data }) => { state.platformAdmin = !!data; }, () => {}); }
   }
   if (r.kind !== "public" && !state.user) { navigate(`/login?next=${encodeURIComponent(location.pathname + location.search)}`, { replace: true }); return; }
   if (["/login", "/signup"].includes(path) && state.user) {
@@ -222,12 +225,37 @@ export async function render(forceShell = false) {
     content.scrollTop = 0;
     ctx.root = content;
     await safeRun(fn, ctx, content);
+    if (id === renderId) enter(content);
   } else {
     shellMounted = false;
     app().innerHTML = "";
     ctx.root = app();
     await safeRun(fn, ctx, app());
+    if (id === renderId) enter(app());
   }
+}
+// Page entrance: fade/slide the page in, stagger rows and cards, count numbers up.
+const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function enter(root) {
+  if (calm()) return;
+  root.classList.remove("enter"); void root.offsetWidth; root.classList.add("enter");
+  setTimeout(() => root.classList.remove("enter"), 900);
+  countUp(root);
+}
+export function countUp(root) {
+  if (calm()) return;
+  root.querySelectorAll(".stat .v, [data-count]").forEach((el) => {
+    const target = el.matches("[data-count]") ? el : [...el.childNodes].find((n) => n.nodeType === 1 && /^[\d,.]+%?$/.test(n.textContent.trim())) || (/^[\d,.]+%?$/.test(el.textContent.trim()) ? el : null);
+    if (!target || target.dataset.counted) return;
+    const raw = target.textContent.trim(), pct = raw.endsWith("%"), dec = (raw.split(".")[1] || "").replace("%", "").length;
+    const end = parseFloat(raw.replace(/[,%]/g, ""));
+    if (!isFinite(end) || end === 0) return;
+    target.dataset.counted = "1";
+    const t0 = performance.now(), dur = 700;
+    const fmt = (v) => (dec ? v.toFixed(dec) : Math.round(v).toLocaleString("en-US")) + (pct ? "%" : "");
+    const tick = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); target.textContent = fmt(end * e); if (k < 1) requestAnimationFrame(tick); else target.textContent = raw; };
+    requestAnimationFrame(tick);
+  });
 }
 async function safeRun(fn, ctx, root) {
   try { await fn(ctx); }

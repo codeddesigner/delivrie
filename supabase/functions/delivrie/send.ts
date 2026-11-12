@@ -4,6 +4,14 @@ import { creds } from "./ses.ts";
 import { type Any, APP_URL, db, domainOf, emailOnly, FUNCTION_URL, hmacB64, hmacUrl, HttpError, randomToken, setting, SYSTEM_FROM, SYSTEM_REGION } from "./util.ts";
 import { renderVars } from "./blocks.js";
 
+export const TEST_ADDRESSES: Record<string, string> = {
+  "delivered@test.delivrie.io": "success@simulator.amazonses.com",
+  "bounced@test.delivrie.io": "bounce@simulator.amazonses.com",
+  "complained@test.delivrie.io": "complaint@simulator.amazonses.com",
+  "suppressed@test.delivrie.io": "suppressionlist@simulator.amazonses.com",
+};
+const isSimulator = (a: unknown) => String(a).toLowerCase().endsWith("@simulator.amazonses.com");
+
 // ---------------- status precedence ----------------
 const RANK: Record<string, number> = { queued: 0, scheduled: 0, sent: 1, delivery_delayed: 2, delivered: 3, opened: 4, clicked: 5, bounced: 8, complained: 9, failed: 9, suppressed: 9, canceled: 9, received: 1 };
 export function nextStatus(cur: string, ev: string) {
@@ -87,7 +95,10 @@ export async function deliver(emailId: string) {
   const { data: sup } = await db.from("suppressions").select("email").eq("team_id", e.team_id).in("email", all);
   const suppressed = new Set((sup || []).map((s: Any) => s.email.toLowerCase()));
   const keep = (list: string[] | null) => (list || []).filter((a) => !suppressed.has(emailOnly(a)));
-  const to = keep(e.to), cc = keep(e.cc), bcc = keep(e.bcc);
+  // Test addresses (delivered@ / bounced@ / complained@ test.delivrie.io) go to the SES mailbox simulator,
+  // so they exercise the full event pipeline without touching sending reputation.
+  const sim = (list: string[]) => list.map((a) => TEST_ADDRESSES[emailOnly(a)] || a);
+  const to = sim(keep(e.to)), cc = sim(keep(e.cc)), bcc = sim(keep(e.bcc));
   if (!to.length && !cc.length && !bcc.length) {
     await db.from("emails").update({ status: "suppressed", error: "All recipients are on the suppression list" }).eq("id", e.id);
     await db.from("email_events").insert({ email_id: e.id, team_id: e.team_id, type: "suppressed", data: { recipients: all } });
@@ -191,11 +202,12 @@ export async function handleSesEvent(msg: Any) {
 
   // suppression & contact hygiene
   if (type === "bounced" && msg.bounce?.bounceType === "Permanent") {
-    for (const r of msg.bounce.bouncedRecipients || []) await db.from("suppressions").upsert({ team_id: e.team_id, email: String(r.emailAddress).toLowerCase(), reason: "bounce" }, { onConflict: "team_id,email", ignoreDuplicates: true });
+    for (const r of msg.bounce.bouncedRecipients || []) if (!isSimulator(r.emailAddress)) await db.from("suppressions").upsert({ team_id: e.team_id, email: String(r.emailAddress).toLowerCase(), reason: "bounce" }, { onConflict: "team_id,email", ignoreDuplicates: true });
   }
   if (type === "complained") {
     for (const r of msg.complaint?.complainedRecipients || []) {
       const addr = String(r.emailAddress).toLowerCase();
+      if (isSimulator(addr)) continue;
       await db.from("suppressions").upsert({ team_id: e.team_id, email: addr, reason: "complaint" }, { onConflict: "team_id,email", ignoreDuplicates: true });
       await db.from("contacts").update({ unsubscribed: true }).eq("team_id", e.team_id).eq("email", addr);
     }

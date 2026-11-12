@@ -17,8 +17,8 @@ export function lineChart(host, { labels, series, height = 220, fmt = num, area 
   const paths = series.map((s, si) => {
     const pts = s.values.map((v, i) => `${x(i)},${y(v)}`);
     const line = `M${pts.join("L")}`;
-    const fill = area && si === 0 ? `<path d="${line}L${x(n - 1)},${y(0)}L${x(0)},${y(0)}Z" fill="url(#g${si})" />` : "";
-    return `<defs><linearGradient id="g${si}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${s.color}" stop-opacity=".22"/><stop offset="1" stop-color="${s.color}" stop-opacity="0"/></linearGradient></defs>${fill}<path d="${line}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const fill = area && si === 0 ? `<path d="${line}L${x(n - 1)},${y(0)}L${x(0)},${y(0)}Z" fill="url(#g${si})" class="chart-area" />` : "";
+    return `<defs><linearGradient id="g${si}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${s.color}" stop-opacity=".22"/><stop offset="1" stop-color="${s.color}" stop-opacity="0"/></linearGradient></defs>${fill}<path class="chart-line" pathLength="1" d="${line}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" style="animation-delay:${si * 120}ms"/>`;
   }).join("");
   host.style.position = "relative";
   host.innerHTML = `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block;height:${H}px">${grid}${xl}${paths}<line data-cursor x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" stroke="#3a3d44" stroke-dasharray="3 3" visibility="hidden"/>${series.map((s, i) => `<circle data-dot="${i}" r="3.5" fill="${s.color}" stroke="#262425" stroke-width="2" visibility="hidden"/>`).join("")}</svg><div class="chart-tip hidden"></div>`;

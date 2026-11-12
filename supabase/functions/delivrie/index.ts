@@ -74,21 +74,72 @@ async function checkFrom(c: Ctx, from: string, recipients: string[]) {
 
 async function checkQuota(c: Ctx, n: number) {
   if (!ENFORCE_LIMITS) return;
-  const { data: t } = await db.from("teams").select("plan_transactional").eq("id", c.teamId).single();
+  const { data: t } = await db.from("teams").select("plan_transactional,billing,credits").eq("id", c.teamId).single();
   const plan = t?.plan_transactional || "free";
   const L = LIMITS[plan] || LIMITS.free;
   const name = plan.charAt(0).toUpperCase() + plan.slice(1);
   const now = new Date();
   const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
   const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  if (L.day) {
-    const { count: d } = await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").gte("created_at", day);
-    if ((d || 0) + n > L.day) throw new HttpError(429, "daily_quota_exceeded", `You've reached the ${name} plan's daily limit of ${L.day.toLocaleString("en-US")} emails. Upgrade in Settings → Billing.`);
+  const count = async (from: string) => (await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").gte("created_at", from)).count || 0;
+
+  // Paid plans never hard-stop at the monthly allowance: emails over it are billed as overage at month end,
+  // unless the team set a spending cap in Billing.
+  if (L.overage) {
+    const cap = Number(t?.billing?.spend_cap || 0);
+    if (!cap || !L.month) return;
+    const cur = t?.billing?.currency === "USD" ? "USD" : "NGN";
+    const over = Math.max(0, (await count(month)) + n - L.month);
+    const cost = Math.ceil(over / 1000) * L.overage[cur];
+    if (cost > cap) throw new HttpError(429, "spending_cap_reached", `This send would take overage past your spending cap. Raise or remove the cap in Settings → Billing.`);
+    return;
   }
-  if (L.month) {
-    const { count: m } = await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").gte("created_at", month);
-    if ((m || 0) + n > L.month) throw new HttpError(429, "monthly_quota_exceeded", `You've reached the ${name} plan's monthly limit of ${L.month.toLocaleString("en-US")} emails. Upgrade in Settings → Billing.`);
+
+  // Free plan: daily and monthly allowance first, then pay-as-you-go credits.
+  let within = true;
+  if (L.day && (await count(day)) + n > L.day) within = false;
+  if (within && L.month && (await count(month)) + n > L.month) within = false;
+  if (within) return;
+  if (Number(t?.credits || 0) >= n) {
+    const { data: ok } = await db.rpc("use_credits", { p_team: c.teamId, p_n: n });
+    if (ok) return;
   }
+  const which = L.day && (await count(day)) + n > L.day ? `daily limit of ${L.day.toLocaleString("en-US")}` : `monthly limit of ${L.month.toLocaleString("en-US")}`;
+  throw new HttpError(429, L.day && which.startsWith("daily") ? "daily_quota_exceeded" : "monthly_quota_exceeded", `You've reached the ${name} plan's ${which} emails. Upgrade or buy credits in Settings → Billing.`);
+}
+
+async function checkLimit(c: Ctx, table: "domains" | "webhooks", key: "domains" | "webhooks", label: string) {
+  if (!ENFORCE_LIMITS) return;
+  const { data: t } = await db.from("teams").select("plan_transactional").eq("id", c.teamId).single();
+  const max = (LIMITS[t?.plan_transactional || "free"] || LIMITS.free)[key];
+  if (!max) return;
+  const { count } = await db.from(table).select("id", { count: "exact", head: true }).eq("team_id", c.teamId);
+  if ((count || 0) >= max) throw new HttpError(403, "plan_limit_reached", `Your plan includes ${max} ${label}${max === 1 ? "" : "s"}. Upgrade in Settings → Billing to add more.`);
+}
+
+// "in 2 hours", "in 30 minutes", "tomorrow at 9am", "tomorrow 14:30" (UTC), or any ISO 8601 date.
+export function parseWhen(v: unknown): Date | null {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (!s) return null;
+  const iso = new Date(String(v));
+  if (/^\d{4}-\d{2}-\d{2}/.test(s) && !isNaN(iso.getTime())) return iso;
+  const rel = s.match(/^in\s+(\d+(?:\.\d+)?|an?|one)\s*(m|min|mins|minutes?|h|hrs?|hours?|d|days?|w|weeks?)$/);
+  if (rel) {
+    const k = /^(a|an|one)$/.test(rel[1]) ? 1 : Number(rel[1]);
+    const u = rel[2][0], unit = u === "m" ? 60e3 : u === "h" ? 3600e3 : u === "d" ? 86400e3 : 7 * 86400e3;
+    return new Date(Date.now() + k * unit);
+  }
+  const at = s.match(/^(today|tomorrow)(?:\s+at)?\s*(?:(\d{1,2})(?::(\d{2}))?\s*(am|pm)?)?(?:\s*utc)?$/);
+  if (at) {
+    const d = new Date(); d.setUTCSeconds(0, 0);
+    if (at[1] === "tomorrow") d.setUTCDate(d.getUTCDate() + 1);
+    let h = at[2] ? Number(at[2]) : 9; const m = at[3] ? Number(at[3]) : 0;
+    if (at[4] === "pm" && h < 12) h += 12; if (at[4] === "am" && h === 12) h = 0;
+    if (h > 23 || m > 59) return null;
+    d.setUTCHours(h, m);
+    return d;
+  }
+  return isNaN(iso.getTime()) ? null : iso;
 }
 
 async function prepareEmail(c: Ctx, b: Any, idempotencyKey?: string | null) {
@@ -115,8 +166,8 @@ async function prepareEmail(c: Ctx, b: Any, idempotencyKey?: string | null) {
   const d = await checkFrom(c, from, [...to, ...cc, ...bcc]);
   let scheduledAt: string | null = null;
   if (b.scheduled_at) {
-    const t = new Date(b.scheduled_at);
-    if (isNaN(t.getTime())) throw bad("scheduled_at must be an ISO 8601 date");
+    const t = parseWhen(b.scheduled_at);
+    if (!t) throw bad("scheduled_at must be an ISO 8601 date or a phrase like \"in 1 hour\" or \"tomorrow at 9am\"");
     if (t.getTime() > Date.now() + 30 * 86400e3) throw bad("scheduled_at can be at most 30 days in the future");
     if (t.getTime() > Date.now() + 30e3) scheduledAt = t.toISOString();
   }
@@ -311,8 +362,8 @@ route("PATCH", "/emails/:id", async (_r, c, p, _u, b) => {
   const { data: e } = await db.from("emails").select("*").eq("team_id", c.teamId).eq("id", p.id).maybeSingle();
   if (!e) throw notFound("Email");
   if (e.status !== "scheduled") throw bad("Only scheduled emails can be updated");
-  const t = new Date(b?.scheduled_at);
-  if (isNaN(t.getTime())) throw bad("scheduled_at must be an ISO 8601 date");
+  const t = parseWhen(b?.scheduled_at);
+  if (!t) throw bad("scheduled_at must be an ISO 8601 date or a phrase like \"in 1 hour\"");
   await db.from("emails").update({ scheduled_at: t.toISOString() }).eq("id", e.id);
   return { object: "email", id: e.id };
 });
@@ -334,6 +385,7 @@ async function getDomain(c: Ctx, id: string) {
 route("GET", "/domains", async (_r, c) => { needFull(c); const { data } = await db.from("domains").select("*").eq("team_id", c.teamId).order("created_at", { ascending: false }); return list((data || []).map(domainOut)); });
 route("POST", "/domains", async (_r, c, _p, _u, b) => {
   needFull(c);
+  await checkLimit(c, "domains", "domains", "custom domain");
   const d = await createDomain(c.teamId, String(b?.name || ""), b?.region || "eu-west-1", b || {});
   await emit(c.teamId, "domain.created", { id: d.id, name: d.name, status: d.status, region: d.region });
   return domainOut(d);
@@ -454,6 +506,7 @@ route("POST", "/webhooks", async (_r, c, _p, _u, b) => {
   needFull(c);
   if (!/^https:\/\//.test(String(b?.endpoint || ""))) throw bad("endpoint must be an https:// URL");
   if (!Array.isArray(b?.events) || !b.events.length) throw bad("Choose at least one event");
+  await checkLimit(c, "webhooks", "webhooks", "webhook endpoint");
   const secret = "whsec_" + btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(24))));
   const { data } = await db.from("webhooks").insert({ team_id: c.teamId, endpoint: b.endpoint, events: b.events, signing_secret: secret }).select().single();
   return { object: "webhook", id: data.id, signing_secret: secret };
@@ -498,8 +551,8 @@ const dash = (h: Handler): Handler => (req, c, p, u, b) => { if (c.via !== "dash
 
 route("GET", "/dashboard/status", dash(async (_r, c) => {
   const { data: d } = await db.from("domains").select("region").eq("team_id", c.teamId).limit(1);
-  const { data: t } = await db.from("teams").select("plan_transactional").eq("id", c.teamId).single();
-  return { aws: await accountStatus(d?.[0]?.region || "eu-west-1"), system_from: SYSTEM_FROM ? SYSTEM_FROM : null, regions: Object.entries(SES_REGIONS).map(([id]) => ({ id, label: regionLabel(id) })), limits_enforced: ENFORCE_LIMITS, plan: t?.plan_transactional || "free", limits: LIMITS[t?.plan_transactional || "free"] || LIMITS.free };
+  const { data: t } = await db.from("teams").select("plan_transactional,credits").eq("id", c.teamId).single();
+  return { credits: t?.credits || 0, aws: await accountStatus(d?.[0]?.region || "eu-west-1"), system_from: SYSTEM_FROM ? SYSTEM_FROM : null, regions: Object.entries(SES_REGIONS).map(([id]) => ({ id, label: regionLabel(id) })), limits_enforced: ENFORCE_LIMITS, plan: t?.plan_transactional || "free", limits: LIMITS[t?.plan_transactional || "free"] || LIMITS.free };
 }));
 route("POST", "/dashboard/test-email", dash(async (_r, c, _p, _u, b) => {
   const to = asArray(b?.to);

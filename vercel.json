@@ -11,15 +11,19 @@
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/:path*"
     },
     {
+      "source": "/pricing",
+      "destination": "/pricing.html"
+    },
+    {
       "source": "/media/:path*",
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/storage/v1/object/public/email-assets/:path*"
     },
     {
-      "source": "/(login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|settings|profile|help)",
+      "source": "/(login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|settings|profile|help|admin)",
       "destination": "/app.html"
     },
     {
-      "source": "/(reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings)/:rest*",
+      "source": "/(reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings|admin)/:rest*",
       "destination": "/app.html"
     }
   ],
