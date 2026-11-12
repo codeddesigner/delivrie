@@ -673,7 +673,9 @@ Deno.serve(async (req) => {
     });
 
     const c = await authenticate(req);
-    const body = ["POST", "PATCH", "PUT", "DELETE"].includes(req.method) ? await req.json().catch(() => (req.method === "DELETE" ? {} : null)) : null;
+    const raw = ["POST", "PATCH", "PUT", "DELETE"].includes(req.method) ? (await req.text()).trim() : "";
+    // An empty body on POST/PATCH/PUT/DELETE means "no options" (e.g. POST /domains/:id/verify), as in other email APIs.
+    const body = ["POST", "PATCH", "PUT", "DELETE"].includes(req.method) ? (raw ? (() => { try { return JSON.parse(raw); } catch { return null; } })() : {}) : null;
     if (["POST", "PATCH", "PUT"].includes(req.method) && body === null) throw bad("Request body must be valid JSON");
     return json(await dispatch(req, c, req.method, path, body, url));
   } catch (e) {

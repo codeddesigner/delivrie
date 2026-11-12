@@ -43,7 +43,8 @@ export async function api(method, path, body) {
   const res = await fetch(API_BASE + path, {
     method,
     headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}), ...(state.team ? { "x-team-id": state.team.id } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    // Send "{}" for body-less POST/PUT/PATCH (verify, cancel, send…) so the API never sees an empty body.
+    body: body === undefined ? (["POST", "PUT", "PATCH"].includes(method) ? "{}" : undefined) : JSON.stringify(body),
   });
   const text = await res.text();
   let json = null;
