@@ -18,6 +18,7 @@ const GUIDE_ORDER = GUIDES.flatMap(([, items]) => items);
 const LEGACY = { "api-reference": "/docs/api", mcp: "/docs/mcp", "getting-started": "/docs" };
 
 const logo = (id, n = 14) => `<span class="ab"><img src="/assets/clients/${id}.svg" width="${n}" height="${n}" alt=""></span>`;
+const CURSOR_INSTALL = `cursor://anysphere.cursor-deeplink/mcp/install?name=delivrie&config=${btoa(JSON.stringify({ url: MCP_URL }))}`;
 const CLIENTS = [
   { id: "claude", ab: "Cl", name: "Claude", sub: "Claude Code, Desktop & claude.ai", how: "Remote · OAuth", lang: "bash", file: "terminal",
     code: `# Claude Code: opens a Delivrie page to approve access\nclaude mcp add --transport http delivrie ${MCP_URL}\n\n# Claude Desktop & claude.ai: Settings → Connectors → Add custom connector\n# URL ${MCP_URL}` },
@@ -27,8 +28,8 @@ const CLIENTS = [
     code: `[mcp_servers.delivrie]\ncommand = "npx"\nargs = ["-y", "mcp-remote", "${MCP_URL}"]\n# mcp-remote opens the Delivrie approval page on first run` },
   { id: "v0", ab: "v0", name: "v0", sub: "v0 by Vercel", how: "Remote · API key", lang: "text", file: "v0 → Settings → MCP connections",
     code: `# Add a custom MCP connection\nName     Delivrie\nURL      ${MCP_URL}\nHeader   Authorization: Bearer dlv_live_••••` },
-  { id: "antigravity", ab: "Ag", name: "Antigravity", sub: "Google Antigravity agents", how: "Remote · API key", lang: "json", file: "mcp_config.json",
-    code: `{\n  "mcpServers": {\n    "delivrie": {\n      "serverUrl": "${MCP_URL}",\n      "headers": { "Authorization": "Bearer dlv_live_••••" }\n    }\n  }\n}` },
+  { id: "antigravity", ab: "Ag", name: "Antigravity", sub: "Google Antigravity agents", how: "Remote · OAuth", lang: "json", file: "Settings → Customizations → Open MCP Config, then Refresh and Authenticate",
+    code: `{\n  "mcpServers": {\n    "delivrie": { "serverUrl": "${MCP_URL}" }\n  }\n}` },
   { id: "vscode", ab: "VS", name: "VS Code", sub: "GitHub Copilot agent mode", how: "Remote · OAuth", lang: "bash", file: "terminal",
     code: `code --add-mcp '{"name":"delivrie","type":"http","url":"${MCP_URL}"}'` },
 ];
@@ -273,7 +274,7 @@ function mcpPage(body) {
     </article></main>
     ${toc(tocItems, `<div class="d-toc-act"><button data-copy-page>${icon("copy", 12)} Copy as Markdown</button><a href="https://claude.ai/new?q=${encodeURIComponent(`Help me connect the Delivrie MCP server (${MCP_URL}) to my client. Docs: ${location.origin}/docs/mcp`)}" target="_blank" rel="noopener" data-native>${icon("sparkle", 12)} Open in Claude</a></div>`)}`;
   const file = body.querySelector("#install-file");
-  const showFile = (name) => { const c = CLIENTS.find((x) => (x.name === "Claude" ? "Claude Code" : x.name) === name); if (c) file.innerHTML = `Where: <code>${esc(c.file)}</code>${c.id === "codex" ? ` · <code>mcp-remote</code> bridges the hosted server for clients that only run local commands.` : ""}`; };
+  const showFile = (name) => { const c = CLIENTS.find((x) => (x.name === "Claude" ? "Claude Code" : x.name) === name); if (c) file.innerHTML = `Where: <code>${esc(c.file)}</code>${c.id === "codex" ? ` · <code>mcp-remote</code> bridges the hosted server for clients that only run local commands.` : ""}${c.id === "cursor" ? ` · or <a href="${CURSOR_INSTALL}">add to Cursor in one click</a>` : ""}`; };
   showFile(body.querySelector("#install-tabs .d-code-h .on")?.dataset.lang);
   on(body, "click", "#install-tabs [data-lang]", (_e, b) => showFile(b.dataset.lang));
   on(body, "click", "[data-client]", (ev, a) => { ev.preventDefault(); const c = CLIENTS.find((x) => x.id === a.dataset.client); const name = c.name === "Claude" ? "Claude Code" : c.name; body.querySelector(`#install-tabs [data-lang="${name}"]`)?.click(); body.querySelector("#install").scrollIntoView({ behavior: "smooth" }); });
