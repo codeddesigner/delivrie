@@ -174,7 +174,17 @@ export async function profile(ctx) {
     <h3 class="section-title" style="color:var(--red)">Delete account</h3><div class="card card-pad row-flex" style="border-color:rgba(229,72,77,.35)"><div class="grow muted">Permanently delete your account. Teams where you’re the only member must be deleted first.</div><button class="btn btn-danger" data-delacct>Delete account</button></div></div>`;
   const reload = () => ctx.navigate("/profile", { replace: true });
   on(root, "click", "[data-savename]", async () => { const v = root.querySelector("[data-fname]").value.trim(); const { error } = await sb.from("profiles").update({ full_name: v || null }).eq("id", u.id); if (error) return errToast(error); await sb.auth.updateUser({ data: { full_name: v } }); toast("Name saved"); reload(); });
-  on(root, "click", "[data-saveemail]", async () => { const v = root.querySelector("[data-email]").value.trim().toLowerCase(); if (v === u.email) return; if (!EMAIL_RE.test(v)) return toast("Enter a valid email", "err"); const { error } = await sb.auth.updateUser({ email: v }, { emailRedirectTo: `${location.origin}/profile` }); if (error) return errToast(error); toast("Check both inboxes to confirm the change", "info", 6000); });
+  on(root, "click", "[data-saveemail]", async () => {
+    const v = root.querySelector("[data-email]").value.trim().toLowerCase(); if (v === u.email) return; if (!EMAIL_RE.test(v)) return toast("Enter a valid email", "err");
+    const { error } = await sb.auth.updateUser({ email: v }); if (error) return errToast(error);
+    formModal({ title: "Confirm your new email", fields: [{ name: "next", label: `Code sent to ${v}`, placeholder: "123456" }, { name: "current", label: `Code sent to ${u.email} (if you got one)`, placeholder: "Optional" }], submit: "Confirm change", validate: (f) => /^\d{6,10}$/.test(f.next.trim()),
+      async onSubmit(f) {
+        const a = await sb.auth.verifyOtp({ email: v, token: f.next.trim(), type: "email_change" }); if (a.error) throw new Error("The code for " + v + " didn’t work.");
+        if (f.current.trim()) { const b = await sb.auth.verifyOtp({ email: u.email, token: f.current.trim(), type: "email_change" }); if (b.error) throw new Error("The code for " + u.email + " didn’t work."); }
+        const { data } = await sb.auth.getUser(); state.user = data.user;
+        toast(data.user?.email === v ? "Email address updated" : "Almost done. Enter the code sent to your current address too.", data.user?.email === v ? "ok" : "info", 6000); reload();
+      } });
+  });
   on(root, "click", "[data-pw]", () => formModal({ title: "Change password", fields: [{ name: "pw", label: "New password", type: "password", autocomplete: "new-password", hint: "At least 10 characters." }, { name: "pw2", label: "Confirm password", type: "password", autocomplete: "new-password" }], submit: "Save password", validate: (v) => v.pw.length >= 10 && v.pw === v.pw2, async onSubmit(v) { const { error } = await sb.auth.updateUser({ password: v.pw }); if (error) throw error; toast("Password updated"); } }));
   on(root, "click", "[data-mfa]", async () => {
     const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: "Authenticator " + Date.now().toString(36) });

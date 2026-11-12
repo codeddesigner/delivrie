@@ -45,26 +45,60 @@ export async function signup(ctx) {
     const email = card.querySelector("#email").value.trim(), password = card.querySelector("#password_new").value;
     if (password.length < 10) return toast("Use at least 10 characters for your password", "err");
     const btn = e.target.querySelector("button[type=submit]"); setBusy(btn, true);
-    const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: `${location.origin}/confirm` } });
+    const { data, error } = await sb.auth.signUp({ email, password });
     setBusy(btn, false, "Create account");
     if (error) return errToast(error);
     localStorage.setItem("dlv_last_method", "email");
     if (data.session) return afterLogin(ctx); // email confirmation disabled
-    ctx.navigate(`/verify?email=${encodeURIComponent(email)}`);
+    ctx.navigate(`/verify?type=signup&email=${encodeURIComponent(email)}`);
   });
 }
 
+// One screen for every emailed code: sign-up confirmation, sign-in code and password reset.
+const CODE_FLOWS = {
+  signup: { title: "Check your email", sub: "Enter the code we sent to confirm your account.", resend: (email) => sb.auth.resend({ type: "signup", email }) },
+  email: { title: "Check your email", sub: "Enter the sign-in code we sent you.", resend: (email) => sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } }) },
+  recovery: { title: "Check your email", sub: "Enter the code we sent to reset your password.", resend: (email) => sb.auth.resetPasswordForEmail(email) },
+};
 export async function verify(ctx) {
   const email = ctx.query.email || "";
+  const type = CODE_FLOWS[ctx.query.type] ? ctx.query.type : "signup";
+  const flow = CODE_FLOWS[type];
+  document.title = "Enter your code · Delivrie";
   const domain = email.split("@")[1] || "";
   const inbox = /gmail|googlemail/.test(domain) ? ["Open Gmail", "https://mail.google.com"] : /outlook|hotmail|live/.test(domain) ? ["Open Outlook", "https://outlook.live.com"] : /yahoo/.test(domain) ? ["Open Yahoo Mail", "https://mail.yahoo.com"] : null;
-  const card = layout(ctx.root, `${mark}<h1>Check your email</h1><p class="sub">We sent a verification link to <b style="color:var(--fg);font-weight:500">${esc(email)}</b>. It expires in 24 hours.</p>
+  const card = layout(ctx.root, `${mark}<h1>${flow.title}</h1><p class="sub">${flow.sub} It went to <b style="color:var(--fg);font-weight:500">${esc(email)}</b>.</p>
+    <form novalidate><div class="field"><label for="code">Code</label><input class="input mono" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456" style="letter-spacing:.35em;text-align:center;font-size:20px;height:48px"></div>
+    <button class="btn btn-primary btn-lg btn-block" type="submit">Continue</button></form>
     ${inbox ? `<a class="btn btn-secondary btn-lg btn-block" href="${inbox[1]}" target="_blank" rel="noopener">${icon("mail", 14)} ${inbox[0]}</a>` : ""}
-    <p class="sub" style="font-size:12.5px">Didn’t get it? <a href="#" data-resend>Resend email</a></p>`);
+    <p class="sub" style="font-size:12.5px">Didn’t get it? Check spam, or <a href="#" data-resend>send a new code</a> · <a href="/login">Back to log in</a></p>`);
+  const input = card.querySelector("#code"), form = card.querySelector("form"), btn = form.querySelector("button");
+  input.focus();
+  input.addEventListener("input", () => { input.value = input.value.replace(/\D/g, ""); input.classList.remove("error"); if (input.value.length === 6) form.requestSubmit(); });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = input.value.trim();
+    if (token.length < 6) return toast("Enter the code from the email", "err");
+    setBusy(btn, true);
+    const { data, error } = await sb.auth.verifyOtp({ email, token, type });
+    setBusy(btn, false, "Continue");
+    if (error) { input.classList.add("error"); input.select(); return toast(/expired/i.test(error.message) ? "That code has expired. Send a new one." : "That code didn’t work. Check it and try again.", "err"); }
+    state.session = data.session; state.user = data.session?.user;
+    localStorage.setItem("dlv_last_method", "email");
+    if (type === "recovery") return ctx.navigate("/reset/new", { replace: true });
+    if (type === "signup") {
+      const inv = localStorage.getItem("dlv_invite");
+      if (inv) { localStorage.removeItem("dlv_invite"); await sb.rpc("accept_invite", { invite_token: inv }); }
+      await loadTeams();
+      if (state.team) { toast("Account confirmed. Welcome to Delivrie"); return ctx.navigate("/onboarding"); }
+      return ctx.navigate("/new-team?welcome=1");
+    }
+    afterLogin(ctx);
+  });
   card.querySelector("[data-resend]").addEventListener("click", async (e) => {
     e.preventDefault();
-    const { error } = await sb.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${location.origin}/confirm` } });
-    error ? errToast(error) : toast("Verification email sent");
+    const { error } = await flow.resend(email);
+    error ? errToast(/rate|seconds/i.test(error.message) ? new Error("Wait a minute before asking for another code.") : error) : toast("New code sent");
   });
 }
 
@@ -104,15 +138,30 @@ export async function login(ctx) {
     <form novalidate style="position:relative">${last === "email" ? '<span class="last-used" style="top:-8px">Last used</span>' : ""}<div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" placeholder="you@company.com" autocomplete="email" required></div>
     <div class="field"><div class="row-flex" style="justify-content:space-between"><label for="password" class="label">Password</label><a href="/reset" class="dim" style="font-size:12px">Forgot password?</a></div><div class="input-wrap"><input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password"><button type="button" class="ibtn trail" data-eye>${icon("eye", 14)}</button></div></div>
     <button class="btn btn-primary btn-lg btn-block" type="submit">Log in</button></form>
+    <p class="sub" style="font-size:12.5px;margin-top:-4px"><a href="#" data-code>Email me a sign-in code instead</a></p>
     <p class="legal">By signing up, you agree to our <a href="/docs">Terms of Service</a> and <a href="/docs">Privacy Policy</a>.</p>`);
   bindEye(card); bindSso(card);
   if (ctx.query.deleted) toast("Your account has been deleted");
+  card.querySelector("[data-code]").addEventListener("click", async (e) => {
+    e.preventDefault();
+    const email = card.querySelector("#email").value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { card.querySelector("#email").focus(); return toast("Enter your email first", "err"); }
+    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    if (error) return errToast(/signups not allowed|not found/i.test(error.message) ? new Error("No account uses that email. Sign up instead.") : error);
+    ctx.navigate(`/verify?type=email&email=${encodeURIComponent(email)}`);
+  });
   card.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector("button[type=submit]"); setBusy(btn, true);
     const { error } = await sb.auth.signInWithPassword({ email: card.querySelector("#email").value.trim(), password: card.querySelector("#password").value });
     setBusy(btn, false, "Log in");
-    if (error) { card.querySelector("#password").classList.add("error"); return toast(/confirm/i.test(error.message) ? "Confirm your email first. Check your inbox for the link." : "Invalid email or password. Try again or reset it.", "err"); }
+    if (error && /confirm/i.test(error.message)) {
+      const email = card.querySelector("#email").value.trim();
+      await sb.auth.resend({ type: "signup", email });
+      toast("Confirm your email first. We sent you a new code.", "info");
+      return ctx.navigate(`/verify?type=signup&email=${encodeURIComponent(email)}`);
+    }
+    if (error) { card.querySelector("#password").classList.add("error"); return toast("Invalid email or password. Try again or reset it.", "err"); }
     localStorage.setItem("dlv_last_method", "email");
     afterLogin(ctx);
   });
@@ -149,15 +198,17 @@ export async function mfa(ctx) {
 }
 
 export async function reset(ctx) {
-  const card = layout(ctx.root, `${mark}<h1>Reset your password</h1><p class="sub">Enter the email on your account and we’ll send you a reset link.</p>
+  const card = layout(ctx.root, `${mark}<h1>Reset your password</h1><p class="sub">Enter the email on your account and we’ll send you a code.</p>
     <form novalidate><div class="field"><label for="email">Email</label><input class="input" id="email" type="email" placeholder="you@company.com" autocomplete="email"></div>
-    <button class="btn btn-primary btn-lg btn-block" type="submit">Send reset link</button></form><p class="sub"><a href="/login">Back to log in</a></p>`);
+    <button class="btn btn-primary btn-lg btn-block" type="submit">Send code</button></form><p class="sub"><a href="/login">Back to log in</a></p>`);
   card.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector("button"); setBusy(btn, true);
-    const { error } = await sb.auth.resetPasswordForEmail(card.querySelector("#email").value.trim(), { redirectTo: `${location.origin}/reset/new` });
-    setBusy(btn, false, "Send reset link");
-    error ? errToast(error) : toast("Check your email for a reset link");
+    const email = card.querySelector("#email").value.trim();
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    setBusy(btn, false, "Send code");
+    if (error) return errToast(error);
+    ctx.navigate(`/verify?type=recovery&email=${encodeURIComponent(email)}`);
   });
 }
 
