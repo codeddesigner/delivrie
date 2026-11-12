@@ -2,7 +2,7 @@
 # Adapted to what is true today: operated by South Circle, delivrie.io addresses, and only features that exist.
 # Edit here, then run: python3 tools/build_site.py
 COMPANY = "South Circle"
-UPDATED = "12 November 2026"
+UPDATED = "13 November 2026"
 EFFECTIVE = "1 December 2026"
 
 LEGAL = [
@@ -54,6 +54,12 @@ LEGAL = [
                          "We do not use Customer Data to train AI models."]),
       ("Legal bases", ["Under the NDPA and GDPR we rely on: performance of our contract with you; legitimate interests such as keeping the platform secure and preventing spam; your consent where we ask for it; and legal obligations such as tax and accounting rules."]),
       ("Data we process for you", ["When you send or receive email through Delivrie, we process recipient addresses, message content and engagement events on your behalf and only on your instructions. You are responsible for having a lawful basis to email your recipients. Our <a href=\"/dpa\">Data Processing Addendum</a> sets out the details and is part of our Terms."]),
+      ("AI assistants and connected apps", ["You can connect Delivrie to AI assistants such as ChatGPT and Claude through our MCP server. You sign in to Delivrie and approve the access the assistant gets: send email, read data, or make changes. We give the assistant an access token for your team only, and nothing else about your account.",
+                                           [ "What the assistant can see: only what its tools return when you ask, such as your domains, usage, metrics, contacts, email logs and inbox conversations, within the access you approved.",
+                                             "What we receive from the assistant: the tool requests it makes for you, such as the recipients, subject and content of an email you ask it to send. We handle these like any other request through our API, under the retention rules below.",
+                                             "What we don't receive: your chat history or anything else you say to the assistant. We don't share your data with the assistant's provider for any other purpose, and we don't use it to train AI models.",
+                                             "What the AI provider does with your conversation is covered by their own privacy policy, such as OpenAI's or Anthropic's."],
+                                           "You can disconnect an assistant at any time in Settings → Connected apps, which revokes its tokens at once. You can also remove it in the assistant's own settings."]),
       ("Sharing and subprocessors", ["We share personal data only with service providers who help us run Delivrie, such as cloud hosting, email infrastructure and payment processing, under contracts that protect it. The current list is on our <a href=\"/subprocessors\">Subprocessors</a> page. We may disclose data if required by law, or as part of a merger or acquisition with notice to you."]),
       ("International transfers", ["Our database and email sending run in the EU (Ireland). When personal data leaves Nigeria, the EEA or the UK we use safeguards recognised by the regulator, such as Standard Contractual Clauses, and assess the destination as required by the NDPA."]),
       ("Retention", [["Email content and attachments: 1 day on Free, 3 days on Pro, 7 days on Scale, then deleted. Recipients, status and timestamps stay so your logs, metrics and suppressions keep working.", "API request logs: up to 30 days.", "Account and billing records: for the life of the account and up to 6 years after for tax and legal reasons.", "Suppression list entries: kept until you remove them, so we never email someone who opted out."]]),
