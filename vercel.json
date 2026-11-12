@@ -35,11 +35,11 @@
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/storage/v1/object/public/email-assets/:path*"
     },
     {
-      "source": "/(inbox|automations|events|login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|suppressions|settings|profile|help|admin)",
+      "source": "/(inbox|automations|events|login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|suppressions|billing|settings|profile|help|admin)",
       "destination": "/app.html"
     },
     {
-      "source": "/(inbox|automations|events|docs|reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings|admin)/:rest*",
+      "source": "/(inbox|automations|events|docs|reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|billing|settings|admin)/:rest*",
       "destination": "/app.html"
     }
   ],

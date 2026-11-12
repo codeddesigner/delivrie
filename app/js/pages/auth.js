@@ -1,6 +1,7 @@
 import { sb, state, loadTeams, setTeam, api } from "../lib/sb.js";
 import { esc, icon, toast, errToast, confirmModal, $ } from "../lib/ui.js";
 import { MARK } from "../lib/icons.js";
+import { nextAfterAuth, takeNext } from "../lib/intent.js";
 
 const LOGO = `<a href="/" data-native><img src="/assets/logo.svg" width="96" height="18" alt="Delivrie"></a>`;
 function layout(root, inner) {
@@ -29,12 +30,12 @@ async function afterLogin(ctx) {
   const { data } = await sb.auth.getSession();
   state.session = data.session; state.user = data.session?.user;
   await loadTeams();
-  ctx.navigate(ctx.query.next || (state.team ? "/emails" : "/new-team"));
+  ctx.navigate(nextAfterAuth());
 }
 
 export async function signup(ctx) {
   document.title = "Create account · Delivrie";
-  const card = layout(ctx.root, `${mark}<h1>Create a Delivrie account</h1><p class="sub">Already have an account? <a href="/login">Log in</a></p>${sso()}
+  const card = layout(ctx.root, `${mark}<h1>Create a Delivrie account</h1><p class="sub">Already have an account? <a href="/login${location.search}">Log in</a></p>${sso()}
     <form novalidate><div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" placeholder="you@company.com" autocomplete="email" required></div>
     ${pwField("password_new", "Password", "••••••••", '<div class="hint">At least 10 characters.</div>')}
     <button class="btn btn-primary btn-lg btn-block" type="submit">Create account</button></form>
@@ -90,8 +91,9 @@ export async function verify(ctx) {
       const inv = localStorage.getItem("dlv_invite");
       if (inv) { localStorage.removeItem("dlv_invite"); await sb.rpc("accept_invite", { invite_token: inv }); }
       await loadTeams();
-      if (state.team) { toast("Account confirmed. Welcome to Delivrie"); return ctx.navigate("/onboarding"); }
-      return ctx.navigate("/new-team?welcome=1");
+      const go = nextAfterAuth("/onboarding");
+      if (state.team) toast("Account confirmed. Welcome to Delivrie");
+      return ctx.navigate(go === "/new-team" ? "/new-team?welcome=1" : go);
     }
     afterLogin(ctx);
   });
@@ -126,15 +128,16 @@ export async function confirm(ctx) {
     const inv = localStorage.getItem("dlv_invite");
     if (inv) { localStorage.removeItem("dlv_invite"); await sb.rpc("accept_invite", { invite_token: inv }); }
     await loadTeams();
-    if (state.team) { toast("Account confirmed. Welcome to Delivrie"); ctx.navigate("/onboarding"); }
-    else ctx.navigate("/new-team?welcome=1");
+    const go = nextAfterAuth("/onboarding");
+    if (state.team) toast("Account confirmed. Welcome to Delivrie");
+    ctx.navigate(go === "/new-team" ? "/new-team?welcome=1" : go);
   };
 }
 
 export async function login(ctx) {
   document.title = "Log in · Delivrie";
   const last = localStorage.getItem("dlv_last_method");
-  const card = layout(ctx.root, `${mark}<h1>Log in to Delivrie</h1><p class="sub">Don’t have an account? <a href="/signup">Sign up</a></p>${sso(last)}
+  const card = layout(ctx.root, `${mark}<h1>Log in to Delivrie</h1><p class="sub">Don’t have an account? <a href="/signup${location.search}">Sign up</a></p>${sso(last)}
     <form novalidate style="position:relative">${last === "email" ? '<span class="last-used" style="top:-8px">Last used</span>' : ""}<div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" placeholder="you@company.com" autocomplete="email" required></div>
     <div class="field"><div class="row-flex" style="justify-content:space-between"><label for="password" class="label">Password</label><a href="/reset" class="dim" style="font-size:12px">Forgot password?</a></div><div class="input-wrap"><input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password"><button type="button" class="ibtn trail" data-eye>${icon("eye", 14)}</button></div></div>
     <button class="btn btn-primary btn-lg btn-block" type="submit">Log in</button></form>
@@ -248,7 +251,7 @@ export async function newTeam(ctx) {
     if (error) { setBusy(btn, false, "Create team"); return errToast(error); }
     await loadTeams(); setTeam(data);
     toast(ctx.query.welcome ? "Account confirmed. Welcome to Delivrie" : "Team created");
-    ctx.navigate("/onboarding");
+    ctx.navigate(takeNext() || "/onboarding");
   });
   card.querySelector("[data-del]").addEventListener("click", async () => {
     const ok = await confirmModal({ title: "Delete account", desc: "This is permanent. Your profile, sessions and connected logins are removed and can’t be recovered.", confirm: "Delete account", typed: "DELETE" });

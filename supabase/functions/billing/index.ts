@@ -4,7 +4,10 @@
 // Routes (served at https://delivrie.io/api/billing/* via a Vercel rewrite):
 //   GET  /summary    plan, prices, subscription and invoices for the current team
 //   POST /checkout   { plan, currency, interval, kind? } -> Paystack checkout URL (kind "marketing" for the add-on)
-//   POST /credits    { pack, currency } -> Paystack checkout for pay-as-you-go credits
+//   POST /topup      { pack | amount, currency, method: card|bank_transfer|ussd|checkout, auto? } -> credits
+//                    (saved card is charged directly; otherwise a Paystack checkout URL). /credits is an alias.
+//   POST /settings   { auto_topup?: { enabled, pack, threshold }, alerts?: { p80, p100, credits_low } }
+//   POST /cron/watch auto top-ups and usage alert emails (pg_cron every 15 minutes, x-cron-secret)
 //   POST /details    { email, name, country, state, address, city, postal_code, tax_id_type, tax_id }
 //   POST /cap        { amount } -> monthly overage spending cap (major units; empty clears it)
 //   POST /cron/overage  month-end overage charges (pg_cron, x-cron-secret)
@@ -13,7 +16,7 @@
 //   POST /cancel     -> stop renewing; the plan stays until the paid period ends
 //   POST /webhook    Paystack events (signed with the secret key)
 //
-// Secrets: PAYSTACK_SECRET_KEY (sk_test_… or sk_live_…), APP_URL.
+// Secrets: PAYSTACK_SECRET_KEY (sk_test_… or sk_live_…), APP_URL, SYSTEM_FROM (alert emails), VAT_RATE (optional percent).
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 
 // deno-lint-ignore no-explicit-any
@@ -41,6 +44,23 @@ export const PACKS: { emails: number; price: Price; note?: string }[] = [
   { emails: 172_400, price: { USD: 100_00, NGN: 100_000_00 }, note: "Save 3%" },
   { emails: 925_900, price: { USD: 500_00, NGN: 500_000_00 }, note: "Save 10%" },
 ];
+// Credits are stored as emails. Their money value uses the pay-as-you-go rate: ₦600 / $0.60 per 1,000 emails.
+const CREDIT_RATE: Price = { NGN: 60, USD: 0.06 }; // smallest unit per email
+const creditValue = (emails: number, cur: string) => Math.floor(emails * CREDIT_RATE[cur]);
+const emailsFor = (amount: number, cur: string) => Math.floor(amount / CREDIT_RATE[cur]);
+const MIN_TOPUP: Price = { NGN: 5_000_00, USD: 5_00 };
+const MAX_TOPUP: Price = { NGN: 10_000_000_00, USD: 10_000_00 };
+const DEFAULT_THRESHOLD: Price = { NGN: 2_000_00, USD: 2_00 };
+// VAT is off unless the VAT_RATE secret is set (a percent, e.g. 7.5). It applies to top-ups and overage.
+const VAT_RATE = Math.max(0, Number(env("VAT_RATE") || 0)) || 0;
+const vatOf = (amount: number) => Math.round(amount * VAT_RATE / 100);
+// Plan limits, mirrored from the API's enforcement table.
+const PLAN_LIMITS: Record<string, { domains: number; members: number; retention_days: number; day: number }> = {
+  free: { domains: 1, members: 1, retention_days: 1, day: 100 },
+  pro: { domains: 10, members: 5, retention_days: 3, day: 0 },
+  scale: { domains: 1000, members: 0, retention_days: 7, day: 0 },
+};
+const MARKETING_CONTACTS: Record<string, number> = { free: 1_000, growth: 5_000, pro: 10_000 };
 const CURRENCIES = ["USD", "NGN"];
 const INTERVALS = ["monthly", "yearly"];
 const catalog = (kind: string) => (kind === "marketing" ? MARKETING : PLANS) as Record<string, { name: string; monthly: Price; yearly: Price }>;
@@ -120,7 +140,7 @@ async function auth(req: Request) {
 const requireAdmin = (a: { admin: boolean }) => { if (!a.admin) throw new HttpError(403, "Only team admins can change billing."); };
 
 async function team(teamId: string) {
-  const { data } = await db.from("teams").select("id,name,plan_transactional,plan_marketing,credits,billing").eq("id", teamId).single();
+  const { data } = await db.from("teams").select("id,name,plan_transactional,plan_marketing,credits,billing,created_at").eq("id", teamId).single();
   return data as Any;
 }
 async function saveBilling(teamId: string, patch: Record<string, unknown>, plan?: string) {
@@ -182,10 +202,10 @@ async function applyCharge(tx: Any) {
 
   if (kind === "credits") {
     const emails = Number(meta.emails || 0);
-    const done = await recordInvoice(teamId, tx, "credits", null, `${emails.toLocaleString("en-US")} email credits`);
+    const done = await recordInvoice(teamId, tx, "credits", null, `${meta.auto ? "Auto top-up" : "Credit top-up"} · ${emails.toLocaleString("en-US")} emails`);
     if (tx.status === "success" && !done && emails > 0) {
       await db.rpc("add_credits", { p_team: teamId, p_n: emails });
-      await saveBilling(teamId, { ...cardPatch(tx, old), provider: "paystack", currency: old.currency || tx.currency });
+      await saveBilling(teamId, { ...cardPatch(tx, old), provider: old.provider || "paystack", currency: old.currency || tx.currency });
     }
     return teamId;
   }
@@ -217,6 +237,7 @@ async function applyCharge(tx: Any) {
   const patch: Any = {
     ...cardPatch(tx, old), provider: "paystack", plan, interval, currency, plan_code: code, status: "active", cancel_at: null,
     last_payment_at: tx.paid_at || new Date().toISOString(),
+    plan_since: before.plan_transactional === plan && old.plan_since ? old.plan_since : (tx.paid_at || new Date().toISOString()),
     ...(sub ? { subscription_code: sub.subscription_code, email_token: sub.email_token, next_payment_date: sub.next_payment_date } : {}),
   };
   // Switching plans: stop the previous subscription so the customer isn't charged twice.
@@ -243,12 +264,40 @@ const overageCost = (plan: string, used: number, cur: string) => {
 // ---------------------------------------------------------------- handlers
 async function summary(teamId: string, admin: boolean) {
   const t = await team(teamId);
-  const { data: invoices } = await db.from("billing_invoices").select("reference,plan,kind,description,amount,currency,status,card,paid_at").eq("team_id", teamId).order("created_at", { ascending: false }).limit(24);
+  const { data: invoices } = await db.from("billing_invoices").select("reference,plan,kind,description,amount,currency,status,card,paid_at").eq("team_id", teamId).order("created_at", { ascending: false }).limit(50);
   const b = t.billing || {};
   const plan = t.plan_transactional || "free";
-  const used = await usage(teamId, monthStart());
-  const cur = b.currency === "USD" ? "USD" : "NGN";
-  const { count: contacts } = await db.from("contacts").select("id", { count: "exact", head: true }).eq("team_id", teamId);
+  const now = new Date();
+  const from = monthStart(now), to = monthStart(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)));
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const cur = b.currency === "USD" ? "USD" : b.currency === "NGN" ? "NGN" : (b.details?.country && b.details.country !== "Nigeria" ? "USD" : "NGN");
+  const [used, today, daily, contactsQ, domainsQ, membersQ] = await Promise.all([
+    usage(teamId, from),
+    usage(teamId, dayStart),
+    db.rpc("team_daily_usage", { p_team: teamId, p_from: from.toISOString(), p_to: to.toISOString() }).then((r) => r.data || []),
+    db.from("contacts").select("id", { count: "exact", head: true }).eq("team_id", teamId),
+    db.from("domains").select("id", { count: "exact", head: true }).eq("team_id", teamId),
+    db.from("team_members").select("user_id", { count: "exact", head: true }).eq("team_id", teamId),
+  ]);
+  const credits = Number(t.credits || 0);
+  const value = creditValue(credits, cur);
+  const ov = overageCost(plan, used, cur);
+  const L = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
+  // when did this plan start: saved on payment, else the first successful invoice for it
+  const firstPlanInvoice = (invoices || []).filter((i: Any) => i.status === "success" && i.plan === plan && i.kind !== "credits" && i.kind !== "overage").map((i: Any) => i.paid_at).sort()[0];
+  const sub = b.provider === "paystack" && b.plan && b.plan !== "free" ? {
+    plan: b.plan, interval: b.interval || "monthly", currency: b.currency, status: b.status, card: b.card || null,
+    next_payment_date: b.next_payment_date || null, cancel_at: b.cancel_at || null, can_manage: !!b.subscription_code,
+  } : null;
+  // Next invoice estimate: renewal (if it falls before the month ends) plus projected overage, less credits.
+  const daysIn = Math.round((to.getTime() - from.getTime()) / 864e5), dayN = Math.min(daysIn, Math.floor((now.getTime() - from.getTime()) / 864e5) + 1);
+  const projected = dayN ? Math.round(used / dayN * daysIn) : used;
+  const projOver = overageCost(plan, projected, cur);
+  const p = PLANS[plan];
+  const subCur = sub?.currency === "USD" ? "USD" : "NGN";
+  const renewal = p && sub && sub.status === "active" ? p[(sub.interval === "yearly" ? "yearly" : "monthly") as "monthly"][subCur] : 0;
+  const creditsApplied = Math.min(value, projOver.cost);
+  const vat = vatOf(projOver.cost - creditsApplied);
   return {
     plan,
     plan_marketing: t.plan_marketing || "free",
@@ -256,29 +305,110 @@ async function summary(teamId: string, admin: boolean) {
     payments_ready: !!PSK,
     mode: PSK.startsWith("sk_live") ? "live" : PSK ? "test" : null,
     currencies: CURRENCIES,
+    currency: cur,
     plans: Object.entries(PLANS).map(([id, p]) => ({ id, ...p })),
     marketing: Object.entries(MARKETING).map(([id, p]) => ({ id, ...p })),
     packs: PACKS,
-    credits: Number(t.credits || 0),
-    usage: { month: used, included: PLANS[plan]?.emails ?? (plan === "free" ? 3000 : 0), contacts: contacts || 0, ...overageCost(plan, used, cur), currency: cur },
+    credits,
+    credit_value: value,
+    credit_rate: CREDIT_RATE,
+    min_topup: MIN_TOPUP,
+    vat_rate: VAT_RATE,
+    usage: { month: used, today, included: PLANS[plan]?.emails ?? (plan === "free" ? 3000 : 0), day_limit: L.day, contacts: contactsQ.count || 0, ...ov, currency: cur },
+    period: { start: from.toISOString(), end: new Date(to.getTime() - 1).toISOString(), day: dayN, days: daysIn, projected, projected_over: projOver.over, projected_cost: projOver.cost },
+    daily: (daily as Any[]).map((r) => ({ day: r.day, n: Number(r.n) })),
+    limits: {
+      domains: { used: domainsQ.count || 0, limit: L.domains },
+      members: { used: membersQ.count || 0, limit: L.members },
+      contacts: { used: contactsQ.count || 0, limit: MARKETING_CONTACTS[t.plan_marketing || "free"] || 0 },
+      retention_days: L.retention_days,
+    },
+    next_invoice: { date: sub?.next_payment_date && new Date(sub.next_payment_date) < to ? sub.next_payment_date : to.toISOString(), plan: renewal, plan_currency: subCur, overage: projOver.cost, overage_units: Math.ceil(projOver.over / 1000), credits: creditsApplied, vat, total: renewal + projOver.cost - creditsApplied + vat, currency: cur },
+    customer_since: t.created_at,
+    plan_since: b.plan_since || firstPlanInvoice || (plan === "free" ? t.created_at : null),
+    auto_topup: { enabled: false, pack: 1, threshold: DEFAULT_THRESHOLD[cur], ...(b.auto_topup || {}) },
+    alerts: { p80: true, p100: true, credits_low: true, ...(b.alerts || {}) },
     spend_cap: b.spend_cap || null,
     card: b.card || null,
     can_charge_card: !!b.authorization_code,
-    subscription: b.provider === "paystack" && b.plan && b.plan !== "free" ? {
-      plan: b.plan, interval: b.interval || "monthly", currency: b.currency, status: b.status, card: b.card || null,
-      next_payment_date: b.next_payment_date || null, cancel_at: b.cancel_at || null, can_manage: !!b.subscription_code,
-    } : null,
+    subscription: sub,
     marketing_subscription: b.marketing?.plan ? { ...b.marketing, email_token: undefined, subscription_code: undefined, can_manage: !!b.marketing.subscription_code } : null,
     details: b.details || {},
     invoices: invoices || [],
   };
 }
 
+// Charge the saved card for credits (used by auto top-up and "Pay with card" in the top-up dialog).
+async function chargeCredits(teamId: string, emails: number, amount: number, currency: string, auto: boolean) {
+  const t = await team(teamId);
+  const b = t.billing || {};
+  if (!b.authorization_code || !b.email) throw new HttpError(400, "There's no saved card. Pay with checkout instead.");
+  const vat = vatOf(amount);
+  const reference = `top_${auto ? "auto_" : ""}${teamId.slice(0, 8)}_${Date.now().toString(36)}`;
+  const metadata = { team_id: teamId, kind: "credits", emails, currency, vat, auto };
+  const tx = await ps("POST", "/transaction/charge_authorization", { email: b.email, amount: amount + vat, currency, authorization_code: b.authorization_code, reference, metadata });
+  await applyCharge({ ...tx, reference, currency, amount: amount + vat, metadata });
+  return tx.status as string;
+}
+
+// Every 15 minutes: auto top-ups and usage alerts.
+async function watchRun() {
+  const { data: teams } = await db.from("teams").select("id,name,plan_transactional,credits,billing");
+  const out: Any[] = [];
+  const now = new Date();
+  const tag = `${now.getUTCFullYear()}${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+  for (const t of teams || []) {
+    const b = t.billing || {};
+    const cur = b.currency === "USD" ? "USD" : "NGN";
+    const value = creditValue(Number(t.credits || 0), cur);
+    // auto top-up
+    const at = b.auto_topup || {};
+    if (at.enabled && b.authorization_code && value < Number(at.threshold || DEFAULT_THRESHOLD[cur])) {
+      const last = at.last_attempt ? new Date(at.last_attempt).getTime() : 0;
+      if (now.getTime() - last > 3600e3) {
+        const pack = PACKS[Number(at.pack ?? 1)] || PACKS[1];
+        await saveBilling(t.id, { auto_topup: { ...at, last_attempt: now.toISOString() } });
+        try { out.push({ team: t.id, topup: await chargeCredits(t.id, pack.emails, pack.price[cur], cur, true) }); }
+        catch (e) { out.push({ team: t.id, topup: "error", error: String((e as Error).message) }); }
+      }
+    }
+    // alerts, at most once per month per kind
+    const al = { p80: true, p100: true, credits_low: true, ...(b.alerts || {}) };
+    const sent: Any = b.alerts_sent?.month === tag ? b.alerts_sent : { month: tag, kinds: [] };
+    const fire: string[] = [];
+    const p = PLANS[t.plan_transactional];
+    if (p && (al.p80 || al.p100)) {
+      const used = await usage(t.id, monthStart());
+      if (al.p100 && used >= p.emails && !sent.kinds.includes("p100")) fire.push("p100");
+      else if (al.p80 && used >= p.emails * 0.8 && !sent.kinds.includes("p80")) fire.push("p80");
+      if (fire.length) sent.used = used;
+    }
+    const lowAt = Number(at.threshold || DEFAULT_THRESHOLD[cur]);
+    if (al.credits_low && Number(t.credits || 0) > 0 && value < lowAt && !at.enabled && !sent.kinds.includes("credits_low")) fire.push("credits_low");
+    if (!fire.length) continue;
+    const to = b.details?.email || b.email;
+    const from = env("SYSTEM_FROM");
+    if (to && from) {
+      const money = (n: number) => new Intl.NumberFormat(cur === "NGN" ? "en-NG" : "en-US", { style: "currency", currency: cur, maximumFractionDigits: 0 }).format(n / 100);
+      for (const k of fire) {
+        const subject = k === "credits_low" ? `${t.name}: Delivrie credits are running low` : `${t.name}: you've used ${k === "p100" ? "all" : "80%"} of this month's ${p!.emails.toLocaleString("en-US")} emails`;
+        const text = k === "credits_low" ? `You have ${money(value)} of credit left (about ${Number(t.credits).toLocaleString("en-US")} emails). Top up or turn on auto top-up: ${APP_URL}/billing/credits`
+          : k === "p100" ? `Your team has sent ${Number(sent.used).toLocaleString("en-US")} emails this month. Sending continues; extra emails are billed per 1,000 at month end, paid from credits first. Details: ${APP_URL}/billing`
+          : `Your team has sent ${Number(sent.used).toLocaleString("en-US")} of ${p!.emails.toLocaleString("en-US")} emails this month. Details: ${APP_URL}/billing`;
+        await db.from("emails").insert({ team_id: t.id, from, to: [to], subject, text, html: `<p>${text.replace(/(https:\/\/\S+)/g, '<a href="$1">$1</a>')}</p>`, status: "queued", tags: [{ name: "system", value: "billing_alert" }] });
+      }
+    }
+    await saveBilling(t.id, { alerts_sent: { ...sent, kinds: [...sent.kinds, ...fire] } });
+    out.push({ team: t.id, alerts: fire, emailed: !!(to && from) });
+  }
+  return { checked: (teams || []).length, results: out };
+}
+
 async function overageRun() {
   // Bill last month's overage for every paid team with a saved card. Safe to re-run: references are per team-month.
   const from = monthStart(new Date(), 1), to = monthStart();
   const tag = `${from.getUTCFullYear()}${String(from.getUTCMonth() + 1).padStart(2, "0")}`;
-  const { data: teams } = await db.from("teams").select("id,name,plan_transactional,plan_marketing,billing").in("plan_transactional", Object.keys(PLANS));
+  const { data: teams } = await db.from("teams").select("id,name,plan_transactional,plan_marketing,credits,billing").in("plan_transactional", Object.keys(PLANS));
   const results: Any[] = [];
   for (const t of teams || []) {
     const b = t.billing || {};
@@ -296,6 +426,26 @@ async function overageRun() {
     const reference = `ovg_${tag}_${t.id.slice(0, 8)}`;
     const { data: done } = await db.from("billing_invoices").select("status").eq("reference", reference).maybeSingle();
     if (done?.status === "success") continue;
+    // Credits pay first. Recorded once per team-month so a re-run never takes credits twice.
+    const creditRef = `ovc_${tag}_${t.id.slice(0, 8)}`;
+    const { data: paid } = await db.from("billing_invoices").select("amount").eq("reference", creditRef).maybeSingle();
+    let fromCredits = Number(paid?.amount || 0);
+    if (!paid && Number(t.credits || 0) > 0) {
+      const apply = Math.min(creditValue(Number(t.credits), cur), amount);
+      const n = Math.min(Number(t.credits), Math.ceil(apply / CREDIT_RATE[cur]));
+      if (apply > 0 && n > 0) {
+        const { data: ok } = await db.rpc("use_credits", { p_team: t.id, p_n: n });
+        if (ok) {
+          fromCredits = apply;
+          await db.from("billing_invoices").upsert({ team_id: t.id, reference: creditRef, kind: "overage", plan: t.plan_transactional, description: `${lines.join(" · ")} · paid from credits (${n.toLocaleString("en-US")} emails)`, amount: apply, currency: cur, status: "success", paid_at: new Date().toISOString() }, { onConflict: "reference" });
+        }
+      }
+    }
+    amount = Math.max(0, amount - fromCredits);
+    if (!amount) { results.push({ team: t.id, credits: fromCredits, status: "paid_from_credits" }); continue; }
+    if (fromCredits) lines.push(`credits applied`);
+    amount += vatOf(amount);
+    if (VAT_RATE) lines.push(`incl. VAT ${VAT_RATE}%`);
     if (!b.authorization_code || !b.email) {
       await db.from("billing_invoices").upsert({ team_id: t.id, reference, kind: "overage", plan: t.plan_transactional, description: lines.join(" · ") + " (no saved card)", amount, currency: cur, status: "failed" }, { onConflict: "reference" });
       results.push({ team: t.id, amount, status: "no_card" });
@@ -323,6 +473,11 @@ async function handle(req: Request, path: string): Promise<Response> {
     if (!secret || req.headers.get("x-cron-secret") !== secret) throw new HttpError(401, "Unauthorized");
     return json(await overageRun());
   }
+  if (path === "/cron/watch" && req.method === "POST") {
+    const secret = await setting("cron_secret");
+    if (!secret || req.headers.get("x-cron-secret") !== secret) throw new HttpError(401, "Unauthorized");
+    return json(await watchRun());
+  }
   const a = await auth(req);
   const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
 
@@ -346,26 +501,65 @@ async function handle(req: Request, path: string): Promise<Response> {
       amount: p[interval as "monthly" | "yearly"][currency],
       currency,
       plan: code,
-      callback_url: `${APP_URL}/settings/billing`,
-      metadata: { team_id: a.teamId, kind, plan, interval, currency, user_id: a.user.id, cancel_action: `${APP_URL}/settings/billing?canceled=1` },
+      callback_url: `${APP_URL}/billing`,
+      metadata: { team_id: a.teamId, kind, plan, interval, currency, user_id: a.user.id, cancel_action: `${APP_URL}/billing?canceled=1` },
     });
     return json({ url: init.authorization_url, reference: init.reference });
   }
 
-  if (path === "/credits" && req.method === "POST") {
+  // Top up credits: a pack or a custom amount; saved card, or Paystack checkout (card, bank transfer, USSD).
+  if ((path === "/topup" || path === "/credits") && req.method === "POST") {
     requireAdmin(a);
-    const pack = PACKS[Number(body.pack)];
     const currency = String(body.currency || "").toUpperCase();
-    if (!pack) throw new HttpError(400, "Choose a credit pack.");
     if (!CURRENCIES.includes(currency)) throw new HttpError(400, "Choose USD or NGN.");
+    let amount: number, emails: number;
+    if (body.pack != null && body.pack !== "custom") {
+      const pack = PACKS[Number(body.pack)];
+      if (!pack) throw new HttpError(400, "Choose a credit pack.");
+      amount = pack.price[currency]; emails = pack.emails;
+    } else {
+      amount = Math.round(Number(body.amount) * 100);
+      if (!isFinite(amount) || amount < MIN_TOPUP[currency]) throw new HttpError(400, `The minimum top-up is ${currency === "NGN" ? "₦5,000" : "$5"}.`);
+      if (amount > MAX_TOPUP[currency]) throw new HttpError(400, "That's above the largest top-up. Talk to sales for bigger volumes.");
+      emails = emailsFor(amount, currency);
+    }
+    const t = await team(a.teamId);
+    if (body.auto && typeof body.auto === "object") {
+      const pack = Number(body.auto.pack ?? body.pack ?? 1);
+      await saveBilling(a.teamId, { auto_topup: { ...(t.billing?.auto_topup || {}), enabled: !!body.auto.enabled, pack: PACKS[pack] ? pack : 1, threshold: Math.max(0, Math.round(Number(body.auto.threshold ?? DEFAULT_THRESHOLD[currency] / 100) * 100)) } });
+    }
+    const method = ["card", "bank_transfer", "ussd"].includes(body.method) ? body.method : "checkout";
+    if (method === "card" && t.billing?.authorization_code) {
+      const status = await chargeCredits(a.teamId, emails, amount, currency, false);
+      if (status !== "success") throw new HttpError(402, "Your card was declined. Try checkout instead.");
+      return json({ status, emails, ...(await summary(a.teamId, a.admin)) });
+    }
     const init = await ps("POST", "/transaction/initialize", {
-      email: a.user.email,
-      amount: pack.price[currency],
+      email: t.billing?.details?.email || a.user.email,
+      amount: amount + vatOf(amount),
       currency,
-      callback_url: `${APP_URL}/settings/billing`,
-      metadata: { team_id: a.teamId, kind: "credits", emails: pack.emails, currency, user_id: a.user.id, cancel_action: `${APP_URL}/settings/billing?canceled=1` },
+      ...(method === "bank_transfer" || method === "ussd" ? { channels: [method] } : {}),
+      callback_url: `${APP_URL}/billing`,
+      metadata: { team_id: a.teamId, kind: "credits", emails, currency, vat: vatOf(amount), user_id: a.user.id, cancel_action: `${APP_URL}/billing?canceled=1` },
     });
     return json({ url: init.authorization_url, reference: init.reference });
+  }
+
+  // Auto top-up and usage alert preferences.
+  if (path === "/settings" && req.method === "POST") {
+    requireAdmin(a);
+    const t = await team(a.teamId);
+    const b = t.billing || {};
+    const cur = b.currency === "USD" ? "USD" : "NGN";
+    const patch: Any = {};
+    if (body.auto_topup) {
+      const x = body.auto_topup, pack = Number(x.pack ?? b.auto_topup?.pack ?? 1);
+      if (x.enabled && !b.authorization_code) throw new HttpError(400, "Auto top-up needs a saved card. Top up once with a card first.");
+      patch.auto_topup = { ...(b.auto_topup || {}), enabled: !!x.enabled, pack: PACKS[pack] ? pack : 1, threshold: x.threshold != null ? Math.max(0, Math.round(Number(x.threshold) * 100)) : (b.auto_topup?.threshold ?? DEFAULT_THRESHOLD[cur]) };
+    }
+    if (body.alerts) patch.alerts = { ...(b.alerts || {}), ...Object.fromEntries(["p80", "p100", "credits_low"].filter((k) => k in body.alerts).map((k) => [k, !!body.alerts[k]])) };
+    await saveBilling(a.teamId, patch);
+    return json(await summary(a.teamId, a.admin));
   }
 
   if (path === "/cap" && req.method === "POST") {

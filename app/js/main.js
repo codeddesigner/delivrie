@@ -2,6 +2,7 @@ import { sb, state, loadSession, loadTeams, setTeam, api } from "./lib/sb.js";
 import { $, $$, el, esc, icon, menu, popover, toast, errToast, initials, on, modal } from "./lib/ui.js";
 import { MARK } from "./lib/icons.js";
 import { applyTheme, themeSwitch } from "./lib/theme.js";
+import { intentFrom, rememberNext, nextAfterAuth } from "./lib/intent.js";
 applyTheme();
 
 // ---------------------------------------------------------------- routes
@@ -21,6 +22,7 @@ const ROUTES = [
   ["/metrics", "insights", "metrics", "app"], ["/logs", "insights", "logs", "app"], ["/logs/:id", "insights", "log", "app"],
   ["/domains", "domains", "list", "app"], ["/domains/new", "domains", "add", "app"], ["/domains/:id", "domains", "detail", "app"],
   ["/api-keys", "keys", "apiKeys", "app"], ["/webhooks", "keys", "webhooks", "app"], ["/suppressions", "suppressions", "default", "app"], ["/webhooks/:id", "keys", "webhook", "app"],
+  ["/billing", "billing", "default", "app"], ["/billing/:tab", "billing", "default", "app"],
   ["/settings/unsubscribe-page", "settings", "unsubscribeEditor", "full"], ["/settings", "settings", "default", "app"], ["/settings/:tab", "settings", "default", "app"],
   ["/profile", "settings", "profile", "app"], ["/help", "help", "help", "app"],
   ["/admin", "admin", "default", "auth"], ["/admin/:tab", "admin", "default", "auth"],
@@ -57,7 +59,7 @@ const NAV = [
   { href: "/automations", label: "Automations", icon: "zap" },
   { section: "Audience", items: [{ href: "/contacts", label: "Contacts", icon: "users" }, { href: "/segments", label: "Segments", icon: "layers" }] },
   { section: "Insights", items: [{ href: "/metrics", label: "Metrics", icon: "chart" }, { href: "/logs", label: "Logs", icon: "list" }] },
-  { section: "Configure", items: [{ href: "/domains", label: "Domains", icon: "globe" }, { href: "/api-keys", label: "API keys", icon: "key" }, { href: "/webhooks", label: "Webhooks", icon: "webhook" }, { href: "/suppressions", label: "Suppressions", icon: "shield" }, { href: "/settings", label: "Settings", icon: "gear" }] },
+  { section: "Configure", items: [{ href: "/domains", label: "Domains", icon: "globe" }, { href: "/api-keys", label: "API keys", icon: "key" }, { href: "/webhooks", label: "Webhooks", icon: "webhook" }, { href: "/suppressions", label: "Suppressions", icon: "shield" }, { href: "/billing", label: "Billing", icon: "card" }, { href: "/settings", label: "Settings", icon: "gear" }] },
 ];
 function teamAvatar(t, cls = "") {
   return t?.avatar_url ? `<span class="avatar sq ${cls}"><img src="${esc(t.avatar_url)}" alt=""></span>` : `<span class="avatar sq yellow ${cls}">${esc((t?.name || "?")[0].toUpperCase())}</span>`;
@@ -189,7 +191,7 @@ document.addEventListener("keydown", (e) => {
   if (e.shiftKey && e.key === "Q") { logout(); return; }
   if (e.key.toLowerCase() === "g" && !e.metaKey && !e.ctrlKey) { gPending = Date.now(); return; }
   if (Date.now() - gPending < 1200) {
-    const map = { p: "/profile", s: "/settings", e: "/emails", b: "/broadcasts", t: "/templates", c: "/contacts", d: "/domains", k: "/api-keys", w: "/webhooks", m: "/metrics", l: "/logs" };
+    const map = { p: "/profile", s: "/settings", $: "/billing", e: "/emails", b: "/broadcasts", t: "/templates", c: "/contacts", d: "/domains", k: "/api-keys", w: "/webhooks", m: "/metrics", l: "/logs" };
     const to = map[e.key.toLowerCase()]; gPending = 0;
     if (to) { e.preventDefault(); navigate(to); }
   }
@@ -213,13 +215,15 @@ export async function render(forceShell = false) {
     if (state.user && state.platformAdmin === undefined) { state.platformAdmin = false; sb.rpc("is_platform_admin").then(({ data }) => { state.platformAdmin = !!data; }, () => {}); }
   }
   if (r.kind !== "public" && !state.user) { navigate(`/login?next=${encodeURIComponent(location.pathname + location.search)}`, { replace: true }); return; }
+  // Where to go after signing in (?next=…, or ?plan=pro from the pricing page). Kept through sign-up, the emailed code and team setup.
+  if (["/login", "/signup"].includes(path)) rememberNext(intentFrom(query));
   if (["/login", "/signup"].includes(path) && state.user) {
     // a signed-in user with an MFA factor still needs the second step
     const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") { navigate("/mfa", { replace: true }); return; }
-    navigate(query.next || (state.team ? "/emails" : "/new-team"), { replace: true }); return;
+    navigate(nextAfterAuth(), { replace: true }); return;
   }
-  if ((r.kind === "app" || r.kind === "full") && !state.team) { navigate("/new-team", { replace: true }); return; }
+  if ((r.kind === "app" || r.kind === "full") && !state.team) { rememberNext(location.pathname + location.search); navigate("/new-team", { replace: true }); return; }
 
   const mod = await load(r.mod);
   if (id !== renderId) return;
