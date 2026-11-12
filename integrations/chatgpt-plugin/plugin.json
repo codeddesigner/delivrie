@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "delivrie",
   "version": "1.1.0",
-  "description": "Send email, run broadcasts and automations, and answer your inbox with Delivrie.",
+  "description": "Send and manage your business email from ChatGPT: transactional email, newsletters and customer inbox replies.",
   "author": {
     "name": "South Circle",
     "email": "support@delivrie.io",
@@ -22,7 +22,7 @@
       "interface": {
         "displayName": "Delivrie",
         "shortDescription": "Send email, run your inbox",
-        "longDescription": "Delivrie is an email sending and customer inbox service for businesses and developers. Send transactional email from your verified domains, schedule or cancel sends, and use published templates. Manage contacts, segments and broadcasts, build simple automations and send the events that trigger them. Read and reply to customer conversations in your Delivrie Inbox, keeping replies in the same thread. Check domain DNS, delivery metrics, API logs and usage. You choose what ChatGPT can do when you connect: send, read, or make changes.",
+        "longDescription": "Delivrie lets you send and manage your business email from ChatGPT. Its main purpose is email delivery: send emails from your own verified domain, send newsletters (broadcasts) to your contact lists, and reply to customer emails in your shared inbox.\n\nWhat you can do:\n- Send an email, schedule it, or cancel it before it goes out\n- Manage contacts and segments, then send or schedule a broadcast\n- Read and reply to customer conversations, keeping replies in the same thread\n- Check domain setup, delivery metrics, logs and plan usage\n\nYou need a Delivrie account. When you connect, you choose what ChatGPT can do: send email, read data, or make changes.",
         "developerName": "South Circle",
         "category": "Productivity",
         "capabilities": [
