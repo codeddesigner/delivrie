@@ -991,3 +991,5 @@ tr.revoked td { opacity: .5; }
 .consent-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 760px) { .sso-grid { grid-template-columns: 1fr; } }
 [hidden] { display: none !important; }
+.consent-opt { display: flex !important; align-items: flex-start !important; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); color: var(--fg-2); font-size: 12.5px; cursor: pointer; }
+.consent-opt .checkbox { margin-top: 2px; flex: none; }

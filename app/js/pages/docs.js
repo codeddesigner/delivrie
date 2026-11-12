@@ -19,26 +19,84 @@ const LEGACY = { "api-reference": "/docs/api", mcp: "/docs/mcp", "getting-starte
 
 const logo = (id, n = 14) => `<span class="ab"><img src="/assets/clients/${id}.svg" width="${n}" height="${n}" alt=""></span>`;
 const CLIENTS = [
-  { id: "claude", ab: "Cl", name: "Claude", sub: "Claude Code, Desktop & claude.ai", how: "Remote", lang: "bash", file: "terminal",
-    code: `# Claude Code\nclaude mcp add --transport http delivrie ${MCP_URL} \\\n  --header "Authorization: Bearer dlv_live_••••"\n\n# Claude Desktop & claude.ai: Settings → Connectors → Add custom connector\n# URL ${MCP_URL}` },
-  { id: "cursor", ab: "Cu", name: "Cursor", sub: "Agent mode & Composer", how: "Remote", lang: "json", file: "~/.cursor/mcp.json",
-    code: `{\n  "mcpServers": {\n    "delivrie": {\n      "url": "${MCP_URL}",\n      "headers": { "Authorization": "Bearer dlv_live_••••" }\n    }\n  }\n}` },
+  { id: "claude", ab: "Cl", name: "Claude", sub: "Claude Code, Desktop & claude.ai", how: "Remote · OAuth", lang: "bash", file: "terminal",
+    code: `# Claude Code: opens a Delivrie page to approve access\nclaude mcp add --transport http delivrie ${MCP_URL}\n\n# Claude Desktop & claude.ai: Settings → Connectors → Add custom connector\n# URL ${MCP_URL}` },
+  { id: "cursor", ab: "Cu", name: "Cursor", sub: "Agent mode & Composer", how: "Remote · OAuth", lang: "json", file: "~/.cursor/mcp.json",
+    code: `{\n  "mcpServers": {\n    "delivrie": { "url": "${MCP_URL}" }\n  }\n}` },
   { id: "codex", ab: "Cx", name: "Codex", sub: "OpenAI Codex CLI & IDE", how: "Local bridge", lang: "toml", file: "~/.codex/config.toml",
-    code: `[mcp_servers.delivrie]\ncommand = "npx"\nargs = ["-y", "mcp-remote", "${MCP_URL}", "--header", "Authorization:\${AUTH}"]\nenv = { AUTH = "Bearer dlv_live_••••" }` },
-  { id: "v0", ab: "v0", name: "v0", sub: "v0 by Vercel", how: "Remote", lang: "text", file: "v0 → Settings → MCP connections",
+    code: `[mcp_servers.delivrie]\ncommand = "npx"\nargs = ["-y", "mcp-remote", "${MCP_URL}"]\n# mcp-remote opens the Delivrie approval page on first run` },
+  { id: "v0", ab: "v0", name: "v0", sub: "v0 by Vercel", how: "Remote · API key", lang: "text", file: "v0 → Settings → MCP connections",
     code: `# Add a custom MCP connection\nName     Delivrie\nURL      ${MCP_URL}\nHeader   Authorization: Bearer dlv_live_••••` },
-  { id: "antigravity", ab: "Ag", name: "Antigravity", sub: "Google Antigravity agents", how: "Remote", lang: "json", file: "mcp_config.json",
+  { id: "antigravity", ab: "Ag", name: "Antigravity", sub: "Google Antigravity agents", how: "Remote · API key", lang: "json", file: "mcp_config.json",
     code: `{\n  "mcpServers": {\n    "delivrie": {\n      "serverUrl": "${MCP_URL}",\n      "headers": { "Authorization": "Bearer dlv_live_••••" }\n    }\n  }\n}` },
-  { id: "vscode", ab: "VS", name: "VS Code", sub: "GitHub Copilot agent mode", how: "Remote", lang: "bash", file: "terminal",
-    code: `code --add-mcp '{"name":"delivrie","type":"http","url":"${MCP_URL}","headers":{"Authorization":"Bearer dlv_live_••••"}}'` },
+  { id: "vscode", ab: "VS", name: "VS Code", sub: "GitHub Copilot agent mode", how: "Remote · OAuth", lang: "bash", file: "terminal",
+    code: `code --add-mcp '{"name":"delivrie","type":"http","url":"${MCP_URL}"}'` },
 ];
 const TOOLS = [
-  ["send_email", "Send one email with HTML, text or a template", "send"], ["send_batch", "Send up to 100 emails in one call", "send"], ["schedule_email", "Schedule an email up to 30 days ahead", "send"], ["cancel_email", "Cancel a scheduled email", "send"],
-  ["get_email", "Status and delivery events for an email", "full"], ["list_emails", "Recent sends", "full"], ["create_domain", "Add a sending domain and get its DNS records", "full"], ["verify_domain", "Re-check DNS records for a domain", "full"], ["list_domains", "Domains and their DNS status", "full"],
-  ["create_contact", "Create or update a contact", "full"], ["list_contacts", "Contacts, optionally created after a date", "full"], ["create_segment", "Create a segment", "full"],
-  ["create_broadcast", "Draft a broadcast for a segment", "full"], ["send_broadcast", "Send or schedule a broadcast", "full"], ["create_template", "Create a template", "full"], ["list_templates", "List templates", "full"],
-  ["create_webhook", "Create a webhook endpoint", "full"], ["list_webhook_events", "Delivery attempts for a webhook", "full"], ["create_api_key", "Create an API key", "full"], ["list_api_keys", "List API keys", "full"],
-  ["get_metrics", "Delivery, open, click, bounce and complaint totals", "full"], ["get_log", "An API request with its bodies", "full"], ["add_suppression", "Stop sending to an address", "full"], ["list_suppressions", "Suppressed addresses", "full"],
+  ["send_email","Send one email from a verified domain","send"],
+  ["send_batch","Send up to 100 emails in one call","send"],
+  ["list_emails","Recent sent emails with their latest status (delivered, opened, bounced…)","read"],
+  ["get_email","One email (sent or received) with its content and every delivery event","read"],
+  ["reschedule_email","Change when a scheduled email goes out","send"],
+  ["cancel_email","Cancel an email that is scheduled and not yet sent","send"],
+  ["list_received_emails","Emails that arrived on your receiving domains, newest first","read"],
+  ["forward_email","Forward an email (usually a received one) to other people, with an optional note","send"],
+  ["list_inbox_threads","Conversations in the Inbox","read"],
+  ["get_inbox_thread","A conversation with every message as plain text, oldest first","read"],
+  ["reply_to_thread","Reply in an Inbox conversation","send"],
+  ["update_thread","Archive or reopen a thread, mark it read or unread, or set its labels (labels are created if they don't exist)","send"],
+  ["list_inbox_labels","Labels you can put on inbox threads","read"],
+  ["list_domains","Sending domains with status, region, tracking and receiving settings","read"],
+  ["get_domain","A domain and the DNS records to add, with each record's status","read"],
+  ["create_domain","Add a sending domain and get its DNS records","manage"],
+  ["verify_domain","Check DNS now and update the domain's verification status","read"],
+  ["update_domain","Change tracking, TLS or receiving","manage"],
+  ["delete_domain","Remove a domain","manage"],
+  ["claim_domain","Start claiming a domain another Delivrie team added","manage"],
+  ["verify_domain_claim","Check the claim TXT record and move the domain to this team when it's found","manage"],
+  ["list_contacts","Contacts, newest first","read"],
+  ["get_contact","A contact by id or email","read"],
+  ["create_contact","Create or update a contact by email, optionally adding it to segments","manage"],
+  ["update_contact","Change a contact's name, properties or subscription","manage"],
+  ["delete_contact","Delete a contact","manage"],
+  ["list_contact_properties","Custom contact properties and their fallbacks","read"],
+  ["list_segments","Segments used to target broadcasts and automations","read"],
+  ["create_segment","Create a segment","manage"],
+  ["add_contacts_to_segment","Add contacts (by email) to a segment, creating them if needed","manage"],
+  ["delete_segment","Delete a segment (contacts stay)","manage"],
+  ["list_topics","Topics people can opt out of on the unsubscribe page","read"],
+  ["list_broadcasts","Broadcasts with status and schedule","read"],
+  ["get_broadcast","A broadcast with delivery stats","read"],
+  ["create_broadcast","Create a broadcast draft for a segment","manage"],
+  ["send_broadcast","Send a broadcast now, or schedule it with scheduled_at","manage"],
+  ["cancel_broadcast","Cancel a scheduled broadcast (it goes back to draft)","manage"],
+  ["list_templates","Templates with alias and published version","read"],
+  ["get_template","A template by id or alias, with its content and variables","read"],
+  ["create_template","Create a template","manage"],
+  ["publish_template","Publish the current draft so API sends and automations use it","manage"],
+  ["list_automations","Automations with trigger and status (draft, live, paused)","read"],
+  ["get_automation","An automation's trigger, steps and run counts","read"],
+  ["create_automation","Create a simple automation: a trigger (an event name or a segment) and a list of send/wait steps","manage"],
+  ["publish_automation","Publish (or republish) an automation so it starts running","manage"],
+  ["pause_automation","Pause a live automation","manage"],
+  ["resume_automation","Resume a paused automation","manage"],
+  ["list_automation_runs","Recent runs of an automation, with each step's log","read"],
+  ["send_event","Record an event for a contact (e.g","send"],
+  ["list_events","Without a name: every event your app has sent, with its fields","read"],
+  ["list_webhooks","Webhook endpoints and their events","read"],
+  ["create_webhook","Create a webhook endpoint","manage"],
+  ["list_webhook_events","Recent delivery attempts for a webhook with status codes","read"],
+  ["test_webhook","Send a test event to a webhook and return the response","manage"],
+  ["replay_webhook_delivery","Send a past webhook delivery again","manage"],
+  ["list_suppressions","Addresses Delivrie won't send to (bounces, complaints, manual)","read"],
+  ["add_suppression","Stop sending to one or more addresses","manage"],
+  ["remove_suppression","Allow sending to an address again","manage"],
+  ["get_metrics","Sent, delivered, opened, clicked, bounced and complained totals and rates","read"],
+  ["list_logs","Recent API requests with status codes","read"],
+  ["get_log","One API request with its request and response bodies","read"],
+  ["get_usage","Plan, emails sent this month and today, the allowance, and pay-as-you-go credits","read"],
+  ["list_api_keys","API keys (tokens are never shown)","read"],
+  ["create_api_key","Create an API key","manage"],
 ];
 const CHANGELOG = [
   { date: "Nov 12, 2026", title: "New pricing, credits and billing", items: ["Pro now includes 20,000 emails a month and Scale 100,000, with yearly plans at ten months' price.", "Paid plans keep sending past their allowance and pay overage per 1,000 at month end. Set a spending cap in Billing.", "Pay-as-you-go credits: top up from ₦5,000 or $5, credits never expire.", "Marketing add-on priced by contacts, and billing address and tax ID on invoices."] },
@@ -196,21 +254,21 @@ function mcpPage(body) {
     <main class="d-main"><article class="d-art">
       <div class="d-crumb">MCP server ${icon("chevron-right", 11)} <span>Overview</span></div>
       <div class="d-h1"><h1>Delivrie MCP server</h1><button class="d-chip" data-copy-page>${icon("copy", 12)} Copy page</button></div>
-      <p class="d-lead">Let AI agents send transactional email, check delivery, manage domains and read your logs through the Model Context Protocol. One hosted server works with every major agent.</p>
-      <div class="d-pills"><span class="p blue">Remote · HTTP</span><span class="p">Bearer API key</span><span class="p green">Included on every plan</span></div>
+      <p class="d-lead">Let AI agents send email, answer the Inbox, run automations, manage domains and contacts, and read delivery logs through the Model Context Protocol. One hosted server works with every major agent.</p>
+      <div class="d-pills"><span class="p blue">Remote · HTTP</span><span class="p">OAuth or API key</span><span class="p green">Included on every plan</span></div>
       <h2 id="works">Works with</h2><p>Connect directly where your client supports remote MCP, or through the <code>mcp-remote</code> bridge everywhere else.</p>
       <div class="d-cards three">${CLIENTS.map((c) => `<a class="d-card client" href="#c-${c.id}" data-client="${c.id}"><div class="row-flex">${logo(c.id, 16)}<span class="grow"></span>${icon("arrow-up-right", 12, "dim")}</div><b>${c.name}</b><span class="dim">${c.sub}</span><span class="tagm">${c.how}</span></a>`).join("")}</div>
-      <h2 id="install">Install</h2><p>Create an API key in <a href="/api-keys">Dashboard → API keys</a>, then add the server to your client. Replace <code>dlv_live_••••</code> with your key.</p>
+      <h2 id="install">Install</h2><p>Add the server to your client. Clients that support OAuth open a Delivrie page where you pick the team and approve what the agent can do; it then shows under <a href="/settings/connected-apps">Settings → Connected apps</a>. For other clients, create an API key in <a href="/api-keys">API keys</a> and send it as a header in place of <code>dlv_live_••••</code>.</p>
       ${codeTabs(tabs, { id: "install-tabs" })}
       <p class="dim" id="install-file" style="font-size:12.5px"></p>
       ${CLIENTS.map((c) => `<span id="c-${c.id}" class="anchor"></span>`).join("")}
-      <div id="remote">${callout("info", "Remote server", `The server lives at <code>${MCP_URL}</code> and speaks MCP over streamable HTTP. Send your API key as <code>Authorization: Bearer dlv_…</code>. It acts as the team that owns the key.`)}</div>
-      <h2 id="tools">Tools</h2><p>${TOOLS.length} tools. What an agent can do depends on its key: sending-access keys only reach the sending tools.</p>
-      <div class="d-table"><table><thead><tr><th>Tool</th><th>Description</th><th class="r">Key needed</th></tr></thead><tbody>${TOOLS.map(([n, d, s]) => `<tr><td><code>${n}</code></td><td>${esc(d)}</td><td class="r"><span class="scope ${s === "send" ? "y" : ""}">${s === "send" ? "sending access" : "full access"}</span></td></tr>`).join("")}</tbody></table></div>
+      <div id="remote">${callout("info", "Remote server", `The server lives at <code>${MCP_URL}</code> and speaks MCP over streamable HTTP. Unauthenticated requests get a 401 that points clients at Delivrie's OAuth server (dynamic client registration and PKCE). With an API key, send <code>Authorization: Bearer dlv_…</code>. Either way the agent acts as one team.`)}</div>
+      <h2 id="tools">Tools</h2><p>${TOOLS.length} tools across sending, the Inbox, automations, domains, contacts, broadcasts, templates, webhooks and logs. Each needs one OAuth scope: <b>send</b>, <b>read</b> or <b>manage</b>. Sending-access API keys only reach the send tools.</p>
+      <div class="d-table"><table><thead><tr><th>Tool</th><th>Description</th><th class="r">Scope</th></tr></thead><tbody>${TOOLS.map(([n, d, s]) => `<tr><td><code>${n}</code></td><td>${esc(d)}</td><td class="r"><span class="scope ${s === "send" ? "y" : ""}">${s}</span></td></tr>`).join("")}</tbody></table></div>
       <h2 id="safety">Scopes & safety</h2>
-      <ul class="d-checks"><li>Create a separate key per agent so you can revoke one without touching the others.</li><li>Give agents that only send a <b>sending access</b> key. It can't read contacts, change domains or create keys.</li><li>Limit a sending key to one domain when you create it.</li><li><code>create_broadcast</code> only makes a draft. Sending one needs <code>send_broadcast</code> and a full access key.</li><li>Agent sends appear in Emails and Metrics like any other send.</li></ul>
+      <ul class="d-checks"><li>Connect each agent with OAuth and approve only the scopes it needs. Revoke it any time in Settings → Connected apps.</li><li>If you use API keys, create a separate key per agent so you can revoke one without touching the others.</li><li>Give agents that only send a <b>sending access</b> key. It can't read contacts, change domains or create keys.</li><li>Limit a sending key to one domain when you create it.</li><li><code>create_broadcast</code> only makes a draft. Sending one needs <code>send_broadcast</code> and a full access key.</li><li>Agent sends appear in Emails and Metrics like any other send.</li></ul>
       ${callout("warn", "Sending limits still apply", "Agents share your plan's allowance. Set a spending cap in Billing to stop a runaway loop from running up overage.")}
-      <h2 id="try">Try it</h2><div class="d-cards three">${["Send a test of the welcome template to me@kora.ng", "Why did emails to gmail.com bounce yesterday?", "Is kora.ng verified? If not, what DNS records are missing?"].map((q) => `<button class="d-card prompt" data-copy="${esc(q)}" data-copy-msg="Prompt copied">${icon("sparkle", 13)}<span>“${esc(q)}”</span></button>`).join("")}</div>
+      <h2 id="try">Try it</h2><div class="d-cards three">${["Reply to every support thread that needs a reply about order status", "Why did emails to gmail.com bounce yesterday?", "Create an automation that sends the welcome template when user.created fires"].map((q) => `<button class="d-card prompt" data-copy="${esc(q)}" data-copy-msg="Prompt copied">${icon("sparkle", 13)}<span>“${esc(q)}”</span></button>`).join("")}</div>
       ${helpful(["/docs/api-keys", "API keys"], ["/docs/api/send-email", "Send email"])}
     </article></main>
     ${toc(tocItems, `<div class="d-toc-act"><button data-copy-page>${icon("copy", 12)} Copy as Markdown</button><a href="https://claude.ai/new?q=${encodeURIComponent(`Help me connect the Delivrie MCP server (${MCP_URL}) to my client. Docs: ${location.origin}/docs/mcp`)}" target="_blank" rel="noopener" data-native>${icon("sparkle", 12)} Open in Claude</a></div>`)}`;
@@ -219,7 +277,7 @@ function mcpPage(body) {
   showFile(body.querySelector("#install-tabs .d-code-h .on")?.dataset.lang);
   on(body, "click", "#install-tabs [data-lang]", (_e, b) => showFile(b.dataset.lang));
   on(body, "click", "[data-client]", (ev, a) => { ev.preventDefault(); const c = CLIENTS.find((x) => x.id === a.dataset.client); const name = c.name === "Claude" ? "Claude Code" : c.name; body.querySelector(`#install-tabs [data-lang="${name}"]`)?.click(); body.querySelector("#install").scrollIntoView({ behavior: "smooth" }); });
-  body.dataset.md = `# Delivrie MCP server\n\nServer: ${MCP_URL} (streamable HTTP, Authorization: Bearer dlv_…)\n\n${CLIENTS.map((c) => `## ${c.name}\n\n${c.code}`).join("\n\n")}\n\n## Tools\n\n${TOOLS.map(([n, d, s]) => `- ${n}: ${d} (${s === "send" ? "sending access" : "full access"})`).join("\n")}`;
+  body.dataset.md = `# Delivrie MCP server\n\nServer: ${MCP_URL} (streamable HTTP; OAuth 2.1 or Authorization: Bearer dlv_…)\n\n${CLIENTS.map((c) => `## ${c.name}\n\n${c.code}`).join("\n\n")}\n\n## Tools\n\n${TOOLS.map(([n, d, s]) => `- ${n}: ${d} (scope: ${s})`).join("\n")}`;
 }
 
 // ---------------------------------------------------------------- changelog

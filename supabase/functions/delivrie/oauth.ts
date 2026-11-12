@@ -50,6 +50,8 @@ export function scopeAllows(scopes: string[], method: string, path: string) {
   if (scopes.includes("manage")) return true;
   if (method === "GET") return scopes.includes("read");
   if (/^\/emails(\/batch)?$/.test(path) || /^\/emails\/[^/]+\/(cancel|forward)$/.test(path) || (method === "PATCH" && /^\/emails\/[^/]+$/.test(path))) return scopes.includes("send");
+  if (/^\/inbox\/threads\/[^/]+\/reply$/.test(path) || path === "/events") return scopes.includes("send");
+  if (method === "PATCH" && /^\/inbox\/threads\/[^/]+$/.test(path)) return scopes.includes("send");
   if (/^\/domains\/[^/]+\/verify$/.test(path)) return scopes.includes("read");
   return false;
 }

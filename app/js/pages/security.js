@@ -87,7 +87,7 @@ export async function connectedApps(body) {
 const SCOPE_ITEMS = {
   send: [["send", "Send emails from verified domains"]],
   read: [["list", "Read emails, logs and delivery events"], ["globe", "Read domains and DNS status"], ["users", "Read contacts and segments"]],
-  manage: [["edit", "Create and change domains, contacts, broadcasts and webhooks"]],
+  manage: [["edit", "Create and change domains, contacts, broadcasts, templates, automations and webhooks"]],
 };
 export async function authorize(ctx) {
   const q = ctx.query;
@@ -98,15 +98,17 @@ export async function authorize(ctx) {
   const { data: client } = await sb.from("oauth_clients").select("id,name,client_uri,redirect_uris").eq("id", q.client_id).maybeSingle();
   if (!client) return fail("This app isn’t registered with Delivrie. Start the connection again from the app.");
   const scopes = String(q.scope || "send read").split(/[\s,]+/).filter((s) => s in SCOPE_ITEMS);
-  const use = scopes.length ? scopes : ["send", "read"];
+  let use = scopes.length ? scopes : ["send", "read"];
+  const askedManage = use.includes("manage");
   const name = client.name;
   const teams = state.teams || [];
   root.innerHTML = `<div class="consent-wrap"><div class="consent card">
     <div class="consent-logos"><span class="avatar sq app-av lg">${esc(initials(name).slice(0, 2))}</span><span class="dots">•••</span><img src="/assets/mark.svg" width="34" height="25" alt="Delivrie"></div>
     <h1>${esc(name)} wants to access your Delivrie team</h1>
     <div class="field"><label>Team</label>${selectHtml("team", teams.map((t) => ({ value: t.id, label: t.name })), state.team?.id)}</div>
-    <div class="consent-scopes"><div class="eyebrow">This will allow ${esc(name)} to</div>${use.flatMap((s) => SCOPE_ITEMS[s]).map(([i, t]) => `<div>${icon(i, 13)}<span>${t}</span></div>`).join("")}</div>
-    <p class="dim sm" style="text-align:center">${esc(name)} ${use.includes("manage") ? "can’t create API keys, change billing or delete your team" : "can’t create API keys, change billing or delete data"}. You can revoke access any time in Settings → Connected apps.</p>
+    <div class="consent-scopes"><div class="eyebrow">This will allow ${esc(name)} to</div>${use.flatMap((s) => SCOPE_ITEMS[s]).map(([i, t]) => `<div>${icon(i, 13)}<span>${t}</span></div>`).join("")}
+      ${askedManage ? "" : `<label class="consent-opt"><input type="checkbox" class="checkbox" data-manage><span>Also let it make changes: domains, contacts, broadcasts, templates, automations and webhooks</span></label>`}</div>
+    <p class="dim sm" style="text-align:center" data-limits>${esc(name)} can’t change billing or delete your team${askedManage ? "" : " or data"}. You can revoke access any time in Settings → Connected apps.</p>
     <div class="consent-btns"><button class="btn btn-secondary" data-deny>Cancel</button><button class="btn btn-primary" data-allow>Authorize</button></div>
     <p class="dim sm" style="text-align:center">Signed in as ${esc(state.user?.email || "")} · <a href="#" data-switch>Not you?</a></p>
     ${client.redirect_uris?.[0] ? `<p class="dim sm" style="text-align:center;margin-top:-4px">You’ll be sent back to <span class="mono">${esc(new URL(q.redirect_uri || client.redirect_uris[0]).host || q.redirect_uri)}</span></p>` : ""}</div></div>`;
@@ -114,7 +116,9 @@ export async function authorize(ctx) {
   const go = async (deny, btn) => {
     btn.disabled = true; btn.innerHTML = `<span class="spinner"></span>`;
     try {
-      const r = await api("POST", "/dashboard/oauth/authorize", { client_id: q.client_id, redirect_uri: q.redirect_uri, scope: use.join(" "), state: q.state, code_challenge: q.code_challenge, code_challenge_method: q.code_challenge_method, deny });
+      const manage = root.querySelector("[data-manage]")?.checked;
+      const scope = [...new Set([...use, ...(manage ? ["manage"] : [])])].join(" ");
+      const r = await api("POST", "/dashboard/oauth/authorize", { client_id: q.client_id, redirect_uri: q.redirect_uri, scope, state: q.state, code_challenge: q.code_challenge, code_challenge_method: q.code_challenge_method, deny });
       location.href = r.redirect;
     } catch (e) { errToast(e); btn.disabled = false; btn.textContent = deny ? "Cancel" : "Authorize"; }
   };

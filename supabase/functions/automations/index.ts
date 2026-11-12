@@ -24,6 +24,14 @@ const waitUntil = (p: Promise<unknown>) => { try { (globalThis as any).EdgeRunti
 
 // ---------------------------------------------------------------- auth
 async function auth(req: Request) {
+  // The Delivrie API (MCP tools) calls in on behalf of a team it has already authenticated.
+  const internal = req.headers.get("x-internal-secret");
+  if (internal) {
+    const { data: s } = await db.from("system_settings").select("value").eq("key", "cron_secret").maybeSingle();
+    const teamId = req.headers.get("x-team-id") || "";
+    if (!s?.value || internal !== s.value || !teamId) throw new HttpError(401, "unauthorized", "Unauthorized");
+    return { teamId, dashboard: true, full: true };
+  }
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!token) throw new HttpError(401, "missing_api_key", "Missing API key in the Authorization header. Use Authorization: Bearer dlv_xxx");
   if (token.startsWith("dlv_")) {
