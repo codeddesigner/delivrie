@@ -71,7 +71,7 @@ export async function handleMcp(req: Request, call: Call): Promise<Response> {
     const out = await handle(msg);
     return out ? new Response(JSON.stringify(out), { headers }) : new Response(null, { status: 202, headers: CORS });
   } catch (e) {
-    if (e instanceof HttpError) return new Response(JSON.stringify({ statusCode: e.status, name: e.name, message: e.message }), { status: e.status, headers: { ...headers, "www-authenticate": 'Bearer realm="delivrie"' } });
+    if (e instanceof HttpError) return new Response(JSON.stringify({ statusCode: e.status, name: e.name, message: e.message }), { status: e.status, headers: { ...headers, "www-authenticate": 'Bearer realm="delivrie", resource_metadata="https://delivrie.io/.well-known/oauth-protected-resource"' } });
     throw e;
   }
 }

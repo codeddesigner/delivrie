@@ -1,5 +1,6 @@
 import { sb, state, api, must, API_BASE } from "../lib/sb.js";
-import { esc, icon, statusIcon, statusCell, ago, fmtDateTime, num, plural, toast, errToast, menu, modal, drawer, codeBlock, emptyState, skeletonRows, pager, debounce, download, csv, copyText, selectHtml, bindSelects, TZ, on } from "../lib/ui.js";
+import { receivingIntro, setupModal, received } from "./receiving.js";
+import { initials, esc, icon, statusIcon, statusCell, ago, fmtDateTime, num, plural, toast, errToast, menu, modal, drawer, codeBlock, emptyState, skeletonRows, pager, debounce, download, csv, copyText, selectHtml, bindSelects, TZ, on } from "../lib/ui.js";
 
 const RANGES = [["1", "Today"], ["2", "Yesterday"], ["3", "Last 3 days"], ["7", "Last 7 days"], ["15", "Last 15 days"], ["30", "Last 30 days"], ["90", "Last 90 days"]];
 const STATUSES = ["delivered", "opened", "clicked", "bounced", "complained", "delivery_delayed", "sent", "queued", "scheduled", "failed", "canceled", "suppressed"];
@@ -30,14 +31,14 @@ export async function list(ctx) {
   const root = ctx.root;
   const sync = () => { const p = new URLSearchParams(Object.entries(f).filter(([k, v]) => v && !(k === "page" && v === 1) && !(k === "range" && v === "15") && !(k === "tab" && v === "sending"))); history.replaceState({}, "", "/emails" + (p.toString() ? "?" + p : "")); };
   root.innerHTML = `<div class="page wide">
-    <div class="page-head"><h1>Emails</h1><div class="actions"><button class="ibtn boxed" data-apidrawer title="API">${icon("code", 14)}</button><button class="ibtn boxed" data-more>${icon("more", 14)}</button></div></div>
+    <div class="page-head"><h1>Emails</h1><div class="actions"><button class="btn btn-secondary btn-sm" data-recv-setup hidden>${icon("inbox", 13)} Receiving setup</button><button class="ibtn boxed" data-apidrawer title="API">${icon("code", 14)}</button><button class="ibtn boxed" data-more>${icon("more", 14)}</button></div></div>
     <div class="seg-tabs"><button class="seg-tab" data-tab="sending">Sending</button><button class="seg-tab" data-tab="receiving">Receiving</button></div>
     <div class="filters"><div class="input-wrap search"><span class="lead">${icon("search", 13)}</span><input class="input" data-q placeholder="Search by recipient or subject" value="${esc(f.q)}"></div>
       <div style="width:170px">${selectHtml("range", RANGES.map(([v, l]) => ({ value: v, label: l })), f.range)}</div>
       <div style="width:150px">${selectHtml("status", [{ value: "", label: "All statuses" }, ...STATUSES.map((s) => ({ value: s, label: LABEL[s] }))], f.status)}</div>
       <div style="width:170px">${selectHtml("key", [{ value: "", label: "All API keys" }, ...(keys || []).map((k) => ({ value: k.id, label: k.name }))], f.key)}</div></div>
     <div data-body></div></div>`;
-  const tabs = () => root.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === f.tab));
+  const tabs = () => { root.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === f.tab)); root.querySelector(".page-head [data-recv-setup]").hidden = f.tab !== "receiving"; };
   tabs();
   const body = root.querySelector("[data-body]");
   let last = { rows: [], count: 0 };
@@ -46,20 +47,28 @@ export async function list(ctx) {
     const inbound = f.tab === "receiving";
     root.querySelector("[data-q]").placeholder = inbound ? "Search by sender or subject" : "Search by recipient or subject";
     body.innerHTML = `<div class="table-wrap"><table class="t"><tbody>${skeletonRows(4, 6)}</tbody></table></div>`;
-    const { data, count, error } = await buildQuery(f, "id,from,to,subject,status,created_at,scheduled_at").range((f.page - 1) * PAGE, f.page * PAGE - 1);
+    const { data, count, error } = await buildQuery(f, "id,from,to,subject,status,created_at,scheduled_at" + (inbound ? ",attachments" : "")).range((f.page - 1) * PAGE, f.page * PAGE - 1);
     if (error) throw error;
     last = { rows: data, count };
     if (!count) {
       const filtered = f.q || f.status || f.key;
+      if (inbound && !filtered) {
+        const { data: recv } = await sb.from("domains").select("id,name,receiving_subdomain,receiving_verified_at").eq("team_id", state.team.id).eq("receiving_enabled", true);
+        if (!recv?.length) { body.innerHTML = receivingIntro(); return; }
+        const d = recv[0], h = d.receiving_subdomain ? `${d.receiving_subdomain}.${d.name}` : d.name;
+        body.innerHTML = emptyState({ icon: "inbox", title: "No received emails yet", desc: d.receiving_verified_at ? `Send a test to anything@${esc(h)} and it shows up here.` : `Finish adding the MX record for ${esc(h)}, then mail sent to it shows up here.`, action: `<a class="btn btn-secondary" href="/domains/${d.id}/receiving">${d.receiving_verified_at ? "Receiving settings" : "Finish setup"}</a>` });
+        return;
+      }
       body.innerHTML = filtered ? emptyState({ icon: "search", title: "No emails match", desc: "Try a different search or widen the date range." })
         : emptyState({ icon: "mail", title: inbound ? "No received emails yet" : "No sent emails yet", desc: inbound ? "Turn on receiving for a domain and emails sent to it show up here." : "Send your first email with the API or SMTP and it shows up here with live status.", action: `<a class="btn btn-secondary" href="${inbound ? "/domains" : "/docs#send-email"}">${inbound ? "Go to domains" : "Go to docs"}</a>` });
       return;
     }
     body.innerHTML = `<div class="table-wrap"><table class="t"><thead><tr>${inbound ? "<th>From</th><th>To</th>" : "<th>To</th><th>Status</th>"}<th>Subject</th><th class="r">${inbound ? "Received" : "Sent"}</th><th></th></tr></thead><tbody>
-      ${data.map((e) => `<tr class="clickable" data-id="${e.id}">${inbound ? `<td><div class="cell">${icon("mail", 13, "dim")}<span class="ellipsis">${esc(e.from)}</span></div></td><td class="muted">${esc(e.to?.[0] || "")}</td>` : `<td><div class="cell">${icon("mail", 13, "dim")}<span class="ellipsis">${esc(e.to?.[0] || "")}${e.to?.length > 1 ? ` <span class="dim">+${e.to.length - 1}</span>` : ""}</span></div></td><td>${statusCell(e.status)}</td>`}<td class="ellipsis" style="max-width:420px">${esc(e.subject)}</td><td class="r muted" title="${esc(fmtDateTime(e.created_at, true))}">${e.status === "scheduled" ? "Scheduled · " + fmtDateTime(e.scheduled_at) : ago(e.created_at)}</td><td class="act"><button class="ibtn" data-row="${e.id}">${icon("more")}</button></td></tr>`).join("")}
+      ${data.map((e) => `<tr class="clickable" data-id="${e.id}">${inbound ? `<td><div class="cell"><span class="avatar xs">${esc(initials((e.from || "").replace(/<.*>/, "").replace(/"/g, "").trim() || e.from))}</span><span class="ellipsis">${esc((e.from || "").replace(/\s*<.*>/, "").replace(/"/g, "") || e.from)}</span></div></td><td class="muted mono" style="font-size:12px">${esc((e.to?.[0] || "").replace(/.*<|>.*/g, ""))}</td>` : `<td><div class="cell">${icon("mail", 13, "dim")}<span class="ellipsis">${esc(e.to?.[0] || "")}${e.to?.length > 1 ? ` <span class="dim">+${e.to.length - 1}</span>` : ""}</span></div></td><td>${statusCell(e.status)}</td>`}<td class="ellipsis" style="max-width:420px">${esc(e.subject)}${inbound && e.attachments?.length ? ` <span class="dim" style="margin-left:6px">${icon("paperclip", 11)} ${e.attachments.length}</span>` : ""}</td><td class="r muted" title="${esc(fmtDateTime(e.created_at, true))}">${e.status === "scheduled" ? "Scheduled · " + fmtDateTime(e.scheduled_at) : ago(e.created_at)}</td><td class="act"><button class="ibtn" data-row="${e.id}">${icon("more")}</button></td></tr>`).join("")}
       </tbody></table></div>${pager(f.page, count, PAGE, "email")}`;
   }
   root.addEventListener("click", (e) => {
+    if (e.target.closest("[data-recv-setup]")) { setupModal(ctx); return; }
     const tab = e.target.closest("[data-tab]"); if (tab) { f.tab = tab.dataset.tab; f.page = 1; tabs(); load(); return; }
     const pg = e.target.closest("[data-page]"); if (pg && !pg.disabled) { f.page = +pg.dataset.page; load(); return; }
     const rowBtn = e.target.closest("[data-row]");
@@ -76,6 +85,7 @@ export async function list(ctx) {
   root.querySelector("[data-q]").addEventListener("input", debounce((e) => { f.q = e.target.value; f.page = 1; load(); }, 300));
   bindSelects(root, (name, value) => { f[name] = value; f.page = 1; load(); });
   await load();
+  if (ctx.query.setup) setupModal(ctx);
 }
 
 function apiDrawer() {
@@ -156,6 +166,7 @@ export async function detail(ctx) {
   const events = must(await sb.from("email_events").select("*").eq("email_id", e.id).order("created_at"));
   const domain = e.domain_id ? must(await sb.from("domains").select("*").eq("id", e.domain_id).maybeSingle()) : null;
   const inbound = e.direction === "inbound";
+  if (inbound) return received(ctx, e, events);
   const title = inbound ? e.from : e.to?.[0];
   ctx.crumb("mail", title, ["Emails", "/emails" + (inbound ? "?tab=receiving" : "")]);
   let tab = "preview";

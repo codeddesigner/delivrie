@@ -223,9 +223,13 @@ async function handleInbound(msg: Any) {
   const seenTeams = new Set<string>();
   for (const rcpt of recipients) {
     const dom = domainOf(rcpt);
-    const { data: doms } = await db.from("domains").select("id,team_id,name").eq("receiving_enabled", true);
-    const d = (doms || []).find((x: Any) => dom === x.name || dom.endsWith("." + x.name));
+    const { data: doms } = await db.from("domains").select("id,team_id,name,receiving_subdomain,receiving_mode,receiving_addresses").eq("receiving_enabled", true);
+    // Longest match first so a subdomain set up on its own wins over its parent.
+    const d = (doms || []).sort((a: Any, b: Any) => b.name.length - a.name.length).find((x: Any) => dom === x.name || dom.endsWith("." + x.name));
     if (!d || seenTeams.has(d.team_id)) continue;
+    if (d.receiving_subdomain && dom !== `${d.receiving_subdomain}.${d.name}`) continue;
+    // "Only specific addresses": mail to anything not on the list is dropped.
+    if (d.receiving_mode === "specific" && !(d.receiving_addresses || []).includes(String(rcpt).toLowerCase())) continue;
     seenTeams.add(d.team_id);
     const common = msg.mail?.commonHeaders || {};
     const { data: e } = await db.from("emails").insert({
@@ -239,7 +243,7 @@ async function handleInbound(msg: Any) {
     }).select().single();
     if (e) {
       await db.from("email_events").insert({ email_id: e.id, team_id: d.team_id, type: "received", data: { spam: msg.receipt?.spamVerdict?.status, virus: msg.receipt?.virusVerdict?.status, spf: msg.receipt?.spfVerdict?.status, dkim: msg.receipt?.dkimVerdict?.status, dmarc: msg.receipt?.dmarcVerdict?.status } });
-      await emit(d.team_id, "email.received", { email_id: e.id, from: e.from, to: e.to, subject: e.subject, created_at: e.created_at });
+      await emit(d.team_id, "email.received", { email_id: e.id, from: e.from, to: e.to, subject: e.subject, created_at: e.created_at, message_id: e.headers?.["message-id"] || null, attachments: (e.attachments || []).map((a: Any) => ({ filename: a.filename, content_type: a.content_type, size: a.size })) });
     }
   }
 }

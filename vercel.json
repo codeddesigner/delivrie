@@ -15,6 +15,18 @@
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/automations/:path*"
     },
     {
+      "source": "/.well-known/oauth-authorization-server",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/oauth/metadata"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource/:path*",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/oauth/resource"
+    },
+    {
+      "source": "/.well-known/oauth-protected-resource",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/oauth/resource"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/:path*"
     },
@@ -39,7 +51,7 @@
       "destination": "/app.html"
     },
     {
-      "source": "/(inbox|automations|events|docs|reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|billing|settings|admin)/:rest*",
+      "source": "/(inbox|automations|events|docs|reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|billing|settings|admin|oauth)/:rest*",
       "destination": "/app.html"
     }
   ],

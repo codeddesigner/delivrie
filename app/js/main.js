@@ -20,11 +20,11 @@ const ROUTES = [
   ["/contacts", "audience", "contacts", "app"], ["/contacts/import", "audience", "importCsv", "app"], ["/contacts/properties", "audience", "properties", "app"], ["/contacts/topics", "audience", "topics", "app"],
   ["/segments", "audience", "segments", "app"], ["/segments/:id", "audience", "segment", "app"],
   ["/metrics", "insights", "metrics", "app"], ["/logs", "insights", "logs", "app"], ["/logs/:id", "insights", "log", "app"],
-  ["/domains", "domains", "list", "app"], ["/domains/new", "domains", "add", "app"], ["/domains/:id", "domains", "detail", "app"],
+  ["/domains", "domains", "list", "app"], ["/domains/new", "domains", "add", "app"], ["/domains/:id", "domains", "detail", "app"], ["/domains/:id/receiving", "receiving", "setup", "app"],
   ["/api-keys", "keys", "apiKeys", "app"], ["/webhooks", "keys", "webhooks", "app"], ["/suppressions", "suppressions", "default", "app"], ["/webhooks/:id", "keys", "webhook", "app"],
   ["/billing", "billing", "default", "app"], ["/billing/:tab", "billing", "default", "app"],
   ["/settings/unsubscribe-page", "settings", "unsubscribeEditor", "full"], ["/settings", "settings", "default", "app"], ["/settings/:tab", "settings", "default", "app"],
-  ["/profile", "settings", "profile", "app"], ["/help", "help", "help", "app"],
+  ["/oauth/authorize", "security", "authorize", "full"], ["/profile", "settings", "profile", "app"], ["/help", "help", "help", "app"],
   ["/admin", "admin", "default", "auth"], ["/admin/:tab", "admin", "default", "auth"],
 ].map(([p, mod, exp, kind]) => {
   const keys = [];

@@ -141,7 +141,7 @@ export async function login(ctx) {
     <form novalidate style="position:relative">${last === "email" ? '<span class="last-used" style="top:-8px">Last used</span>' : ""}<div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" placeholder="you@company.com" autocomplete="email" required></div>
     <div class="field"><div class="row-flex" style="justify-content:space-between"><label for="password" class="label">Password</label><a href="/reset" class="dim" style="font-size:12px">Forgot password?</a></div><div class="input-wrap"><input class="input" id="password" type="password" placeholder="••••••••" autocomplete="current-password"><button type="button" class="ibtn trail" data-eye>${icon("eye", 14)}</button></div></div>
     <button class="btn btn-primary btn-lg btn-block" type="submit">Log in</button></form>
-    <p class="sub" style="font-size:12.5px;margin-top:-4px"><a href="#" data-code>Email me a sign-in code instead</a></p>
+    <p class="sub" style="font-size:12.5px;margin-top:-4px"><a href="#" data-code>Email me a sign-in code instead</a> · <a href="#" data-sso>Use single sign-on</a></p>
     <p class="legal">By signing up, you agree to our <a href="/docs">Terms of Service</a> and <a href="/docs">Privacy Policy</a>.</p>`);
   bindEye(card); bindSso(card);
   if (ctx.query.deleted) toast("Your account has been deleted");
@@ -153,9 +153,27 @@ export async function login(ctx) {
     if (error) return errToast(/signups not allowed|not found/i.test(error.message) ? new Error("No account uses that email. Sign up instead.") : error);
     ctx.navigate(`/verify?type=email&email=${encodeURIComponent(email)}`);
   });
+  // Single sign-on (Figma 9.9): teams with SAML set up sign in through their identity provider.
+  const ssoFor = async (email) => { const { data } = await sb.rpc("sso_for_email", { p_email: email }); return data?.[0] || null; };
+  const startSso = async (domain) => {
+    localStorage.setItem("dlv_last_method", "sso");
+    const { data, error } = await sb.auth.signInWithSSO({ domain, options: { redirectTo: `${location.origin}/confirm` } });
+    if (error) return errToast(error);
+    location.href = data.url;
+  };
+  card.querySelector("[data-sso]").addEventListener("click", async (e) => {
+    e.preventDefault();
+    const email = card.querySelector("#email").value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { card.querySelector("#email").focus(); return toast("Enter your work email first", "err"); }
+    const s = await ssoFor(email);
+    if (!s) return toast(`Single sign-on isn’t set up for ${email.split("@")[1]}. Log in with your password.`, "info", 5000);
+    startSso(s.domain);
+  });
   card.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector("button[type=submit]"); setBusy(btn, true);
+    const enforced = await ssoFor(card.querySelector("#email").value.trim()).catch(() => null);
+    if (enforced?.enforce) { setBusy(btn, false, "Log in"); toast(`${enforced.domain} requires single sign-on. Taking you to your identity provider.`, "info"); return startSso(enforced.domain); }
     const { error } = await sb.auth.signInWithPassword({ email: card.querySelector("#email").value.trim(), password: card.querySelector("#password").value });
     setBusy(btn, false, "Log in");
     if (error && /confirm/i.test(error.message)) {

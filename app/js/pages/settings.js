@@ -1,8 +1,9 @@
 import { sb, state, api, API_BASE, loadTeams, setTeam } from "../lib/sb.js";
+import { sso, connectedApps } from "./security.js";
 import { esc, icon, ago, fmtDate, fmtDateTime, num, plural, toast, errToast, menu, modal, formModal, confirmModal, emptyState, badge, selectHtml, bindSelects, codeBlock, initials, EMAIL_RE, on, debounce, csv, download } from "../lib/ui.js";
 
 const T = () => state.team.id;
-const TABS = [["usage", "Usage"], ["team", "Team"], ["smtp", "SMTP"], ["integrations", "Integrations"], ["unsubscribe", "Unsubscribe page"], ["documents", "Documents"]];
+const TABS = [["usage", "Usage"], ["billing", "Billing"], ["team", "Team"], ["security", "Security"], ["connected-apps", "Connected apps"], ["smtp", "SMTP"], ["integrations", "Integrations"], ["unsubscribe", "Unsubscribe page"], ["documents", "Documents"]];
 const isAdmin = () => state.role === "admin";
 
 export default async function settings(ctx) {
@@ -12,9 +13,9 @@ export default async function settings(ctx) {
   if (tab === "billing") return ctx.navigate("/billing" + location.search, { replace: true });
   ctx.crumb("gear", "Settings");
   const root = ctx.root;
-  root.innerHTML = `<div class="page wide"><div class="page-head"><h1>Settings</h1></div><div class="ul-tabs" style="margin-bottom:22px">${TABS.map(([k, l]) => `<a class="ul-tab ${k === tab ? "on" : ""}" href="/settings/${k === "unsubscribe" ? "unsubscribe-page" : k}">${l}</a>`).join("")}</div><div data-body></div></div>`;
+  root.innerHTML = `<div class="page wide"><div class="page-head"><h1>Settings</h1></div><div class="ul-tabs" style="margin-bottom:22px">${TABS.map(([k, l]) => `<a class="ul-tab ${k === tab ? "on" : ""}" href="${k === "billing" ? "/billing" : `/settings/${k === "unsubscribe" ? "unsubscribe-page" : k}`}">${l}</a>`).join("")}</div><div data-body></div></div>`;
   const body = root.querySelector("[data-body]");
-  const fn = { usage, team, suppressions, smtp, integrations, documents }[tab];
+  const fn = { usage, team, suppressions, smtp, integrations, documents, security: sso, "connected-apps": connectedApps }[tab];
   if (!fn) return ctx.navigate("/settings", { replace: true });
   await fn(body, ctx);
 }

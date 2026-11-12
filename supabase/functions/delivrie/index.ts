@@ -1,13 +1,14 @@
 import { type Any, APP_URL, asArray, bad, CORS, db, domainOf, emailOnly, ENFORCE_LIMITS, errorJson, forbidden, HttpError, json, LIMITS, notFound, pageParams, randomToken, setting, sha256, SYSTEM_FROM, waitUntil } from "./util.ts";
-import { accountStatus, createDomain, deleteDomain, hasAws, regionLabel, updateDomainConfig, verifyDomain } from "./ses.ts";
+import { accountStatus, createDomain, deleteDomain, doh, hasAws, regionLabel, updateDomainConfig, verifyDomain } from "./ses.ts";
 import { attemptDelivery, deliver, emit, handleSesEvent, payloadFor, systemDomain, validateRecipients, verifyUnsubscribeToken } from "./send.ts";
 import { EMAIL_RE, parseAddress } from "./mime.ts";
 import { blocksToText, renderBlocks, renderVars, usedVars } from "./blocks.js";
 import { DOCS, searchDocs } from "./docs.js";
+import { oauthAuthorize, oauthGrantFromToken, oauthPublic, scopeAllows } from "./oauth.ts";
 import { handleMcp } from "./mcp.ts";
 import { SES_REGIONS } from "./aws.ts";
 
-interface Ctx { teamId: string; userId: string | null; apiKey: Any | null; permission: "full" | "sending"; via: "api" | "dashboard"; userAgent: string; email?: string }
+interface Ctx { teamId: string; userId: string | null; apiKey: Any | null; permission: "full" | "sending"; via: "api" | "dashboard"; userAgent: string; email?: string; scopes?: string[] }
 
 // ---------------------------------------------------------------- auth
 async function authenticate(req: Request): Promise<Ctx> {
@@ -20,6 +21,11 @@ async function authenticate(req: Request): Promise<Ctx> {
     if (!key) throw new HttpError(401, "invalid_api_key", "API key is invalid");
     waitUntil(db.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", key.id));
     return { teamId: key.team_id, userId: null, apiKey: key, permission: key.permission, via: "api", userAgent: ua };
+  }
+  // Connected apps (OAuth access tokens for MCP clients)
+  if (token.startsWith("dlvo_")) {
+    const g = await oauthGrantFromToken(token);
+    return { teamId: g.team_id, userId: g.user_id, apiKey: null, permission: "full", via: "api", userAgent: ua || g.client_name, scopes: g.scopes };
   }
   const { data: u, error } = await db.auth.getUser(token);
   if (error || !u?.user) throw new HttpError(401, "invalid_api_key", "Session expired. Log in again.");
@@ -81,7 +87,7 @@ async function checkQuota(c: Ctx, n: number) {
   const now = new Date();
   const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
   const month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-  const count = async (from: string) => (await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").gte("created_at", from)).count || 0;
+  const count = async (from: string) => (await db.from("emails").select("id", { count: "exact", head: true }).eq("team_id", c.teamId).is("broadcast_id", null).eq("direction", "outbound").not("tags", "cs", JSON.stringify([{ name: "system" }])).gte("created_at", from)).count || 0;
 
   // Paid plans never hard-stop at the monthly allowance: emails over it are billed as overage at month end,
   // unless the team set a spending cap in Billing.
@@ -91,7 +97,7 @@ async function checkQuota(c: Ctx, n: number) {
     const cur = t?.billing?.currency === "USD" ? "USD" : "NGN";
     const over = Math.max(0, (await count(month)) + n - L.month);
     const cost = Math.ceil(over / 1000) * L.overage[cur];
-    if (cost > cap) throw new HttpError(429, "spending_cap_reached", `This send would take overage past your spending cap. Raise or remove the cap in Settings → Billing.`);
+    if (cost > cap) throw new HttpError(429, "spending_cap_reached", `This send would take overage past your spending cap. Raise or remove the cap in Billing.`);
     return;
   }
 
@@ -105,7 +111,7 @@ async function checkQuota(c: Ctx, n: number) {
     if (ok) return;
   }
   const which = L.day && (await count(day)) + n > L.day ? `daily limit of ${L.day.toLocaleString("en-US")}` : `monthly limit of ${L.month.toLocaleString("en-US")}`;
-  throw new HttpError(429, L.day && which.startsWith("daily") ? "daily_quota_exceeded" : "monthly_quota_exceeded", `You've reached the ${name} plan's ${which} emails. Upgrade or buy credits in Settings → Billing.`);
+  throw new HttpError(429, L.day && which.startsWith("daily") ? "daily_quota_exceeded" : "monthly_quota_exceeded", `You've reached the ${name} plan's ${which} emails. Upgrade or buy credits in Billing.`);
 }
 
 async function checkLimit(c: Ctx, table: "domains" | "webhooks", key: "domains" | "webhooks", label: string) {
@@ -114,7 +120,7 @@ async function checkLimit(c: Ctx, table: "domains" | "webhooks", key: "domains" 
   const max = (LIMITS[t?.plan_transactional || "free"] || LIMITS.free)[key];
   if (!max) return;
   const { count } = await db.from(table).select("id", { count: "exact", head: true }).eq("team_id", c.teamId);
-  if ((count || 0) >= max) throw new HttpError(403, "plan_limit_reached", `Your plan includes ${max} ${label}${max === 1 ? "" : "s"}. Upgrade in Settings → Billing to add more.`);
+  if ((count || 0) >= max) throw new HttpError(403, "plan_limit_reached", `Your plan includes ${max} ${label}${max === 1 ? "" : "s"}. Upgrade in Billing to add more.`);
 }
 
 // "in 2 hours", "in 30 minutes", "tomorrow at 9am", "tomorrow 14:30" (UTC), or any ISO 8601 date.
@@ -374,8 +380,64 @@ route("POST", "/emails/:id/cancel", async (_r, c, p) => {
   return { object: "email", id: p.id };
 });
 
+route("POST", "/emails/:id/forward", async (_r, c, p, _u, b) => {
+  const { data: e } = await db.from("emails").select("*").eq("team_id", c.teamId).eq("id", p.id).maybeSingle();
+  if (!e) throw notFound("Email");
+  const to = asArray(b?.to);
+  if (!to.length) throw bad("Add who to forward it to");
+  if (!b?.from) throw bad("Choose a From address on a verified domain");
+  const note = String(b?.note || "").trim();
+  const escH = (x: string) => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const head = [`From: ${e.from}`, `Date: ${new Date(e.sent_at || e.created_at).toUTCString()}`, `Subject: ${e.subject}`, `To: ${(e.to || []).join(", ")}`];
+  const original = e.html || (e.text ? `<pre style="white-space:pre-wrap;font:inherit">${escH(e.text)}</pre>` : "");
+  const html = `${note ? `<p>${escH(note).replace(/\n/g, "<br>")}</p>` : ""}<div style="color:#6b6f76">---------- Forwarded message ----------<br>${head.map(escH).join("<br>")}</div><br>${original}`;
+  const text = `${note ? note + "\n\n" : ""}---------- Forwarded message ----------\n${head.join("\n")}\n\n${e.text || ""}`;
+  const subject = /^fwd?:/i.test(e.subject || "") ? e.subject : `Fwd: ${e.subject || ""}`;
+  const [out] = await sendEmails(c, [{ from: b.from, to, subject, html, text, tags: [{ name: "forwarded_from", value: e.id }] }], null);
+  return { object: "email", id: out.id, forwarded_from: e.id };
+});
+
+// claim a domain another team added, by proving DNS control (TXT _delivrie-claim)
+const CLAIM_HOST = "_delivrie-claim";
+const claimOut = (cl: Any) => ({ object: "domain_claim", id: cl.id, name: cl.name, status: cl.status, expires_at: cl.expires_at, record: { type: "TXT", name: CLAIM_HOST, value: `delivrie-claim=${cl.token}` } });
+route("POST", "/domains/claims", async (_r, c, _p, _u, b) => {
+  needFull(c);
+  const name = String(b?.name || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const { data: existing } = await db.from("domains").select("id,team_id").eq("name", name).maybeSingle();
+  if (!existing) throw bad(`${name} isn't on Delivrie yet. Add it as a new domain instead.`);
+  if (existing.team_id === c.teamId) throw bad(`${name} is already in this team.`);
+  await checkLimit(c, "domains", "domains", "custom domain");
+  const { data: open } = await db.from("domain_claims").select("*").eq("team_id", c.teamId).eq("name", name).eq("status", "pending").gt("expires_at", new Date().toISOString()).maybeSingle();
+  if (open) return claimOut(open);
+  const token = [...crypto.getRandomValues(new Uint8Array(8))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const { data: cl } = await db.from("domain_claims").insert({ team_id: c.teamId, name, region: b?.region || "eu-west-1", token, created_by: c.userId }).select().single();
+  return claimOut(cl);
+});
+route("POST", "/domains/claims/:id/verify", async (_r, c, p) => {
+  needFull(c);
+  const { data: cl } = await db.from("domain_claims").select("*").eq("team_id", c.teamId).eq("id", p.id).maybeSingle();
+  if (!cl) throw notFound("Claim");
+  if (cl.status === "claimed") return { ...claimOut(cl), claimed: true };
+  if (new Date(cl.expires_at) < new Date()) { await db.from("domain_claims").update({ status: "expired" }).eq("id", cl.id); throw bad("This claim expired. Start a new one."); }
+  const answers = await doh(`${CLAIM_HOST}.${cl.name}`, "TXT");
+  if (!answers.some((a) => a.replace(/\s+/g, "") === `delivrie-claim=${cl.token}`)) {
+    return { ...claimOut(cl), claimed: false, message: `We couldn't find the TXT record at ${CLAIM_HOST}.${cl.name} yet. DNS changes can take up to an hour.` };
+  }
+  const { data: d } = await db.from("domains").select("*").eq("name", cl.name).maybeSingle();
+  if (!d) throw bad(`${cl.name} was removed from Delivrie. Add it as a new domain.`);
+  const from = d.team_id;
+  if (from !== c.teamId) {
+    await db.from("api_keys").update({ domain_id: null }).eq("domain_id", d.id);
+    await db.from("domains").update({ team_id: c.teamId }).eq("id", d.id);
+    await emit(from, "domain.updated", { id: d.id, name: d.name, status: "claimed_by_another_team", region: d.region });
+    await emit(c.teamId, "domain.created", { id: d.id, name: d.name, status: d.status, region: d.region });
+  }
+  const { data: done } = await db.from("domain_claims").update({ status: "claimed", claimed_at: new Date().toISOString(), claimed_from: from }).eq("id", cl.id).select().single();
+  return { ...claimOut(done), claimed: true, domain_id: d.id };
+});
+
 // domains
-const domainOut = (d: Any) => ({ object: "domain", id: d.id, name: d.name, status: d.status, region: d.region, region_label: regionLabel(d.region), records: d.records, created_at: d.created_at, click_tracking: d.click_tracking, open_tracking: d.open_tracking, tls: d.tls, return_path: d.return_path, receiving_enabled: d.receiving_enabled });
+const domainOut = (d: Any) => ({ object: "domain", id: d.id, name: d.name, status: d.status, region: d.region, region_label: regionLabel(d.region), records: d.records, created_at: d.created_at, click_tracking: d.click_tracking, open_tracking: d.open_tracking, tls: d.tls, return_path: d.return_path, receiving_enabled: d.receiving_enabled, receiving_subdomain: d.receiving_subdomain, receiving_mode: d.receiving_mode, receiving_addresses: d.receiving_addresses, receiving_verified_at: d.receiving_verified_at });
 async function getDomain(c: Ctx, id: string) {
   const q = db.from("domains").select("*").eq("team_id", c.teamId);
   const { data } = id.includes(".") ? await q.eq("name", id).maybeSingle() : await q.eq("id", id).maybeSingle();
@@ -386,6 +448,9 @@ route("GET", "/domains", async (_r, c) => { needFull(c); const { data } = await 
 route("POST", "/domains", async (_r, c, _p, _u, b) => {
   needFull(c);
   await checkLimit(c, "domains", "domains", "custom domain");
+  const want = String(b?.name || "").trim().toLowerCase();
+  const { data: taken } = await db.from("domains").select("team_id").eq("name", want).maybeSingle();
+  if (taken && taken.team_id !== c.teamId) throw new HttpError(409, "domain_in_use", `${want} is already added to another Delivrie team. If it's yours, claim it by proving you control its DNS.`);
   const d = await createDomain(c.teamId, String(b?.name || ""), b?.region || "eu-west-1", b || {});
   await emit(c.teamId, "domain.created", { id: d.id, name: d.name, status: d.status, region: d.region });
   return domainOut(d);
@@ -600,6 +665,7 @@ route("DELETE", "/dashboard/team", dash(async (_r, c, _p, _u, b) => {
   await db.from("teams").delete().eq("id", c.teamId);
   return { deleted: true };
 }));
+route("POST", "/dashboard/oauth/authorize", dash(async (_r, c, _p, _u, b) => oauthAuthorize(c.teamId, c.userId!, b || {})));
 route("POST", "/dashboard/ask", dash(async (_r, _c, _p, _u, b) => askDelivrie(String(b?.question || ""))));
 
 // account endpoints work without a team
@@ -723,14 +789,23 @@ Deno.serve(async (req) => {
       return json(await runCron());
     }
     if (path === "/docs") return json({ docs: DOCS });
+    const oauth = await oauthPublic(req, path);
+    if (oauth) return oauth;
     const pub = await publicRoutes(req, path, url);
     if (pub) return pub;
     const acct = await accountRoutes(req, path);
     if (acct) return acct;
-    if (path === "/mcp") return await handleMcp(req, async (method, p, body) => {
-      const c = await authenticate(req);
-      return dispatch(req, c, method, p, body, new URL("https://x" + p));
-    });
+    if (path === "/mcp") {
+      // Authenticate up front so MCP clients get a 401 that points them at OAuth (or an API key).
+      let c: Ctx | null = null;
+      if (req.method === "POST") {
+        try { c = await authenticate(req); } catch (e) {
+          const err = e instanceof HttpError ? e : new HttpError(401, "invalid_api_key", "Authentication failed");
+          return json({ statusCode: err.status, name: err.name, message: err.message }, err.status, { "www-authenticate": `Bearer realm="delivrie", resource_metadata="${APP_URL}/.well-known/oauth-protected-resource"` });
+        }
+      }
+      return await handleMcp(req, async (method, p, body) => dispatch(req, c!, method, p, body, new URL("https://x" + p)));
+    }
 
     const c = await authenticate(req);
     const raw = ["POST", "PATCH", "PUT", "DELETE"].includes(req.method) ? (await req.text()).trim() : "";
@@ -749,6 +824,7 @@ async function dispatch(req: Request, c: Ctx, method: string, path: string, body
     const match = path.match(re);
     if (!match) continue;
     const params = Object.fromEntries(keys.map((k, i) => [k, match[i + 1]]));
+    if (c.scopes && !scopeAllows(c.scopes, method, path)) throw new HttpError(403, "insufficient_scope", `This connected app wasn't given access to ${method} ${path}. Reconnect it and approve the ${method === "GET" ? "read" : path.startsWith("/emails") ? "send" : "manage"} scope.`);
     const logged = c.via === "api" || /^\/(domains|emails|api-keys|broadcasts\/[^/]+\/send)/.test(path) && method !== "GET";
     try {
       const out = await h(req, c, params, url, body);

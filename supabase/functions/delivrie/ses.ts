@@ -57,7 +57,12 @@ export function buildRecords(d: Any, dkimPublic: string) {
     { group: "sending", record: "SPF", type: "TXT", name: d.return_path, value: "v=spf1 include:amazonses.com ~all", ttl: "Auto", priority: null, status: "not_started" },
     { group: "dmarc", record: "DMARC", type: "TXT", name: "_dmarc", value: "v=DMARC1; p=none;", ttl: "Auto", priority: null, status: "optional" },
   ];
-  if (d.receiving_enabled) recs.push({ group: "receiving", record: "MX", type: "MX", name: "@", value: `inbound-smtp.${d.region}.amazonaws.com`, ttl: "Auto", priority: 10, status: "not_started" });
+  if (d.receiving_enabled) {
+    // Receiving can live on a subdomain (in.example.com) so the root domain keeps its own mail provider.
+    const sub = d.receiving_subdomain || "";
+    recs.push({ group: "receiving", record: "MX", type: "MX", name: sub || "@", value: `inbound-smtp.${d.region}.amazonaws.com`, ttl: "Auto", priority: 10, status: "not_started" });
+    if (sub) recs.push({ group: "receiving", record: "DMARC", type: "TXT", name: `_dmarc.${sub}`, value: "v=DMARC1; p=none;", ttl: "Auto", priority: null, status: "optional" });
+  }
   return recs;
 }
 
@@ -106,7 +111,7 @@ export async function deleteDomain(d: Any) {
   await db.from("domains").delete().eq("id", d.id);
 }
 
-async function doh(name: string, type: string): Promise<string[]> {
+export async function doh(name: string, type: string): Promise<string[]> {
   try {
     const r = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`, { headers: { accept: "application/dns-json" } });
     const j = await r.json();
@@ -148,8 +153,10 @@ export async function verifyDomain(d: Any) {
     }
   }
   const anyFound = recs.some((r) => r.status === "verified");
+  const mx = recs.find((r) => r.group === "receiving" && r.type === "MX");
+  const receivingVerifiedAt = mx?.status === "verified" ? (d.receiving_verified_at || new Date().toISOString()) : null;
   const { data } = await db.from("domains").update({
-    records: recs, status, verified_at: verifiedAt, last_checked_at: new Date().toISOString(),
+    records: recs, status, verified_at: verifiedAt, last_checked_at: new Date().toISOString(), receiving_verified_at: receivingVerifiedAt,
     dns_found_at: d.dns_found_at || (anyFound ? new Date().toISOString() : null),
   }).eq("id", d.id).select().single();
   return data;
@@ -168,6 +175,17 @@ export async function updateDomainConfig(d: Any, patch: Any) {
     if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(next.return_path)) throw new HttpError(422, "validation_error", "Return path must be a single subdomain label like send");
     await sesv2(c, d.region, "PUT", `/v2/email/identities/${encodeURIComponent(d.name)}/mail-from`, { MailFromDomain: `${next.return_path}.${d.name}`, BehaviorOnMxFailure: "USE_DEFAULT_VALUE" });
   }
+  if ("receiving_subdomain" in patch) {
+    const sub = String(patch.receiving_subdomain || "").trim().toLowerCase().replace(new RegExp(`\\.?${d.name.replace(/\./g, "\\.")}$`), "");
+    if (sub && !/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/.test(sub)) throw new HttpError(422, "validation_error", "Receiving subdomain must look like in or inbound");
+    patch.receiving_subdomain = sub || null; next.receiving_subdomain = sub || null;
+  }
+  if ("receiving_mode" in patch && !["all", "specific"].includes(patch.receiving_mode)) throw new HttpError(422, "validation_error", "receiving_mode must be all or specific");
+  if ("receiving_addresses" in patch) {
+    const list = (Array.isArray(patch.receiving_addresses) ? patch.receiving_addresses : String(patch.receiving_addresses || "").split(/[\s,]+/)).map((a: string) => String(a).trim().toLowerCase()).filter(Boolean);
+    const host = next.receiving_subdomain ? `${next.receiving_subdomain}.${d.name}` : d.name;
+    patch.receiving_addresses = [...new Set(list.map((a: string) => a.includes("@") ? a : `${a}@${host}`))];
+  }
   if ("receiving_enabled" in patch && patch.receiving_enabled !== d.receiving_enabled) {
     if (patch.receiving_enabled) await enableReceiving(c, next); else await disableReceiving(c, next);
   }
@@ -175,12 +193,12 @@ export async function updateDomainConfig(d: Any, patch: Any) {
   const dkimRec = (d.records || []).find((r: Any) => r.group === "dkim");
   const pub = dkimRec ? String(dkimRec.value).replace(/^p=/, "") : "";
   let records = d.records;
-  if (("return_path" in patch || "receiving_enabled" in patch) && pub) {
+  if (("return_path" in patch || "receiving_enabled" in patch || "receiving_subdomain" in patch) && pub) {
     const fresh = buildRecords(next, pub);
     records = fresh.map((r) => ({ ...r, status: (d.records || []).find((o: Any) => o.type === r.type && o.name === r.name && o.value === r.value)?.status || r.status }));
   }
   const allowed: Any = {};
-  for (const k of ["click_tracking", "open_tracking", "tls", "return_path", "receiving_enabled", "sending_enabled"]) if (k in patch) allowed[k] = patch[k];
+  for (const k of ["click_tracking", "open_tracking", "tls", "return_path", "receiving_enabled", "sending_enabled", "receiving_subdomain", "receiving_mode", "receiving_addresses"]) if (k in patch) allowed[k] = patch[k];
   const { data } = await db.from("domains").update({ ...allowed, records }).eq("id", d.id).select().single();
   return data;
 }

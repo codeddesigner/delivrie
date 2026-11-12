@@ -55,14 +55,49 @@ export async function add(ctx) {
     try {
       const d = await api("POST", "/domains", { name, region: root.querySelector("input[name=region]").value, return_path: root.querySelector("[data-rp]").value.trim() || "send", click_tracking: root.querySelector("[data-click]").checked, open_tracking: root.querySelector("[data-open]").checked, receiving_enabled: root.querySelector("[data-recv]").checked });
       toast("Domain added — now add the DNS records"); ctx.navigate(`/domains/${d.id}?new=1`);
-    } catch (err) { errToast(err); btn.disabled = false; btn.textContent = "Add domain"; }
+    } catch (err) {
+      btn.disabled = false; btn.textContent = "Add domain";
+      if (err.status === 409 && /another Delivrie team/.test(err.message)) return showClaim(name);
+      errToast(err);
+    }
+  };
+  // Figma 7.4: the domain is on another team. Offer to claim it by proving DNS control.
+  const showClaim = (name) => {
+    const input = root.querySelector("[data-name]");
+    input.classList.add("error");
+    root.querySelector("[data-claim-box]")?.remove();
+    input.closest(".field").insertAdjacentHTML("beforeend", `<div class="field-err">${esc(name)} is already added to another Delivrie team.</div><div class="claim-box" data-claim-box>${icon("alert", 15)}<div class="grow"><b>Is this your domain?</b><span>If a former teammate or agency added ${esc(name)} to their own team, you can prove you control its DNS and move it here. The other team loses access to send from it and gets a domain.updated webhook.</span><button class="btn btn-primary btn-sm" data-claim>Claim ${esc(name)}</button></div></div>`);
+    root.querySelector("[data-claim]").onclick = () => claimModal(ctx, name, root.querySelector("input[name=region]").value);
+    input.addEventListener("input", () => { input.classList.remove("error"); root.querySelector("[data-claim-box]")?.remove(); root.querySelector(".field-err")?.remove(); }, { once: true });
   };
   root.querySelector("[data-add]").onclick = go;
   root.querySelector("[data-name]").addEventListener("keydown", (e) => { if (e.key === "Enter") go(e); });
 }
 
-const recStatus = (s) => s === "verified" ? `<span class="cell" style="color:var(--green-2)">${icon("check-circle", 12)} Verified</span>` : s === "optional" ? `<span class="dim">Optional</span>` : s === "failed" ? `<span class="cell" style="color:var(--red)">${icon("x-circle", 12)} Not found</span>` : `<span class="cell dim">${icon("clock", 12)} Pending</span>`;
-function recordsTable(d, group) {
+async function claimModal(ctx, name, region) {
+  let cl;
+  try { cl = await api("POST", "/domains/claims", { name, region }); } catch (e) { return errToast(e); }
+  const { modal, copyText } = await import("../lib/ui.js");
+  modal({ title: `Claim ${esc(name)}`, body: `<p class="desc">Add this TXT record at your DNS provider to prove you control ${esc(name)}. You can remove it once the claim completes.</p>
+      <div class="table-wrap"><table class="t"><thead><tr><th>Type</th><th>Name</th><th>Value</th><th></th></tr></thead><tbody><tr><td class="mono">${cl.record.type}</td><td class="mono">${esc(cl.record.name)}</td><td class="mono">${esc(cl.record.value)}</td><td class="act"><button class="ibtn" data-copyv title="Copy value">${icon("copy", 13)}</button></td></tr></tbody></table></div>
+      <p class="hint" style="margin-top:10px">${icon("clock", 12)} Claims expire after 72 hours (${fmtDateTime(cl.expires_at)}). DNS changes can take up to an hour.</p><div data-claim-msg></div>`,
+    foot: `<button class="btn btn-ghost" data-cancel>Cancel</button><button class="btn btn-primary" data-go>Verify and claim</button>`,
+    onMount(m, close) {
+      m.querySelector("[data-copyv]").onclick = () => copyText(cl.record.value, "Value copied");
+      m.querySelector("[data-go]").onclick = async (ev) => {
+        const b = ev.currentTarget; b.disabled = true; b.innerHTML = `<span class="spinner"></span> Checking DNS`;
+        try {
+          const r = await api("POST", `/domains/claims/${cl.id}/verify`);
+          if (r.claimed) { close(); toast(`${name} moved to ${state.team.name}`); return ctx.navigate(`/domains/${r.domain_id}`); }
+          m.querySelector("[data-claim-msg]").innerHTML = `<div class="banner warn" style="margin:10px 0 0">${icon("alert", 14)} ${esc(r.message)}</div>`;
+        } catch (e) { errToast(e); }
+        b.disabled = false; b.textContent = "Verify and claim";
+      };
+    } });
+}
+
+export const recStatus = (s) => s === "verified" ? `<span class="cell" style="color:var(--green-2)">${icon("check-circle", 12)} Verified</span>` : s === "optional" ? `<span class="dim">Optional</span>` : s === "failed" ? `<span class="cell" style="color:var(--red)">${icon("x-circle", 12)} Not found</span>` : `<span class="cell dim">${icon("clock", 12)} Pending</span>`;
+export function recordsTable(d, group) {
   const recs = (d.records || []).filter((r) => group.includes(r.group));
   if (!recs.length) return "";
   return `<div class="table-wrap"><table class="t"><thead><tr><th>Type</th><th>Name</th><th>Content</th><th>TTL</th><th>Priority</th><th>Status</th></tr></thead><tbody>${recs.map((r) => `<tr><td class="mono">${esc(r.type)}</td><td><button class="mono copyable" data-copy="${esc(r.name)}" title="Copy">${esc(r.name)} ${icon("copy", 11, "dim")}</button></td><td style="max-width:320px"><button class="mono copyable ellipsis" style="max-width:300px;display:inline-flex;gap:4px" data-copy="${esc(r.value)}" title="${esc(r.value)}"><span class="ellipsis">${esc(r.value)}</span>${icon("copy", 11, "dim")}</button></td><td class="muted">${esc(r.ttl)}</td><td class="muted">${r.priority ?? ""}</td><td>${recStatus(r.status)}</td></tr>`).join("")}</tbody></table></div>`;
@@ -88,7 +123,7 @@ export async function detail(ctx) {
         <h3 class="section-title" style="margin-top:0">Domain verification <span class="badge gray">DKIM</span></h3>${recordsTable(d, ["dkim"])}
         <h3 class="section-title">Enable sending <span class="badge gray">SPF</span></h3>${recordsTable(d, ["sending"])}
         <h3 class="section-title">DMARC <span class="dim" style="font-weight:400">Recommended</span></h3>${recordsTable(d, ["dmarc"])}<p class="hint" style="margin-top:8px">Start with <span class="mono">p=none</span>, then move to <span class="mono">quarantine</span> once everything passes. <a class="link" href="/docs#dmarc">Learn more</a></p>
-        ${d.receiving_enabled ? `<h3 class="section-title">Enable receiving <span class="badge gray">MX</span></h3>${recordsTable(d, ["receiving"])}<p class="hint" style="margin-top:8px">If this domain already receives mail elsewhere, use a subdomain for inbound so you don’t replace your existing MX.</p>` : ""}`
+        ${d.receiving_enabled ? `<h3 class="section-title" style="display:flex;align-items:center;gap:8px">Enable receiving <span class="badge gray">MX</span><a class="btn btn-ghost btn-sm" style="margin-left:auto" href="/domains/${d.id}/receiving">Receiving settings ${icon("arrow-right", 12)}</a></h3>${recordsTable(d, ["receiving"])}<p class="hint" style="margin-top:8px">If this domain already receives mail elsewhere, use a subdomain for inbound so you don’t replace your existing MX.</p>` : ""}`
       : `<div class="card"><div style="padding:16px 18px;border-bottom:1px solid var(--border)"><div class="row-flex" style="justify-content:space-between"><div><div style="font-weight:500">Click tracking</div><div class="muted" style="font-size:12.5px">Rewrite links to count clicks on emails from this domain.</div></div><input type="checkbox" class="toggle" data-cfg="click_tracking" ${d.click_tracking ? "checked" : ""}></div></div>
         <div style="padding:16px 18px;border-bottom:1px solid var(--border)"><div class="row-flex" style="justify-content:space-between"><div><div style="font-weight:500">Open tracking</div><div class="muted" style="font-size:12.5px">Add a 1×1 pixel to count opens. Some inboxes preload images, so treat opens as a rough signal.</div></div><input type="checkbox" class="toggle" data-cfg="open_tracking" ${d.open_tracking ? "checked" : ""}></div></div>
         <div style="padding:16px 18px;border-bottom:1px solid var(--border)"><div class="row-flex" style="justify-content:space-between"><div><div style="font-weight:500">TLS</div><div class="muted" style="font-size:12.5px">Opportunistic tries TLS and falls back; Enforced refuses to deliver without it.</div></div><div style="width:170px">${selectHtml("tls", [{ value: "opportunistic", label: "Opportunistic" }, { value: "enforced", label: "Enforced" }], d.tls)}</div></div></div>

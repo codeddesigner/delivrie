@@ -72,15 +72,16 @@ export async function webhooks(ctx) {
   }
   on(root, "click", "tr[data-id]", (_e, tr) => ctx.navigate(`/webhooks/${tr.dataset.id}`));
   on(root, "click", "[data-new]", () => webhookModal(null, (id) => ctx.navigate(`/webhooks/${id}`)));
-  if (ctx.query.new) { history.replaceState({}, "", "/webhooks"); webhookModal(null, (id) => ctx.navigate(`/webhooks/${id}`)); }
+  if (ctx.query.new) { const ev = ctx.query.event; history.replaceState({}, "", "/webhooks"); webhookModal(ev ? { events: [ev] } : null, (id) => ctx.navigate(`/webhooks/${id}`)); }
   await load();
 }
 
 function webhookModal(w, done) {
   const sel = new Set(w?.events || ["email.delivered", "email.bounced", "email.complained"]);
-  modal({ title: w ? "Edit webhook" : "Add webhook", size: "lg", body: `<div class="field"><label>Endpoint URL</label><input class="input mono" name="endpoint" placeholder="https://example.com/webhooks/delivrie" value="${esc(w?.endpoint || "")}"><span class="hint">Must be HTTPS and respond with a 2xx within 15 seconds.</span></div>
+  const editing = !!w?.id;
+  modal({ title: editing ? "Edit webhook" : "Add webhook", size: "lg", body: `<div class="field"><label>Endpoint URL</label><input class="input mono" name="endpoint" placeholder="https://example.com/webhooks/delivrie" value="${esc(w?.endpoint || "")}"><span class="hint">Must be HTTPS and respond with a 2xx within 15 seconds.</span></div>
     <div class="field"><div class="row-flex"><label class="label">Events</label><span class="grow"></span><button class="btn btn-ghost btn-sm" data-allev>Select all</button></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;border:1px solid var(--border);border-radius:8px;padding:12px">${EVENTS.map(([g, list]) => `<div><div class="dim" style="font-size:12px;margin-bottom:6px">${g}</div>${list.map((e) => `<label class="row-flex" style="padding:3px 0;font-size:12.5px"><input type="checkbox" class="checkbox" value="${e}" ${sel.has(e) ? "checked" : ""}><span class="mono">${e.split(".")[1]}</span></label>`).join("")}</div>`).join("")}</div></div>`,
-    foot: `<button class="btn btn-ghost" data-cancel>Cancel</button><button class="btn btn-primary" data-ok>${w ? "Save" : "Add webhook"}</button>`,
+    foot: `<button class="btn btn-ghost" data-cancel>Cancel</button><button class="btn btn-primary" data-ok>${editing ? "Save" : "Add webhook"}</button>`,
     onMount(m, close) {
       m.querySelector("[data-allev]").onclick = () => { const boxes = [...m.querySelectorAll(".checkbox")]; const all = boxes.every((b) => b.checked); boxes.forEach((b) => b.checked = !all); };
       m.querySelector("[data-ok]").onclick = async () => {
@@ -88,7 +89,7 @@ function webhookModal(w, done) {
         if (!/^https:\/\/[^\s/]+\.[^\s]+/.test(endpoint)) return toast("Enter an https:// URL", "err");
         if (!events.length) return toast("Choose at least one event", "err");
         try {
-          if (w) { const { error } = await sb.from("webhooks").update({ endpoint, events }).eq("id", w.id); if (error) throw error; toast("Webhook saved"); close(true); done(w.id); }
+          if (editing) { const { error } = await sb.from("webhooks").update({ endpoint, events }).eq("id", w.id); if (error) throw error; toast("Webhook saved"); close(true); done(w.id); }
           else { const r = await api("POST", "/webhooks", { endpoint, events }); toast("Webhook added"); close(true); done(r.id); }
         } catch (e) { errToast(e); }
       };

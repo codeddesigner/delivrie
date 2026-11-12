@@ -16,7 +16,7 @@ export default async function inbox(ctx) {
   domains = doms || [];
   const receiving = domains.filter((d) => d.receiving_enabled);
   if (!receiving.length) {
-    root.innerHTML = `<div class="page"><div class="page-head"><h1>Inbox</h1></div><div class="card inbox-empty">${emptyState({ icon: "inbox", title: "Receive email to use the Inbox", desc: "Turn on receiving for a domain and add one MX record. Every email sent to that address lands here as a thread you can label and reply to, and your app gets an email.received webhook.", action: `<a class="btn btn-primary" href="/domains">${icon("globe", 13)} Set up receiving</a> <a class="btn btn-secondary" href="/docs/domains">Read the guide</a>` })}
+    root.innerHTML = `<div class="page"><div class="page-head"><h1>Inbox</h1></div><div class="card inbox-empty">${emptyState({ icon: "inbox", title: "Receive email to use the Inbox", desc: "Turn on receiving for a domain and add one MX record. Every email sent to that address lands here as a thread you can label and reply to, and your app gets an email.received webhook.", action: `<a class="btn btn-primary" href="/emails?tab=receiving&setup=1">${icon("globe", 13)} Set up receiving</a> <a class="btn btn-secondary" href="/docs/domains">Read the guide</a>` })}
       <div class="inbox-steps">${[["globe", "Add an MX record", "Use a subdomain like in.yourdomain.com so your existing mail keeps working."], ["webhook", "Get email.received", "Parsed headers, text, HTML and attachments in one payload."], ["reply", "Reply in threads", "Answer from here with correct Message-ID threading."]].map(([i, t, d]) => `<div>${icon(i, 15)}<b>${t}</b><span class="muted">${d}</span></div>`).join("")}</div></div></div>`;
     return;
   }
@@ -89,6 +89,7 @@ export default async function inbox(ctx) {
         <textarea class="textarea" data-reply rows="4" placeholder="Write a reply…"></textarea>
         <div class="row-flex"><span class="dim" style="font-size:12px">Replies keep Message-ID threading, so they land in the same conversation.</span><span class="grow"></span><span class="kbd dim">⌘ Enter</span><button class="btn btn-primary btn-sm" data-send disabled>${icon("send", 12)} Send</button></div></div>`;
     const ta = $("[data-reply]"), send = $("[data-send]");
+    if (ctx.query.reply) { ta.focus(); ctx.query.reply = ""; }
     ta.addEventListener("input", () => { send.disabled = !ta.value.trim(); });
     ta.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && !send.disabled) send.click(); });
     send.onclick = () => reply(t, last, ta, send);
