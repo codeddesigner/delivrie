@@ -23,7 +23,7 @@
   function plans() {
     var p = P[cur], y = mode === 'yearly';
     var cards = [
-      { id: 'free', name: 'Free', tag: 'For side projects and testing.', price: m(0), sub: y ? 'Free forever' : '', cta: ['Start for free', '/signup', ''], head: 'Includes', feats: ['3,000 emails / month', '100 emails / day', '1 custom domain', '1-day data retention', 'REST API & MCP server', 'Community support'] },
+      { id: 'free', name: 'Free', tag: 'For side projects and testing.', price: m(0), sub: y ? 'Free forever' : '', cta: ['Start for free', '/signup', ''], head: 'Includes', feats: ['6,000 emails / month', '200 emails / day', '1 custom domain', '1-day data retention', 'REST API & MCP server', 'Community support'] },
       { id: 'pro', name: 'Pro', pop: true, tag: 'For products with real users.', price: y ? m(Math.round(p.proY / 12 * 100) / 100, true) : m(p.pro), sub: y ? m(p.proY) + ' billed yearly · save ' + m(p.pro * 12 - p.proY) : '', cta: ['Get Pro', '/signup?plan=pro' + (y ? '&interval=yearly' : ''), 'y'], head: 'Everything in Free, plus', feats: ['20,000 emails / month', 'No daily limit', '10 custom domains', '3-day data retention', m(p.proOver, true) + ' per extra 1,000 emails', 'Webhooks & batch sending', 'Email support'] },
       { id: 'scale', name: 'Scale', tag: 'For teams sending at volume.', price: y ? m(Math.round(p.scaleY / 12 * 100) / 100, true) : m(p.scale), sub: y ? m(p.scaleY) + ' billed yearly · save ' + m(p.scale * 12 - p.scaleY) : '', cta: ['Get Scale', '/signup?plan=scale' + (y ? '&interval=yearly' : ''), ''], head: 'Everything in Pro, plus', feats: ['100,000 emails / month', 'No daily limit', '1,000 custom domains', '7-day data retention', m(p.scaleOver, true) + ' per extra 1,000 emails', 'Dedicated IP on request', 'Multiple team members', 'Priority support'] },
       { id: 'ent', name: 'Enterprise', tag: 'For high volume and compliance.', price: 'Custom', sub: y ? 'Annual contracts' : '', cta: ['Talk to sales', 'mailto:sales@delivrie.io?subject=Delivrie%20Enterprise', ''], head: 'Everything in Scale, plus', feats: ['Custom volume & pricing', 'Dedicated IPs included', 'Unlimited domains', 'Custom data retention', 'SSO / SAML & audit logs', 'Uptime SLA', 'Dedicated account manager'] }
@@ -60,7 +60,7 @@
       { n: 'Pay as you go', d: k.toLocaleString('en-US') + ' × ' + m(p.payg, true), c: k * p.payg },
       { n: 'Scale', d: scaleOver ? m(p.scale) + ' + ' + scaleOver.toLocaleString('en-US') + ' × ' + m(p.scaleOver, true) + ' overage' : 'Includes 100,000 emails', c: p.scale + scaleOver * p.scaleOver }
     ];
-    if (v <= 3000) opts.unshift({ n: 'Free', d: 'Up to 3,000 emails a month (100 a day)', c: 0 });
+    if (v <= 6000) opts.unshift({ n: 'Free', d: 'Up to 6,000 emails a month (200 a day)', c: 0 });
     var best = opts.reduce(function (a, b) { return b.c < a.c ? b : a; });
     opts.sort(function (a, b) { return a.c - b.c; });
     $('#calc-opts').innerHTML = opts.map(function (o) {
@@ -86,8 +86,8 @@
     var p = P[cur], Y = check, N = dash;
     var rows = [
       ['Sending'],
-      ['Emails / month', '3,000', '20,000', '100,000', 'Custom'],
-      ['Daily limit', '100', 'None', 'None', 'None'],
+      ['Emails / month', '6,000', '20,000', '100,000', 'Custom'],
+      ['Daily limit', '200', 'None', 'None', 'None'],
       ['Overage per 1,000', N, m(p.proOver, true), m(p.scaleOver, true), 'Custom'],
       ['Custom domains', '1', '10', '1,000', 'Unlimited'],
       ['Data retention', '1 day', '3 days', '7 days', 'Custom'],

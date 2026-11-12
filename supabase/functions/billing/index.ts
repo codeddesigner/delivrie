@@ -56,7 +56,7 @@ const VAT_RATE = Math.max(0, Number(env("VAT_RATE") || 0)) || 0;
 const vatOf = (amount: number) => Math.round(amount * VAT_RATE / 100);
 // Plan limits, mirrored from the API's enforcement table.
 const PLAN_LIMITS: Record<string, { domains: number; members: number; retention_days: number; day: number }> = {
-  free: { domains: 1, members: 1, retention_days: 1, day: 100 },
+  free: { domains: 1, members: 1, retention_days: 1, day: 200 },
   pro: { domains: 10, members: 5, retention_days: 3, day: 0 },
   scale: { domains: 1000, members: 0, retention_days: 7, day: 0 },
 };
@@ -314,7 +314,7 @@ async function summary(teamId: string, admin: boolean) {
     credit_rate: CREDIT_RATE,
     min_topup: MIN_TOPUP,
     vat_rate: VAT_RATE,
-    usage: { month: used, today, included: PLANS[plan]?.emails ?? (plan === "free" ? 3000 : 0), day_limit: L.day, contacts: contactsQ.count || 0, ...ov, currency: cur },
+    usage: { month: used, today, included: PLANS[plan]?.emails ?? (plan === "free" ? 6000 : 0), day_limit: L.day, contacts: contactsQ.count || 0, ...ov, currency: cur },
     period: { start: from.toISOString(), end: new Date(to.getTime() - 1).toISOString(), day: dayN, days: daysIn, projected, projected_over: projOver.over, projected_cost: projOver.cost },
     daily: (daily as Any[]).map((r) => ({ day: r.day, n: Number(r.n) })),
     limits: {

@@ -40,7 +40,7 @@ CTA = """<section class="cta">
     <div class="wrap reveal">
       <img class="cta-mark" src="/assets/mark.svg" width="72" height="51" alt="">
       <h2>Email for builders.<br> Ready when you are.</h2>
-      <p>3,000 free emails every month. No card required.</p>
+      <p>6,000 free emails every month. No card required.</p>
       <div class="btn-row"><a class="b-primary" href="/signup">Start for free</a><a class="b-secondary" href="/contact-sales">Talk to sales</a></div>
     </div>
   </section>"""
@@ -164,7 +164,7 @@ def cards(items, cols=4):
 def about():
     body = hero("About", "Email infrastructure,<br> built for builders.", "Delivrie is built in Lagos by South Circle, because sending a receipt should not need a deliverability team. Developers, and their agents, ship email with us.", [("Start for free", "/signup", "b-primary"), ("Read the docs", "/docs", "b-secondary")])
     body += """<section class="section"><div class="wrap"><div class="stats reveal-stagger">
-      <div><b>3,000</b><span>free emails every month</span></div><div><b>₦ and $</b><span>pricing in your currency</span></div><div><b>24</b><span>MCP tools for AI agents</span></div><div><b>1 call</b><span>to send an email</span></div></div></div></section>"""
+      <div><b>6,000</b><span>free emails every month</span></div><div><b>₦ and $</b><span>pricing in your currency</span></div><div><b>64</b><span>MCP tools for AI agents</span></div><div><b>1 call</b><span>to send an email</span></div></div></div></section>"""
     body += f"""<section class="section"><div class="wrap split-2">
       <div class="reveal">{eyebrow("Our story")}<h2 class="h2">Why we built it</h2></div>
       <div class="prose reveal"><p>Teams across Africa kept hitting the same wall: emails that never arrived, dashboards that hid the reason, and pricing in dollars that punished growth.</p>

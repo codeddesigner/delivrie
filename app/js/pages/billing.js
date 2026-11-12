@@ -232,7 +232,7 @@ function creditsTab(B) {
       <div class="card bcard"><h3>Buy credits</h3><p class="dim sm">Credits never expire. On Pro and Scale they pay for overage first; on pay as you go they pay for every email past the free allowance.</p><div class="packs">${tiles}<button class="pack" data-pack="custom" ${s.admin && s.payments_ready ? "" : "disabled"}><b>Custom</b><span class="dim">Min ${money(s.min_topup[cur], cur)}</span></button></div></div>
       <div class="card bcard"><h3>Top-up history</h3>${hist.length ? `<div class="table-wrap flat"><table class="t"><thead><tr><th>Date</th><th>Description</th><th class="r">Amount</th><th>Status</th></tr></thead><tbody>${hist.map((i) => `<tr><td class="muted">${fullDate(i.paid_at)}</td><td>${esc(i.description || "Credit top-up")}</td><td class="r num">${i.kind === "overage" ? "−" : ""}${money(i.amount, i.currency, true)}</td><td>${statusBadge(i)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-mini"><b>No top-ups yet</b><span class="dim">Credits you buy show up here.</span></div>`}</div>
     </div><div class="bcol bside">${creditsCard(s)}
-      <div class="card bcard"><h3>How credits work</h3><ul class="howto"><li>One credit sends one email. Value shown at ${rateLine(s)}.</li><li>Free plan: used after the ${num(3000)} free emails a month and 100 a day.</li><li>Pro and Scale: at month end, credits pay overage before your card.</li><li>Auto top-up buys a pack when credits drop below your threshold.</li></ul></div></div></div>`;
+      <div class="card bcard"><h3>How credits work</h3><ul class="howto"><li>One credit sends one email. Value shown at ${rateLine(s)}.</li><li>Free plan: used after the ${num(6000)} free emails a month and 200 a day.</li><li>Pro and Scale: at month end, credits pay overage before your card.</li><li>Auto top-up buys a pack when credits drop below your threshold.</li></ul></div></div></div>`;
 }
 
 // ------------------------------------------------------------ Invoices
@@ -429,7 +429,7 @@ function changePlan(B, kind, startMode, preselect) {
             + s.marketing.map((p) => row(p.id, p.name, `Up to ${num(p.contacts)} contacts${p.extra ? ` · +${money(p.extra[cur], cur, true)} per extra 1,000` : ""}`, money(p.monthly[cur], cur) + "<em>/mo</em>", s.plan_marketing === p.id)).join("");
         } else {
           const yr = mode === "yearly";
-          list = row("free", "Free", "3,000 emails/month · 100/day", money(0, cur) + "<em>/mo</em>", s.plan === "free")
+          list = row("free", "Free", "6,000 emails/month · 200/day", money(0, cur) + "<em>/mo</em>", s.plan === "free")
             + s.plans.map((p) => row(p.id, p.name, `${num(p.emails)} emails/month · ${money(p.overage[cur], cur, true)} per extra 1k${yr ? ` · ${money(p.yearly[cur], cur)} billed yearly` : ""}`, money(yr ? Math.round(p.yearly[cur] / 12) : p.monthly[cur], cur, yr) + "<em>/mo</em>", isCurrent(p.id))).join("")
             + `<a class="pick" href="/contact-sales" target="_blank" data-native><span class="radio" style="visibility:hidden"></span><span class="grow"><b>Enterprise</b><span class="dim">Custom volume, SSO, SLA</span></span><span class="pr">Talk to sales</span></a>`;
         }

@@ -24,7 +24,7 @@ export { usage as usageTab };
 async function usage(body) {
   const [{ data: u, error }, status] = await Promise.all([sb.rpc("team_usage", { p_team: T() }), api("GET", "/dashboard/status").catch(() => null)]);
   if (error) throw error;
-  const L = status?.limits || { month: 3000, day: 100, contacts: 1000, segments: 3, domains: 5 };
+  const L = status?.limits || { month: 6000, day: 200, contacts: 1000, segments: 3, domains: 5 };
   const meter = (label, used, limit, sub) => { const p = limit ? Math.min(1, used / limit) : 0; return `<div class="stat"><div class="row-flex"><div class="k">${label}</div><span class="grow"></span><span class="dim" style="font-size:12px">${num(used)} / ${limit ? num(limit) : "∞"}</span></div><div class="meter ${p >= 0.9 ? "red" : ""}"><i style="width:${p * 100}%"></i></div>${sub ? `<div class="dim" style="font-size:11.5px;margin-top:6px">${sub}</div>` : ""}</div>`; };
   const aws = status?.aws;
   body.innerHTML = `<h3 class="section-title" style="margin-top:0">Transactional</h3><div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">${meter("Monthly emails", u.month, L.month, "Resets on the 1st")}${meter("Daily emails", u.day, L.day, "Resets at midnight UTC")}${meter("Domains", u.domains, L.domains)}</div>
