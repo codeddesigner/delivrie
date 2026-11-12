@@ -3,6 +3,7 @@
 import { state, api } from "../lib/sb.js";
 import { esc, icon, toast, on, copyText } from "../lib/ui.js";
 import { DOCS } from "../lib/docs.js";
+import { themeSwitch } from "../lib/theme.js";
 import { API, ALL_ENDPOINTS, METHOD_COLOR, samples } from "../lib/apiref.js";
 
 const BASE = "https://delivrie.io/api";
@@ -16,6 +17,7 @@ const GUIDES = [
 const GUIDE_ORDER = GUIDES.flatMap(([, items]) => items);
 const LEGACY = { "api-reference": "/docs/api", mcp: "/docs/mcp", "getting-started": "/docs" };
 
+const logo = (id, n = 14) => `<span class="ab"><img src="/assets/clients/${id}.svg" width="${n}" height="${n}" alt=""></span>`;
 const CLIENTS = [
   { id: "claude", ab: "Cl", name: "Claude", sub: "Claude Code, Desktop & claude.ai", how: "Remote", lang: "bash", file: "terminal",
     code: `# Claude Code\nclaude mcp add --transport http delivrie ${MCP_URL} \\\n  --header "Authorization: Bearer dlv_live_••••"\n\n# Claude Desktop & claude.ai: Settings → Connectors → Add custom connector\n# URL ${MCP_URL}` },
@@ -59,7 +61,7 @@ export default async function docs(ctx) {
   root.innerHTML = `<div class="docs">
     <header class="d-top"><a href="/" data-native class="d-logo"><img src="/assets/logo.svg" width="118" height="22" alt="Delivrie"></a><span class="d-badge">Docs</span>
       <div class="d-search"><span class="lead">${icon("search", 13)}</span><input data-q placeholder="Search docs, API and MCP tools…" autocomplete="off"><kbd>⌘K</kbd><div class="d-results" data-results hidden></div></div>
-      <nav class="d-links"><a href="/help" class="hide-sm">API status</a><a href="/help" class="hide-sm">Support</a><a class="d-dash" href="${state.user ? "/emails" : "/login"}">${state.user ? "Dashboard" : "Log in"}</a></nav></header>
+      <nav class="d-links"><a href="/status" data-native class="hide-sm">API status</a><a href="/help" class="hide-sm">Support</a>${themeSwitch()}<a class="d-dash" href="${state.user ? "/emails" : "/login"}">${state.user ? "Dashboard" : "Log in"}</a></nav></header>
     <nav class="d-tabs">${[["guides", "/docs", "book", "Guides"], ["api", "/docs/api", "code", "API reference"], ["mcp", "/docs/mcp", "sparkle", "MCP server"], ["changelog", "/docs/changelog", "clock", "Changelog"]].map(([k, h, ic, l]) => `<a href="${h}" class="${k === tab ? "on" : ""}">${icon(ic, 13)}${l}</a>`).join("")}</nav>
     <div class="d-body" data-body></div></div>`;
   const body = root.querySelector("[data-body]");
@@ -101,7 +103,7 @@ function codeTabs(tabs, { label = "", id = "" } = {}) {
   const keys = Object.keys(tabs);
   let pref = keys[0];
   try { const p = localStorage.getItem("dlv_docs_lang"); if (p && tabs[p]) pref = p; } catch {}
-  return `<div class="d-code" data-tabs ${id ? `id="${id}"` : ""}><div class="d-code-h">${keys.map((k) => `<button class="${k === pref ? "on" : ""}" data-lang="${esc(k)}">${esc(k)}</button>`).join("")}<span class="grow"></span>${label ? `<span class="dim mono">${esc(label)}</span>` : ""}<button class="ibtn" data-copy-tab title="Copy">${icon("copy", 13)}</button></div>
+  return `<div class="d-code" data-tabs ${id ? `id="${id}"` : ""}><div class="d-code-h">${keys.map((k) => `<button class="${k === pref ? "on" : ""}" data-lang="${esc(k)}">${tabs[k].logo ? `<img src="/assets/clients/${tabs[k].logo}.svg" width="12" height="12" alt="">` : ""}${esc(k)}</button>`).join("")}<span class="grow"></span>${label ? `<span class="dim mono">${esc(label)}</span>` : ""}<button class="ibtn" data-copy-tab title="Copy">${icon("copy", 13)}</button></div>
     ${keys.map((k) => `<pre class="d-pre" data-pane="${esc(k)}" ${k === pref ? "" : "hidden"}>${numbered(tabs[k].src ?? tabs[k], tabs[k].lang || langOf(k))}</pre>`).join("")}</div>`;
 }
 function codeCard(src, lang, label) {
@@ -185,10 +187,10 @@ function apiPage(body, slug, ctx) {
 // ---------------------------------------------------------------- MCP server
 function mcpPage(body) {
   const tocItems = [["works", "Works with"], ["install", "Install"], ["remote", "Remote server"], ["tools", "Tools"], ["safety", "Scopes & safety"], ["try", "Try it"]];
-  const tabs = Object.fromEntries(CLIENTS.map((c) => [c.name === "Claude" ? "Claude Code" : c.name, { src: c.code, lang: c.lang }]));
+  const tabs = Object.fromEntries(CLIENTS.map((c) => [c.name === "Claude" ? "Claude Code" : c.name, { src: c.code, lang: c.lang, logo: c.id }]));
   body.innerHTML = `${sidebar([
       ["Get started", [["/docs", "Introduction"], ["/docs/send-email", "Quickstart"], ["/docs/api-keys", "API keys"]].map(([h, l]) => ({ key: h, label: l, href: h }))],
-      ["MCP server", [{ key: "ov", label: "Overview", href: "/docs/mcp" }, ...CLIENTS.map((c) => ({ key: c.id, label: c.name === "v0" ? "v0 by Vercel" : c.name, href: `/docs/mcp#c-${c.id}`, pre: `<span class="ab">${c.ab}</span>` })), { key: "tl", label: "Tools reference", href: "/docs/mcp#tools" }, { key: "sf", label: "Scopes & safety", href: "/docs/mcp#safety" }]],
+      ["MCP server", [{ key: "ov", label: "Overview", href: "/docs/mcp" }, ...CLIENTS.map((c) => ({ key: c.id, label: c.name === "v0" ? "v0 by Vercel" : c.name, href: `/docs/mcp#c-${c.id}`, pre: logo(c.id, 12) })), { key: "tl", label: "Tools reference", href: "/docs/mcp#tools" }, { key: "sf", label: "Scopes & safety", href: "/docs/mcp#safety" }]],
       ["Sending", [["send-email", "Send an email"], ["send-batch", "Batch sending"]].map(([s, l]) => ({ key: s, label: l, href: `/docs/api/${s}` }))],
     ], "ov")}
     <main class="d-main"><article class="d-art">
@@ -197,7 +199,7 @@ function mcpPage(body) {
       <p class="d-lead">Let AI agents send transactional email, check delivery, manage domains and read your logs through the Model Context Protocol. One hosted server works with every major agent.</p>
       <div class="d-pills"><span class="p blue">Remote · HTTP</span><span class="p">Bearer API key</span><span class="p green">Included on every plan</span></div>
       <h2 id="works">Works with</h2><p>Connect directly where your client supports remote MCP, or through the <code>mcp-remote</code> bridge everywhere else.</p>
-      <div class="d-cards three">${CLIENTS.map((c) => `<a class="d-card client" href="#c-${c.id}" data-client="${c.id}"><div class="row-flex"><span class="ab">${c.ab}</span><span class="grow"></span>${icon("arrow-up-right", 12, "dim")}</div><b>${c.name}</b><span class="dim">${c.sub}</span><span class="tagm">${c.how}</span></a>`).join("")}</div>
+      <div class="d-cards three">${CLIENTS.map((c) => `<a class="d-card client" href="#c-${c.id}" data-client="${c.id}"><div class="row-flex">${logo(c.id, 16)}<span class="grow"></span>${icon("arrow-up-right", 12, "dim")}</div><b>${c.name}</b><span class="dim">${c.sub}</span><span class="tagm">${c.how}</span></a>`).join("")}</div>
       <h2 id="install">Install</h2><p>Create an API key in <a href="/api-keys">Dashboard → API keys</a>, then add the server to your client. Replace <code>dlv_live_••••</code> with your key.</p>
       ${codeTabs(tabs, { id: "install-tabs" })}
       <p class="dim" id="install-file" style="font-size:12.5px"></p>

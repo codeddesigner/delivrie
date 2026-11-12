@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Letting agents send email safely · Delivrie</title>
+  <meta name="description" content="How to give Claude, Cursor or any MCP client access to Delivrie without handing over the keys to everything.">
+  <meta name="theme-color" content="#211f20">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="Delivrie"><meta property="og:url" content="https://delivrie.io/blog/letting-agents-send-email-safely">
+  <meta property="og:title" content="Letting agents send email safely · Delivrie"><meta property="og:description" content="How to give Claude, Cursor or any MCP client access to Delivrie without handing over the keys to everything."><meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://delivrie.io/blog/letting-agents-send-email-safely">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="alternate" type="application/rss+xml" title="Delivrie changelog" href="/changelog.xml">
+  <style>.nav .logo img{width:118px;height:22px}.footer .brand img{width:27px;height:19px}.cta-mark{width:72px;height:51px}</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script>document.documentElement.classList.add("js")</script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="Delivrie home"><img src="/assets/logo.svg" width="118" height="22" alt="Delivrie"></a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="nav-link" href="/#integrate">Product</a>
+      <a class="nav-link" href="/docs">Docs</a>
+      <a class="nav-link" href="/pricing">Pricing</a>
+      <a class="nav-link opt" href="/customers">Customers</a>
+      <a class="nav-link opt" href="/changelog">Changelog</a>
+      <a class="nav-link opt" href="/blog">Blog</a>
+    </nav>
+    <div class="spacer"></div>
+    <a class="nav-link keep" href="/login">Log in</a>
+    <a class="btn-signup" href="/signup">Get started</a>
+  </div>
+</header>
+
+<main class="site">
+<article class="post-page"><div class="wrap narrow reveal in">
+    <div class="crumb"><a href="/blog">Blog</a> › <span>AI</span></div>
+    <h1>Letting agents send email safely</h1><p class="lede">How to give Claude, Cursor or any MCP client access to Delivrie without handing over the keys to everything.</p>
+    <div class="author"><img src="/assets/brand/app-icon.svg" width="32" height="32" alt=""><div><b>Delivrie team</b><span>Nov 12, 2026 · 5 min read</span></div></div>
+    <div class="post-body"><p>The Delivrie MCP server gives agents the same API you use: send, schedule, verify domains, read logs. That is powerful, so it is worth setting up carefully.</p><h2>Give each agent its own key</h2><p>Create a separate API key for every agent or tool. If something goes wrong, you can delete one key without breaking the rest of your stack.</p><h2>Use sending-access keys</h2><p>An agent that only needs to send email should get a sending-access key, ideally limited to one domain. It can send and schedule, but it cannot read your contacts, change domains or create more keys.</p><h2>Drafts before broadcasts</h2><p>create_broadcast only makes a draft. Sending to a whole segment needs send_broadcast and a full-access key, so a human can review before anything goes out.</p><h2>Watch the limits</h2><p>Agents share your plan’s allowance. A spending cap in Billing stops a runaway loop from running up overage. Set it up in a minute with the <a href="/docs/mcp">MCP guide</a>.</p></div>
+    <h3 class="keep-h">Keep reading</h3><div class="grid2 posts"><a class="post" href="/blog/pricing-in-naira"><span class="cat">Company</span><h3>Pricing in Naira</h3><span class="by">Nov 12, 2026</span></a><a class="post" href="/blog/dmarc-in-10-minutes"><span class="cat">Guides</span><h3>DMARC in 10 minutes</h3><span class="by">Nov 12, 2026</span></a></div>
+  </div></article>
+  <section class="cta">
+    <div class="wrap reveal">
+      <img class="cta-mark" src="/assets/mark.svg" width="72" height="51" alt="">
+      <h2>Email for builders.<br> Ready when you are.</h2>
+      <p>3,000 free emails every month. No card required.</p>
+      <div class="btn-row"><a class="b-primary" href="/signup">Start for free</a><a class="b-secondary" href="/contact-sales">Talk to sales</a></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="brand"><img src="/assets/footer-mark.svg" width="27" height="19" alt="Delivrie"></div>
+    <nav class="fcol"><h4>Product</h4><a href="/signup">Emails</a><a href="/signup">Broadcasts</a><a href="/signup">Templates</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a></nav>
+    <nav class="fcol"><h4>Developers</h4><a href="/docs">Docs</a><a href="/docs/api">API reference</a><a href="/docs/mcp">MCP server</a><a href="/status">Status</a></nav>
+    <nav class="fcol"><h4>Company</h4><a href="/about">About</a><a href="/customers">Customers</a><a href="/careers">Careers</a><a href="/brand">Brand</a><a href="/contact-sales">Contact sales</a></nav>
+    <nav class="fcol"><h4>Legal</h4><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/dpa">DPA</a><a href="/acceptable-use">Acceptable use</a><a href="/security">Security</a></nav>
+  </div>
+  <div class="wrap fbottom"><span>© 2026 South Circle · Lagos · delivrie.io</span><span class="grow"></span><a class="sys" href="/status" id="sys"><i></i><span>All systems operational</span></a></div>
+</footer>
+
+<script src="/site.js"></script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 import { sb, state, api } from "../lib/sb.js";
 import { esc, icon, toast, errToast, menu, modal, debounce, selectHtml, bindSelects, num, fmtDateTime, EMAIL_RE, TZ } from "../lib/ui.js";
 import { mountEditor, previewModal, pageStylePopover } from "./editor.js";
+import { renderBlocks } from "../lib/blocks.js";
+import { runChecks, checksHtml } from "../lib/checks.js";
 
 export default async function broadcastEdit(ctx) {
   const id = ctx.params.id;
@@ -101,6 +103,7 @@ function reviewModal(b, segs, topics, ctx) {
   modal({ title: "Review and send", size: "lg", body: `
     <div class="kv"><span class="k">From</span><span>${esc(b.from || "—")}</span><span class="k">Subject</span><span>${esc(b.subject || "—")}</span><span class="k">Audience</span><span>${esc(seg?.name || "—")}${topic ? ` · ${esc(topic.name)}` : ""}</span><span class="k">Recipients</span><span data-count><span class="spinner" style="width:11px;height:11px"></span></span></div>
     ${issues.length ? `<div class="banner warn" style="flex-direction:column;align-items:flex-start;gap:4px">${issues.map((i) => `<div class="row-flex">${icon("alert", 13)} ${esc(i)}</div>`).join("")}</div>` : ""}
+    <div data-checks>${checksHtml(runChecks(renderBlocks(b.content || { blocks: [] }, { subject: b.subject })), icon, esc)}</div>
     <div class="field"><label>When</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><label class="radio-card"><input type="radio" name="when" value="now" checked> Send now</label><label class="radio-card"><input type="radio" name="when" value="later"> Schedule</label></div>
     <input type="datetime-local" class="input hidden" data-at value="${local(tomorrow)}" min="${local(new Date())}"><span class="hint hidden" data-tz>Times are in ${esc(TZ)}.</span></div>`,
     foot: `<button class="btn btn-ghost" data-cancel>Back to editing</button><button class="btn btn-primary" data-ok ${issues.length ? "disabled" : ""}>Send now</button>`,

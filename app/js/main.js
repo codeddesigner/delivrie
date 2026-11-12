@@ -1,6 +1,8 @@
 import { sb, state, loadSession, loadTeams, setTeam, api } from "./lib/sb.js";
 import { $, $$, el, esc, icon, menu, popover, toast, errToast, initials, on, modal } from "./lib/ui.js";
 import { MARK } from "./lib/icons.js";
+import { applyTheme, themeSwitch } from "./lib/theme.js";
+applyTheme();
 
 // ---------------------------------------------------------------- routes
 // [pattern, module, export, kind]  kind: public | auth (signed in, no team needed) | app (shell) | full (signed in, team, no shell)
@@ -17,7 +19,7 @@ const ROUTES = [
   ["/segments", "audience", "segments", "app"], ["/segments/:id", "audience", "segment", "app"],
   ["/metrics", "insights", "metrics", "app"], ["/logs", "insights", "logs", "app"], ["/logs/:id", "insights", "log", "app"],
   ["/domains", "domains", "list", "app"], ["/domains/new", "domains", "add", "app"], ["/domains/:id", "domains", "detail", "app"],
-  ["/api-keys", "keys", "apiKeys", "app"], ["/webhooks", "keys", "webhooks", "app"], ["/webhooks/:id", "keys", "webhook", "app"],
+  ["/api-keys", "keys", "apiKeys", "app"], ["/webhooks", "keys", "webhooks", "app"], ["/suppressions", "suppressions", "default", "app"], ["/webhooks/:id", "keys", "webhook", "app"],
   ["/settings/unsubscribe-page", "settings", "unsubscribeEditor", "full"], ["/settings", "settings", "default", "app"], ["/settings/:tab", "settings", "default", "app"],
   ["/profile", "settings", "profile", "app"], ["/help", "help", "help", "app"],
   ["/admin", "admin", "default", "auth"], ["/admin/:tab", "admin", "default", "auth"],
@@ -52,7 +54,7 @@ const NAV = [
   { href: "/templates", label: "Templates", icon: "template" },
   { section: "Audience", items: [{ href: "/contacts", label: "Contacts", icon: "users" }, { href: "/segments", label: "Segments", icon: "layers" }] },
   { section: "Insights", items: [{ href: "/metrics", label: "Metrics", icon: "chart" }, { href: "/logs", label: "Logs", icon: "list" }] },
-  { section: "Configure", items: [{ href: "/domains", label: "Domains", icon: "globe" }, { href: "/api-keys", label: "API keys", icon: "key" }, { href: "/webhooks", label: "Webhooks", icon: "webhook" }, { href: "/settings", label: "Settings", icon: "gear" }] },
+  { section: "Configure", items: [{ href: "/domains", label: "Domains", icon: "globe" }, { href: "/api-keys", label: "API keys", icon: "key" }, { href: "/webhooks", label: "Webhooks", icon: "webhook" }, { href: "/suppressions", label: "Suppressions", icon: "shield" }, { href: "/settings", label: "Settings", icon: "gear" }] },
 ];
 function teamAvatar(t, cls = "") {
   return t?.avatar_url ? `<span class="avatar sq ${cls}"><img src="${esc(t.avatar_url)}" alt=""></span>` : `<span class="avatar sq yellow ${cls}">${esc((t?.name || "?")[0].toUpperCase())}</span>`;
@@ -69,7 +71,8 @@ function shellHtml() {
       </div>
       ${NAV.map((n) => n.section ? `<div class="nav-sec ${closed[n.section] ? "closed" : ""}" data-sec="${n.section}">${n.section}<span class="caret"></span></div><div class="nav-group ${closed[n.section] ? "closed" : ""}" data-group="${n.section}">${n.items.map(navLink).join("")}</div>` : navLink(n)).join("")}
       <div class="side-spacer"></div>
-      <a class="whatsnew" href="/docs"><span class="k">What’s new</span><span class="v">Inbound email is now in beta</span></a>
+      <a class="whatsnew" href="/changelog" data-native><span class="k">What’s new</span><span class="v">Light mode, new docs and legal pages</span></a>
+      <div class="side-foot"><button class="who" id="who-btn"><span class="avatar" style="width:22px;height:22px;font-size:10px">${esc(initials(state.profile?.full_name || state.user?.email || "?"))}</span><span>${esc(state.profile?.full_name || state.user?.email?.split("@")[0] || "")}</span></button>${themeSwitch()}</div>
     </nav>
     <div class="main"><section class="panel">
       <header class="topbar"><button class="ibtn mobile-only" id="side-toggle">${icon("sidebar", 15)}</button><div class="crumbs" id="crumbs"></div>
@@ -81,6 +84,7 @@ function shellHtml() {
 function bindShell(root) {
   root.querySelector("#ws-btn").addEventListener("click", (e) => accountMenu(e.currentTarget));
   root.querySelector("#nav-search").addEventListener("click", () => palette());
+  root.querySelector("#who-btn")?.addEventListener("click", (e) => accountMenu(e.currentTarget));
   root.querySelector("#feedback-btn").addEventListener("click", (e) => feedback(e.currentTarget));
   root.querySelector("#side-toggle").addEventListener("click", () => root.querySelector("#side").classList.toggle("open"));
   on(root, "click", "[data-sec]", (_e, s) => {
@@ -108,6 +112,7 @@ function accountMenu(anchor) {
     { sep: true },
     { label: "My profile", icon: "users", kbd: "G P", onClick: () => navigate("/profile") },
     { label: "Team settings", icon: "gear", kbd: "G S", onClick: () => navigate("/settings/team") },
+    { html: `<span class="row-flex" style="width:100%"><span class="grow">Theme</span>${themeSwitch()}</span>`, onClick: () => {} },
     { header: "Teams" },
     ...state.teams.map((t) => ({ html: `<span class="row-flex">${teamAvatar(t)}<span>${esc(t.name)}</span></span>`, checked: t.id === state.team?.id, onClick: () => { setTeam(t.id); navigate("/emails"); render(true); } })),
     { label: "Create team", icon: "plus", onClick: () => createTeamModal() },

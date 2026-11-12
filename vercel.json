@@ -15,11 +15,19 @@
       "destination": "/pricing.html"
     },
     {
+      "source": "/:page(terms|privacy|dpa|acceptable-use|cookies|subprocessors|security|about|customers|careers|brand|changelog|blog|status|contact-sales)",
+      "destination": "/pages/:page.html"
+    },
+    {
+      "source": "/blog/:slug",
+      "destination": "/pages/blog/:slug.html"
+    },
+    {
       "source": "/media/:path*",
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/storage/v1/object/public/email-assets/:path*"
     },
     {
-      "source": "/(login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|settings|profile|help|admin)",
+      "source": "/(login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|suppressions|settings|profile|help|admin)",
       "destination": "/app.html"
     },
     {

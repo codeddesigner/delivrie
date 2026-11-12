@@ -33,24 +33,48 @@ export async function gallery(ctx) {
   ctx.crumb("template", "Templates");
   const root = ctx.root;
   root.innerHTML = `<div class="page wide"><div class="page-head"><h1>Templates</h1><div class="actions"><button class="ibtn boxed" data-api title="API">${icon("code", 14)}</button><button class="btn btn-primary" data-new>${icon("plus", 13)} Create template</button></div></div>
-    <div class="filters"><div class="input-wrap search"><span class="lead">${icon("search", 13)}</span><input class="input" data-q placeholder="Search templates"></div></div><div data-body></div></div>`;
+    <div class="tpl-layout"><aside class="tpl-folders" data-folders></aside><div style="min-width:0"><div class="filters"><div class="input-wrap search"><span class="lead">${icon("search", 13)}</span><input class="input" data-q placeholder="Search templates"></div><span class="grow"></span><button class="btn btn-secondary" data-new-folder>${icon("folder", 13)} New folder</button></div><div data-body></div></div></div></div>`;
   const body = root.querySelector("[data-body]");
-  let rows = [];
+  let rows = [], folders = [], folder = ctx.query.folder || "all";
   async function load() {
-    const { data, error } = await sb.from("templates").select("id,name,alias,status,published_version,subject,content,updated_at,created_at").eq("team_id", state.team.id).order("updated_at", { ascending: false });
-    if (error) throw error; rows = data; draw();
+    const [{ data, error }, { data: fs }] = await Promise.all([
+      sb.from("templates").select("id,name,alias,status,published_version,subject,content,updated_at,created_at,folder_id").eq("team_id", state.team.id).order("updated_at", { ascending: false }),
+      sb.from("template_folders").select("id,name").eq("team_id", state.team.id).order("name"),
+    ]);
+    if (error) throw error; rows = data; folders = fs || []; draw();
+  }
+  function drawFolders() {
+    const count = (id) => rows.filter((t) => id === "all" ? true : id === "none" ? !t.folder_id : t.folder_id === id).length;
+    const item = (id, name, ic) => `<button class="tf ${folder === id ? "on" : ""}" data-folder="${id}">${icon(ic, 13)}<span class="grow ellipsis">${esc(name)}</span><span class="dim">${count(id)}</span>${id !== "all" && id !== "none" ? `<span class="ibtn tf-more" data-folder-menu="${id}">${icon("more", 13)}</span>` : ""}</button>`;
+    root.querySelector("[data-folders]").innerHTML = `<div class="tf-h">Folders</div>${item("all", "All templates", "template")}${folders.map((f) => item(f.id, f.name, "folder")).join("")}${folders.length ? item("none", "Not in a folder", "inbox") : ""}`;
   }
   function draw() {
+    drawFolders();
     const q = root.querySelector("[data-q]").value.toLowerCase();
-    const r = rows.filter((t) => !q || `${t.name} ${t.alias || ""}`.toLowerCase().includes(q));
+    const r = rows.filter((t) => (folder === "all" || (folder === "none" ? !t.folder_id : t.folder_id === folder)) && (!q || `${t.name} ${t.alias || ""}`.toLowerCase().includes(q)));
     if (!rows.length) { body.innerHTML = emptyState({ icon: "template", title: "No templates yet", desc: "Design transactional emails once, then send them from your code with variables.", action: `<button class="btn btn-primary" data-new>${icon("plus", 13)} Create template</button>` }); return; }
-    if (!r.length) { body.innerHTML = emptyState({ icon: "search", title: "No templates match", desc: "Try a different search." }); return; }
+    if (!r.length) { body.innerHTML = emptyState({ icon: folder === "all" ? "search" : "folder", title: folder !== "all" && !root.querySelector("[data-q]").value ? "This folder is empty" : "No templates match", desc: folder !== "all" ? "Move templates here from their ⋯ menu." : "Try a different search." }); return; }
     body.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">${r.map((t) => `<div class="card clickable tpl-card" data-id="${t.id}" style="overflow:hidden;cursor:pointer">
       <div style="height:170px;overflow:hidden;background:#fff;position:relative;pointer-events:none"><iframe sandbox data-thumb="${t.id}" style="width:640px;height:720px;border:0;transform:scale(.4);transform-origin:0 0;position:absolute;left:calc(50% - 128px);top:0"></iframe></div>
       <div style="padding:12px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)"><div class="grow"><div class="ellipsis" style="font-weight:500">${esc(t.name)}</div><div class="dim" style="font-size:12px">${t.status === "published" ? `v${t.published_version} · ` : "Draft · "}${ago(t.updated_at)}</div></div><button class="ibtn" data-row="${t.id}">${icon("more")}</button></div></div>`).join("")}</div>`;
     r.forEach((t) => { const f = body.querySelector(`[data-thumb="${t.id}"]`); if (f) f.srcdoc = renderVars(renderBlocks(t.content || { blocks: [] }, { subject: t.subject }), {}, []); });
   }
   root.querySelector("[data-q]").addEventListener("input", draw);
+  const folderModal = (f) => formModal({ title: f ? "Rename folder" : "New folder", fields: [{ name: "name", label: "Name", value: f?.name || "", placeholder: "Payments" }], submit: f ? "Save" : "Create folder", validate: (v) => v.name && v.name.length <= 60,
+    async onSubmit(v) {
+      const q = f ? sb.from("template_folders").update({ name: v.name }).eq("id", f.id) : sb.from("template_folders").insert({ team_id: state.team.id, name: v.name });
+      const { error } = await q; if (error) throw new Error(/duplicate/.test(error.message) ? "A folder with that name already exists" : error.message);
+      toast(f ? "Folder renamed" : `Folder “${v.name}” created`); await load();
+    } });
+  on(root, "click", "[data-new-folder]", () => folderModal());
+  on(root, "click", "[data-folder]", (e, b) => { if (e.target.closest("[data-folder-menu]")) return; folder = b.dataset.folder; history.replaceState({}, "", folder === "all" ? "/templates" : `/templates?folder=${folder}`); draw(); });
+  on(root, "click", "[data-folder-menu]", (e, b) => {
+    e.stopPropagation(); const f = folders.find((x) => x.id === b.dataset.folderMenu);
+    menu(b, [{ label: "Rename", icon: "edit", onClick: () => folderModal(f) }, { label: "Delete folder", icon: "trash", danger: true, onClick: async () => {
+      if (!(await confirmModal({ title: "Delete folder", desc: `Templates in “${esc(f.name)}” move to Not in a folder. No templates are deleted.`, confirm: "Delete folder" }))) return;
+      const { error } = await sb.from("template_folders").delete().eq("id", f.id); if (error) return errToast(error);
+      if (folder === f.id) folder = "all"; toast("Folder deleted"); await load(); } }], { align: "right" });
+  });
   on(root, "click", "[data-new]", () => createModal(ctx.navigate));
   on(root, "click", "[data-api]", () => drawer({ title: "Send with a template", wide: true, body: `<p class="muted">Publish a template, then reference it by ID or alias. Variables fill <span class="mono">{{{name}}}</span> placeholders.</p>${codeBlock(`curl -X POST ${location.origin}/api/emails \\\n  -H "Authorization: Bearer dlv_xxxxxxxxx" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "from": "Acme <hello@acme.com>",\n    "to": ["ada@example.com"],\n    "template": {\n      "id": "welcome",\n      "variables": { "first_name": "Ada" }\n    }\n  }'`, { lang: "sh" })}` }));
   on(root, "click", ".tpl-card", (e, c) => { if (!e.target.closest("[data-row]")) ctx.navigate(`/templates/${c.dataset.id}`); });
@@ -61,6 +85,7 @@ export async function gallery(ctx) {
       { label: "Rename", icon: "edit", onClick: () => formModal({ title: "Rename template", fields: [{ name: "name", label: "Name", value: t.name }], validate: (v) => v.name, async onSubmit(v) { const { error } = await sb.from("templates").update({ name: v.name }).eq("id", t.id); if (error) throw error; toast("Renamed"); load(); } }) },
       { label: "Duplicate", icon: "copy", onClick: async () => { const { data: full } = await sb.from("templates").select("*").eq("id", t.id).single(); const { error } = await sb.from("templates").insert({ team_id: full.team_id, name: full.name + " (copy)", from: full.from, reply_to: full.reply_to, subject: full.subject, content: full.content, variables: full.variables, status: "draft", created_by: state.user.id }); if (error) return errToast(error); toast("Template duplicated"); load(); } },
       { label: "Copy ID", icon: "copy", onClick: () => navigator.clipboard.writeText(t.id).then(() => toast("ID copied")) },
+      ...(folders.length ? [{ header: "Move to folder" }, ...folders.map((f) => ({ label: f.name, icon: "folder", checked: t.folder_id === f.id, onClick: async () => { const { error } = await sb.from("templates").update({ folder_id: f.id }).eq("id", t.id); if (error) return errToast(error); t.folder_id = f.id; draw(); toast(`Moved “${t.name}” to ${f.name}`); } })), ...(t.folder_id ? [{ label: "Remove from folder", icon: "x", onClick: async () => { await sb.from("templates").update({ folder_id: null }).eq("id", t.id); t.folder_id = null; draw(); toast("Removed from folder"); } }] : [])] : [{ label: "Move to a new folder…", icon: "folder", onClick: () => folderModal() }]),
       { sep: true },
       { label: "Delete", icon: "trash", danger: true, onClick: async () => { if (!(await confirmModal({ title: "Delete template", desc: `Emails sent with “${esc(t.name)}” stay in your logs, but API calls that reference it will fail.`, confirm: "Delete", typed: t.name }))) return; const { error } = await sb.from("templates").delete().eq("id", t.id); if (error) return errToast(error); toast("Template deleted"); load(); } },
     ], { align: "right" });

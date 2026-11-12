@@ -5,15 +5,16 @@ import { esc, num } from "./ui.js";
  * lineChart(host, { labels: [], series: [{name, color, values: []}], height, fmt })
  */
 export function lineChart(host, { labels, series, height = 220, fmt = num, area = true }) {
+  const css = getComputedStyle(document.documentElement), gridC = css.getPropertyValue("--border").trim() || "#3d3a3b", dotC = css.getPropertyValue("--panel").trim() || "#262425", txtC = css.getPropertyValue("--fg-3").trim() || "#62666d";
   const W = Math.max(320, host.clientWidth || 720), H = height, P = { l: 36, r: 12, t: 12, b: 24 };
   const max = Math.max(1, ...series.flatMap((s) => s.values));
   const nice = niceMax(max);
   const n = labels.length;
   const x = (i) => P.l + (n <= 1 ? (W - P.l - P.r) / 2 : (i * (W - P.l - P.r)) / (n - 1));
   const y = (v) => P.t + (H - P.t - P.b) * (1 - v / nice);
-  const grid = [0, 0.25, 0.5, 0.75, 1].map((f) => { const v = nice * f; return `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}" stroke="#3d3a3b" /><text x="${P.l - 8}" y="${y(v) + 4}" fill="#62666d" font-size="10.5" text-anchor="end">${short(v)}</text>`; }).join("");
+  const grid = [0, 0.25, 0.5, 0.75, 1].map((f) => { const v = nice * f; return `<line x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}" stroke="${gridC}" /><text x="${P.l - 8}" y="${y(v) + 4}" fill="${txtC}" font-size="10.5" text-anchor="end">${short(v)}</text>`; }).join("");
   const step = Math.max(1, Math.ceil(n / 7));
-  const xl = labels.map((l, i) => (i % step === 0 || i === n - 1) ? `<text x="${x(i)}" y="${H - 6}" fill="#62666d" font-size="10.5" text-anchor="${i === n - 1 && n > 1 ? "end" : i === 0 && n > 1 ? "start" : "middle"}">${esc(l)}</text>` : "").join("");
+  const xl = labels.map((l, i) => (i % step === 0 || i === n - 1) ? `<text x="${x(i)}" y="${H - 6}" fill="${txtC}" font-size="10.5" text-anchor="${i === n - 1 && n > 1 ? "end" : i === 0 && n > 1 ? "start" : "middle"}">${esc(l)}</text>` : "").join("");
   const paths = series.map((s, si) => {
     const pts = s.values.map((v, i) => `${x(i)},${y(v)}`);
     const line = `M${pts.join("L")}`;
@@ -21,7 +22,7 @@ export function lineChart(host, { labels, series, height = 220, fmt = num, area 
     return `<defs><linearGradient id="g${si}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${s.color}" stop-opacity=".22"/><stop offset="1" stop-color="${s.color}" stop-opacity="0"/></linearGradient></defs>${fill}<path class="chart-line" pathLength="1" d="${line}" fill="none" stroke="${s.color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" style="animation-delay:${si * 120}ms"/>`;
   }).join("");
   host.style.position = "relative";
-  host.innerHTML = `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block;height:${H}px">${grid}${xl}${paths}<line data-cursor x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" stroke="#3a3d44" stroke-dasharray="3 3" visibility="hidden"/>${series.map((s, i) => `<circle data-dot="${i}" r="3.5" fill="${s.color}" stroke="#262425" stroke-width="2" visibility="hidden"/>`).join("")}</svg><div class="chart-tip hidden"></div>`;
+  host.innerHTML = `<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block;height:${H}px">${grid}${xl}${paths}<line data-cursor x1="0" x2="0" y1="${P.t}" y2="${H - P.b}" stroke="${gridC}" stroke-dasharray="3 3" visibility="hidden"/>${series.map((s, i) => `<circle data-dot="${i}" r="3.5" fill="${s.color}" stroke="${dotC}" stroke-width="2" visibility="hidden"/>`).join("")}</svg><div class="chart-tip hidden"></div>`;
   const svg = host.querySelector("svg"), tip = host.querySelector(".chart-tip"), cur = host.querySelector("[data-cursor]");
   svg.addEventListener("mousemove", (e) => {
     const r = svg.getBoundingClientRect(); const px = ((e.clientX - r.left) / r.width) * W;

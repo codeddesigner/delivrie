@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DMARC in 10 minutes · Delivrie</title>
+  <meta name="description" content="A practical walkthrough for adding a DMARC record to your domain, wherever your DNS is hosted.">
+  <meta name="theme-color" content="#211f20">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="Delivrie"><meta property="og:url" content="https://delivrie.io/blog/dmarc-in-10-minutes">
+  <meta property="og:title" content="DMARC in 10 minutes · Delivrie"><meta property="og:description" content="A practical walkthrough for adding a DMARC record to your domain, wherever your DNS is hosted."><meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://delivrie.io/blog/dmarc-in-10-minutes">
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="alternate" type="application/rss+xml" title="Delivrie changelog" href="/changelog.xml">
+  <style>.nav .logo img{width:118px;height:22px}.footer .brand img{width:27px;height:19px}.cta-mark{width:72px;height:51px}</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script>document.documentElement.classList.add("js")</script>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="/" aria-label="Delivrie home"><img src="/assets/logo.svg" width="118" height="22" alt="Delivrie"></a>
+    <nav class="nav-links" aria-label="Main">
+      <a class="nav-link" href="/#integrate">Product</a>
+      <a class="nav-link" href="/docs">Docs</a>
+      <a class="nav-link" href="/pricing">Pricing</a>
+      <a class="nav-link opt" href="/customers">Customers</a>
+      <a class="nav-link opt" href="/changelog">Changelog</a>
+      <a class="nav-link opt" href="/blog">Blog</a>
+    </nav>
+    <div class="spacer"></div>
+    <a class="nav-link keep" href="/login">Log in</a>
+    <a class="btn-signup" href="/signup">Get started</a>
+  </div>
+</header>
+
+<main class="site">
+<article class="post-page"><div class="wrap narrow reveal in">
+    <div class="crumb"><a href="/blog">Blog</a> › <span>Guides</span></div>
+    <h1>DMARC in 10 minutes</h1><p class="lede">A practical walkthrough for adding a DMARC record to your domain, wherever your DNS is hosted.</p>
+    <div class="author"><img src="/assets/brand/app-icon.svg" width="32" height="32" alt=""><div><b>Delivrie team</b><span>Nov 12, 2026 · 6 min read</span></div></div>
+    <div class="post-body"><p>Gmail and Yahoo now expect bulk senders to publish a DMARC record. It tells mailbox providers what to do with mail that claims to be from your domain but fails SPF and DKIM. Here is how to add one safely.</p><h2>1. Make sure SPF and DKIM pass first</h2><p>Add your domain in Delivrie and publish the DKIM and SPF records it shows you. Wait until the domain says Verified. DMARC only helps once these pass.</p><h2>2. Start in monitoring mode</h2><pre class="post-code"><code>_dmarc.yourdomain.com  TXT  &quot;v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com&quot;</code></pre><p>With p=none nothing is blocked. You receive daily reports showing who sends as your domain, so you can find tools you forgot about, like your invoicing app or CRM.</p><h2>3. Tighten the policy</h2><p>After a week or two of clean reports, change p=none to p=quarantine, then later to p=reject. Mail that fails authentication then goes to spam or is refused, which protects your customers from phishing.</p><h2>Where to add the record</h2><p>In your DNS provider, create a TXT record with the host _dmarc (some providers want _dmarc.yourdomain.com) and paste the value. Changes usually appear within minutes but can take a few hours. Read more in the <a href="/docs/dmarc">DMARC docs</a>.</p></div>
+    <h3 class="keep-h">Keep reading</h3><div class="grid2 posts"><a class="post" href="/blog/pricing-in-naira"><span class="cat">Company</span><h3>Pricing in Naira</h3><span class="by">Nov 12, 2026</span></a><a class="post" href="/blog/letting-agents-send-email-safely"><span class="cat">AI</span><h3>Letting agents send email safely</h3><span class="by">Nov 12, 2026</span></a></div>
+  </div></article>
+  <section class="cta">
+    <div class="wrap reveal">
+      <img class="cta-mark" src="/assets/mark.svg" width="72" height="51" alt="">
+      <h2>Email for builders.<br> Ready when you are.</h2>
+      <p>3,000 free emails every month. No card required.</p>
+      <div class="btn-row"><a class="b-primary" href="/signup">Start for free</a><a class="b-secondary" href="/contact-sales">Talk to sales</a></div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="brand"><img src="/assets/footer-mark.svg" width="27" height="19" alt="Delivrie"></div>
+    <nav class="fcol"><h4>Product</h4><a href="/signup">Emails</a><a href="/signup">Broadcasts</a><a href="/signup">Templates</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a></nav>
+    <nav class="fcol"><h4>Developers</h4><a href="/docs">Docs</a><a href="/docs/api">API reference</a><a href="/docs/mcp">MCP server</a><a href="/status">Status</a></nav>
+    <nav class="fcol"><h4>Company</h4><a href="/about">About</a><a href="/customers">Customers</a><a href="/careers">Careers</a><a href="/brand">Brand</a><a href="/contact-sales">Contact sales</a></nav>
+    <nav class="fcol"><h4>Legal</h4><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/dpa">DPA</a><a href="/acceptable-use">Acceptable use</a><a href="/security">Security</a></nav>
+  </div>
+  <div class="wrap fbottom"><span>© 2026 South Circle · Lagos · delivrie.io</span><span class="grow"></span><a class="sys" href="/status" id="sys"><i></i><span>All systems operational</span></a></div>
+</footer>
+
+<script src="/site.js"></script>
+</body>
+</html>
