@@ -7,6 +7,14 @@
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/billing/:path*"
     },
     {
+      "source": "/api/events",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/automations/events"
+    },
+    {
+      "source": "/api/automations/:path*",
+      "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/automations/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie/:path*"
     },
@@ -27,11 +35,11 @@
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/storage/v1/object/public/email-assets/:path*"
     },
     {
-      "source": "/(login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|suppressions|settings|profile|help|admin)",
+      "source": "/(inbox|automations|events|login|signup|reset|confirm|verify|mfa|new-team|unsubscribe|docs|onboarding|emails|broadcasts|templates|contacts|segments|metrics|logs|domains|api-keys|webhooks|suppressions|settings|profile|help|admin)",
       "destination": "/app.html"
     },
     {
-      "source": "/(docs|reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings|admin)/:rest*",
+      "source": "/(inbox|automations|events|docs|reset|invite|share|emails|broadcasts|templates|contacts|segments|logs|domains|webhooks|settings|admin)/:rest*",
       "destination": "/app.html"
     }
   ],

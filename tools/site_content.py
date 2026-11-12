@@ -129,6 +129,7 @@ LEGAL = [
 ]
 
 CHANGELOG = [
+  ("Nov 13, 2026", "Automations and Inbox", ["Automations", "Inbox", "API"], ["Automations send emails when an event arrives, a contact joins a segment, or on a schedule, with waits, conditions and branches.", "Custom events API: POST /api/events with an event name, email and data.", "Inbox: received email grouped into threads, with labels, archive and replies that keep Message-ID threading.", "Runs show every step with timestamps; retry or skip a failed step after fixing the cause."]),
   ("Nov 12, 2026", "Docs, legal pages and client logos", ["Dashboard", "Docs"], ["A new docs site with a page for every API endpoint, the MCP server guide and a changelog.", "Terms, Privacy, DPA, Acceptable Use, Cookies, Subprocessors and Security pages.", "Official logos for Claude, Cursor, v0, Codex, Antigravity and VS Code in the Works with sections."]),
   ("Nov 12, 2026", "New pricing, credits and billing", ["Billing"], ["Pro includes 20,000 emails a month and Scale 100,000, with yearly plans at ten months’ price.", "Paid plans keep sending past their allowance and pay overage per 1,000 at month end. Set a spending cap in Billing.", "Pay-as-you-go credits from ₦5,000 or $5 that never expire, and a marketing add-on priced by contacts."]),
   ("Nov 12, 2026", "Test addresses and natural-language scheduling", ["API"], ["Send to delivered@, bounced@ and complained@test.delivrie.io to test events without touching your reputation.", "scheduled_at accepts phrases like “in 1 hour” and “tomorrow at 9am”."]),

@@ -12,7 +12,8 @@ const ROUTES = [
   ["/new-team", "auth", "newTeam", "auth"], ["/invite/:token", "auth", "invite", "public"],
   ["/unsubscribe", "public", "unsubscribe", "public"], ["/share/:token", "public", "share", "public"], ["/docs", "docs", "default", "public"], ["/docs/:a", "docs", "default", "public"], ["/docs/:a/:b", "docs", "default", "public"],
   ["/onboarding", "onboarding", "default", "app"],
-  ["/emails", "emails", "list", "app"], ["/emails/:id", "emails", "detail", "app"],
+  ["/emails", "emails", "list", "app"], ["/inbox", "inbox", "default", "app"], ["/inbox/:id", "inbox", "default", "app"], ["/emails/:id", "emails", "detail", "app"],
+  ["/automations", "automations", "list", "app"], ["/automations/:id", "automations", "editor", "app"], ["/automations/:id/runs", "automations", "runs", "app"], ["/events", "events", "list", "app"], ["/events/:name", "events", "detail", "app"],
   ["/broadcasts", "broadcasts", "list", "app"], ["/broadcasts/:id", "broadcasts", "report", "app"], ["/broadcasts/:id/edit", "broadcast-edit", "default", "full"], ["/broadcasts/:id/scheduled", "broadcasts", "scheduled", "full"],
   ["/templates", "templates", "gallery", "app"], ["/templates/:id", "templates", "editor", "full"],
   ["/contacts", "audience", "contacts", "app"], ["/contacts/import", "audience", "importCsv", "app"], ["/contacts/properties", "audience", "properties", "app"], ["/contacts/topics", "audience", "topics", "app"],
@@ -50,8 +51,10 @@ document.addEventListener("click", (e) => {
 // ---------------------------------------------------------------- shell
 const NAV = [
   { href: "/emails", label: "Emails", icon: "mail" },
+  { href: "/inbox", label: "Inbox", icon: "inbox" },
   { href: "/broadcasts", label: "Broadcasts", icon: "send" },
   { href: "/templates", label: "Templates", icon: "template" },
+  { href: "/automations", label: "Automations", icon: "zap" },
   { section: "Audience", items: [{ href: "/contacts", label: "Contacts", icon: "users" }, { href: "/segments", label: "Segments", icon: "layers" }] },
   { section: "Insights", items: [{ href: "/metrics", label: "Metrics", icon: "chart" }, { href: "/logs", label: "Logs", icon: "list" }] },
   { section: "Configure", items: [{ href: "/domains", label: "Domains", icon: "globe" }, { href: "/api-keys", label: "API keys", icon: "key" }, { href: "/webhooks", label: "Webhooks", icon: "webhook" }, { href: "/suppressions", label: "Suppressions", icon: "shield" }, { href: "/settings", label: "Settings", icon: "gear" }] },
@@ -71,7 +74,7 @@ function shellHtml() {
       </div>
       ${NAV.map((n) => n.section ? `<div class="nav-sec ${closed[n.section] ? "closed" : ""}" data-sec="${n.section}">${n.section}<span class="caret"></span></div><div class="nav-group ${closed[n.section] ? "closed" : ""}" data-group="${n.section}">${n.items.map(navLink).join("")}</div>` : navLink(n)).join("")}
       <div class="side-spacer"></div>
-      <a class="whatsnew" href="/changelog" data-native><span class="k">What’s new</span><span class="v">Light mode, new docs and legal pages</span></a>
+      <a class="whatsnew" href="/changelog" data-native><span class="k">What’s new</span><span class="v">Automations and Inbox are live</span></a>
       <div class="side-foot"><button class="who" id="who-btn"><span class="avatar" style="width:22px;height:22px;font-size:10px">${esc(initials(state.profile?.full_name || state.user?.email || "?"))}</span><span>${esc(state.profile?.full_name || state.user?.email?.split("@")[0] || "")}</span></button>${themeSwitch()}</div>
     </nav>
     <div class="main"><section class="panel">

@@ -211,13 +211,21 @@ export function drawer({ title, body, wide, onMount }) {
 }
 
 // ---------------- code blocks ----------------
+// Tokenises the raw source (strings, comments, keywords) and escapes each piece, so markup never leaks into the output.
+const HL_KW = /\b(import|from|const|let|await|async|new|return|def|func|package|use|fn|require|curl|echo|var|public|class|static|using|end|do|if|else|true|false|nil|null)\b/g;
 export function highlight(src, lang = "js") {
-  let s = esc(src);
-  if (lang === "json") return s.replace(/(&quot;[^&]*?&quot;)(\s*:)?/g, (m, str, colon) => colon ? `<span class="tok-n">${str}</span>${colon}` : `<span class="tok-s">${str}</span>`);
-  s = s.replace(/(&#39;[^&#]*?&#39;|&quot;[^&]*?&quot;|`[^`]*?`)/g, '<span class="tok-s">$1</span>');
-  s = s.replace(/(^|\s)(#|\/\/)([^\n]*)/g, '$1<span class="tok-c">$2$3</span>');
-  s = s.replace(/\b(import|from|const|let|await|async|new|return|def|func|package|use|fn|require|curl|echo|var|public|class|static|using|end|do|if|else|true|false|nil|null)\b/g, '<span class="tok-k">$1</span>');
-  return s;
+  return String(src).split("\n").map((line) => {
+    const re = lang === "json" ? /("(?:[^"\\]|\\.)*")(\s*:)?/g : /('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`[^`]*`|(?<![:\w])\/\/.*$|(?<![\w$])#(?!\{).*$)/g;
+    let out = "", last = 0, m;
+    const plain = (t) => lang === "json" ? esc(t) : esc(t).replace(HL_KW, '<span class="tok-k">$1</span>');
+    while ((m = re.exec(line))) {
+      out += plain(line.slice(last, m.index));
+      if (lang === "json") out += m[2] ? `<span class="tok-n">${esc(m[1])}</span>${esc(m[2])}` : `<span class="tok-s">${esc(m[0])}</span>`;
+      else out += /^(\/\/|#)/.test(m[0]) ? `<span class="tok-c">${esc(m[0])}</span>` : `<span class="tok-s">${esc(m[0])}</span>`;
+      last = m.index + m[0].length;
+    }
+    return out + plain(line.slice(last));
+  }).join("\n");
 }
 export function codeBlock(src, { lang = "js", lines = true, copy = true, max } = {}) {
   const rows = String(src).split("\n");

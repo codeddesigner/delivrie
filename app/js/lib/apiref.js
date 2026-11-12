@@ -48,6 +48,14 @@ export const API = [
       desc: "List sent emails, newest first.", query: [...PAGE, ["direction", "string", false, "outbound or inbound.", "outbound"]],
       response: { object: "list", data: [{ id: "4ef9a417-…", subject: "Your order is confirmed", last_event: "delivered" }], has_more: false } },
   ]},
+  { group: "Events", items: [
+    { slug: "send-event", m: "POST", path: "/events", title: "Send event", scope: "Any API key",
+      desc: "Record a custom event for a contact. Live automations listening for the event start a run right away. The contact is created if it doesn’t exist.",
+      body: [["event", "string", true, "Lowercase name with dots for namespaces, like user.created."], ["email", "string", true, "The contact the event is about."], ["data", "object", false, "Any JSON up to 32 KB. Use it in automation filters, conditions and templates as {{{data.field}}}."]],
+      example: { event: "user.created", email: "ada@example.com", data: { country: "NG", plan: "free" } },
+      response: { object: "event", id: "8d1c…", event: "user.created", runs: 1 },
+      errors: [["401", "missing_api_key", "No Authorization header was sent."], ["422", "validation_error", "The event name or email is invalid, or data is over 32 KB."]] },
+  ]},
   { group: "Domains", items: [
     { slug: "create-domain", m: "POST", path: "/domains", title: "Create domain", tool: "create_domain", scope: FULL,
       desc: "Add a sending domain. The response includes the DNS records to add at your DNS provider.",
