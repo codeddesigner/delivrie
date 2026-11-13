@@ -13,6 +13,7 @@
   function pagePath(p) {
     p = (p || location.pathname).replace(/\/index(\.html)?$/, '/').replace(/\.html$/, '').replace(/^\/pages\//, '/');
     if (p.length > 1) p = p.replace(/\/+$/, '');
+    if (p === '/compare' || /^\/vs\//.test(p)) p = '/pricing'; // same page, two views
     return p || '/';
   }
   function hash(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }

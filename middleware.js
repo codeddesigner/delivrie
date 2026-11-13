@@ -2,7 +2,7 @@
 // Settings are cached for 30 seconds per edge instance. If they can't be loaded, pages stay on (fail open).
 export const config = {
   matcher: [
-    '/pricing', '/about', '/customers', '/careers', '/brand', '/changelog', '/blog', '/blog/:path*', '/status',
+    '/pricing', '/compare', '/vs/:path*', '/about', '/customers', '/careers', '/brand', '/changelog', '/blog', '/blog/:path*', '/status',
     '/contact-sales', '/dpa', '/acceptable-use', '/cookies', '/subprocessors', '/security',
   ],
 };
@@ -27,7 +27,8 @@ async function offPages() {
 
 export default async function middleware(request) {
   const url = new URL(request.url);
-  const path = url.pathname.replace(/\/+$/, '') || '/';
+  let path = url.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/compare' || path.startsWith('/vs/')) path = '/pricing'; // the Compare view is part of Pricing
   if (!ALWAYS_ON.has(path)) {
     const pages = await offPages();
     const section = '/' + path.split('/')[1];

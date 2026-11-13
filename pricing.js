@@ -12,7 +12,7 @@
   try { cur = localStorage.getItem('dlv_currency'); } catch (e) {}
   if (!cur) cur = /Lagos|Africa\//.test(Intl.DateTimeFormat().resolvedOptions().timeZone || '') ? 'NGN' : 'USD';
   if (/yearly/.test(location.hash)) mode = 'yearly'; else if (/payg|credits/.test(location.hash)) mode = 'payg';
-  var view = /compare|vs/.test(location.hash) ? 'compare' : 'plans';
+  var view = /^\/(compare|vs\/)/.test(location.pathname) || /compare|vs/.test(location.hash) ? 'compare' : 'plans';
 
   var m = function (v, exact) {
     var p = P[cur], dec = exact && v % 1 ? 2 : 0;
@@ -131,7 +131,7 @@
     plans(); payg(); extra(); vs();
     if (animate && !calm) $$(view === 'plans' ? '#plan-grid .plan, #payg' : '#vs-table').forEach(function (el, i) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'rise .5s ' + (i * 50) + 'ms cubic-bezier(.2,.8,.2,1) both'; });
   }
-  $$('[data-view]').forEach(function (b) { b.addEventListener('click', function () { view = b.dataset.view; try { history.replaceState(null, '', view === 'compare' ? '#compare' : location.pathname); } catch (e) {} render(true); }); });
+  $$('[data-view]').forEach(function (b) { b.addEventListener('click', function () { view = b.dataset.view; try { history.replaceState(null, '', (view === 'compare' ? '/compare' : '/pricing') + location.search); } catch (e) {} render(true); }); });
   $$('[data-mode]').forEach(function (b) { b.addEventListener('click', function () { mode = b.dataset.mode; render(true); }); });
   $$('[data-cur]').forEach(function (b) { b.addEventListener('click', function () { cur = b.dataset.cur; try { localStorage.setItem('dlv_currency', cur); } catch (e) {} render(true); }); });
   document.addEventListener('click', function (e) {
