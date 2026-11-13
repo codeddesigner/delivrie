@@ -59,8 +59,23 @@ ICON = {
   "download": '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
 }
 
-def page(path, title, desc, body, extra_script=""):
+ORG = {"@type": "Organization", "@id": "https://delivrie.io/#org", "name": "Delivrie", "legalName": "South Circle", "url": "https://delivrie.io",
+       "logo": "https://delivrie.io/assets/delivrie-icon.png", "email": "support@delivrie.io",
+       "address": {"@type": "PostalAddress", "addressLocality": "Lagos", "addressCountry": "NG"}}
+
+def ld(*items):
+    """JSON-LD for search engines (one @graph per page)."""
+    import json
+    return '<script type="application/ld+json">' + json.dumps({"@context": "https://schema.org", "@graph": list(items)}, ensure_ascii=False).replace("</", "<\\/") + "</script>"
+
+def crumbs(*pairs):
+    return {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": "https://delivrie.io" + u} for i, (n, u) in enumerate(pairs)]}
+
+def page(path, title, desc, body, extra_script="", jsonld=None, noindex=False, og_type="website"):
     canonical = "https://delivrie.io" + ("" if path == "/" else path)
+    if jsonld is None and path not in ("/", "/404"):
+        jsonld = [crumbs(("Home", "/"), (title, path))]
+    head_extra = (ld(*jsonld) if jsonld else "") + ('\n  <meta name="robots" content="noindex">' if noindex else "")
     doc = f"""<!doctype html>
 <html lang="en">
 <head>
@@ -69,7 +84,7 @@ def page(path, title, desc, body, extra_script=""):
   <title>{E(title)} · Delivrie</title>
   <meta name="description" content="{E(desc)}">
   <meta name="theme-color" content="#211f20">
-  <meta property="og:type" content="website"><meta property="og:site_name" content="Delivrie"><meta property="og:url" content="{canonical}">
+  <meta property="og:type" content="{og_type}"><meta property="og:site_name" content="Delivrie"><meta property="og:url" content="{canonical}">
   <meta property="og:title" content="{E(title)} · Delivrie"><meta property="og:description" content="{E(desc)}"><meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="{canonical}">
@@ -82,6 +97,7 @@ def page(path, title, desc, body, extra_script=""):
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <script>document.documentElement.classList.add("js")</script>
+  {head_extra}
 </head>
 <body>
 
@@ -173,7 +189,7 @@ def about():
       <p>We are a small team in Lagos, and we answer support ourselves.</p></div></div></section>"""
     body += f'<section class="section"><div class="wrap">{head2("How we work", "What we care about")}' + cards([("zap", "Fast by default", "We treat latency as a bug, from the API to the dashboard."), ("info", "Nothing hidden", "Every bounce, block and webhook attempt is visible, with the reason."), ("code", "Developers first", "Docs and errors written for the person debugging at 2am."), ("shield", "Earn the inbox", "We say no to spam so your email keeps landing.")]) + "</div></section>"
     body += CTA
-    return page("/about", "About", "Delivrie is email infrastructure for builders, made in Lagos by South Circle.", body)
+    return page("/about", "About", "Delivrie is an email API, SMTP relay and MCP server for developers and AI agents, built in Lagos by South Circle and priced in Naira and dollars.", body, jsonld=[ORG, crumbs(("Home", "/"), ("About", "/about"))])
 
 def customers():
     body = hero("Customers", "Built for the emails<br> that matter.", "Receipts, one-time passwords, shipping updates and launches. Here is what teams send with Delivrie.", [("Talk to sales", "/contact-sales", "b-secondary"), ("Start for free", "/signup", "b-primary")])
@@ -186,14 +202,14 @@ def customers():
         ("globe", "Agencies", "Separate teams for each client, each with its own domains, keys and billing.")], 3) + "</div></section>"
     body += """<section class="section"><div class="wrap"><div class="story-cta reveal"><div><span class="eyebrow"><i></i>Customer stories</span><h2 class="h2">Your story could be here</h2><p class="lede">We are featuring our first customers. If Delivrie made your email better, we would love to tell your story, with your approval on every word.</p></div><a class="b-primary" href="mailto:hello@delivrie.io?subject=Customer%20story">Share your story</a></div></div></section>"""
     body += CTA
-    return page("/customers", "Customers", "What teams send with Delivrie: receipts, OTPs, agent emails and broadcasts.", body)
+    return page("/customers", "Customers", "How teams use Delivrie to send receipts, OTPs, password resets, AI agent emails and newsletters from their own domain.", body)
 
 def careers():
     body = hero("Careers", "Help the internet<br> reach the inbox.", "We are a small team in Lagos building email infrastructure for developers and AI agents.", [("See open roles", "#roles", "b-primary")])
     body += f'<section class="section"><div class="wrap">{head2("How we work", "What working here is like")}' + cards([("globe", "Remote-friendly", "Based in Lagos, working with people wherever they do their best work."), ("info", "Written decisions", "Few meetings, clear docs and real focus time."), ("users", "Small team, real ownership", "You ship things customers use the same week.")], 3) + "</div></section>"
     body += """<section class="section" id="roles"><div class="wrap"><div class="story-cta reveal"><div><span class="eyebrow"><i></i>Open roles</span><h2 class="h2">No open roles right now</h2><p class="lede">We are not hiring for specific roles at the moment. If you would love to build email infrastructure, email jobs@delivrie.io and tell us what you would build.</p></div><a class="b-secondary" href="mailto:jobs@delivrie.io">Email jobs@delivrie.io</a></div></div></section>"""
     body += CTA
-    return page("/careers", "Careers", "Work on email infrastructure for developers and AI agents at Delivrie.", body)
+    return page("/careers", "Careers", "Join Delivrie in Lagos and work on email infrastructure for developers and AI agents: APIs, deliverability and MCP.", body)
 
 def brand():
     def asset(name, src, bg, files):
@@ -218,7 +234,7 @@ def changelog():
     items = "".join(f'<section class="cl-item reveal"><div class="cl-date">{E(d)}</div><div class="cl-body"><h2>{E(t)}</h2><div class="cl-tags">{"".join(f"<span>{E(x)}</span>" for x in tags)}</div><ul>{"".join(f"<li>{E(i)}</li>" for i in lis)}</ul></div></section>' for d, t, tags, lis in CHANGELOG)
     body = f"""<section class="s-hero"><div class="wrap reveal in">{eyebrow("Changelog")}<h1>What’s new in Delivrie</h1><div class="btn-row"><a class="b-secondary" href="/changelog.xml">RSS feed</a><a class="b-ghost" href="/docs/changelog">In the docs</a></div></div></section>
   <section class="section cl"><div class="wrap">{items}</div></section>"""
-    page("/changelog", "Changelog", "New features and fixes in Delivrie.", body)
+    page("/changelog", "Changelog", "Everything new in Delivrie: SMTP relay, MCP tools, pricing in Naira, inbox, automations and API updates, newest first.", body)
     rss = "".join(f"<item><title>{E(t)}</title><link>https://delivrie.io/changelog</link><guid isPermaLink=\"false\">{E(d)}-{E(t)}</guid><description>{E(' '.join(lis))}</description></item>" for d, t, tags, lis in CHANGELOG)
     open(os.path.join(ROOT, "changelog.xml"), "w").write(f'<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Delivrie changelog</title><link>https://delivrie.io/changelog</link><description>New features and fixes in Delivrie.</description>{rss}</channel></rss>')
 
@@ -230,7 +246,7 @@ def blog():
     body = f"""<section class="s-hero"><div class="wrap reveal in">{eyebrow("Blog")}<h1>Notes on email,<br> infrastructure and agents</h1><div class="cats">{"".join(f'<button class="{"on" if c == "All" else ""}" data-cat="{E(c)}">{E(c)}</button>' for c in cats)}</div></div></section>
   <section class="section blog"><div class="wrap">{feat}{grid}</div></section>
   {CTA}"""
-    page("/blog", "Blog", "Notes on email, infrastructure and agents from the Delivrie team.", body)
+    page("/blog", "Blog: email deliverability, DMARC and AI agents", "Guides and notes from the Delivrie team on email deliverability, DMARC, transactional email in Nigeria and letting AI agents send email safely.", body)
     for p in POSTS:
         content = ""
         for kind, text in p["body"]:
@@ -245,7 +261,13 @@ def blog():
     <h3 class="keep-h">Keep reading</h3><div class="grid2 posts">{more}</div>
   </div></article>
   {CTA}"""
-        page(f"/blog/{p['slug']}", p["title"], p["lede"], body)
+        from datetime import datetime
+        iso = datetime.strptime(p["date"], "%b %d, %Y").strftime("%Y-%m-%d")
+        url = f"https://delivrie.io/blog/{p['slug']}"
+        post_ld = {"@type": "BlogPosting", "headline": p["title"], "description": p["lede"], "datePublished": iso, "dateModified": iso,
+                   "author": {"@id": "https://delivrie.io/#org"}, "publisher": ORG, "image": "https://delivrie.io/assets/og-image.jpg",
+                   "mainEntityOfPage": url, "articleSection": p["cat"], "timeRequired": f"PT{p['mins']}M"}
+        page(f"/blog/{p['slug']}", p["title"], p["lede"], body, jsonld=[post_ld, crumbs(("Home", "/"), ("Blog", "/blog"), (p["title"], f"/blog/{p['slug']}"))], og_type="article")
 
 def status():
     comps = ["API", "Email delivery", "Webhooks", "Dashboard", "MCP server"]
@@ -255,7 +277,7 @@ def status():
     <div class="st-list">{rows}</div>
     <h2 class="h2 sm">Past incidents</h2><p class="dim">No incidents have been reported. If something looks wrong, email <a href="mailto:support@delivrie.io">support@delivrie.io</a>.</p>
   </div></section>"""
-    page("/status", "Status", "Live status of the Delivrie API, email delivery, webhooks, dashboard and MCP server.", body)
+    page("/status", "System status", "Live status of the Delivrie email API, email delivery, SMTP relay, webhooks, dashboard and MCP server.", body)
 
 def contact_sales():
     feats = [("zap", "Volume pricing", "Discounts from 1M emails a month, billed in Naira or dollars."), ("shield", "Security review", "Our DPA, security answers and a call with the team."), ("globe", "Dedicated IPs", "Warm-up plans and help with deliverability."), ("users", "Migration help", "We help you move templates, contacts and suppressions.")]
@@ -274,7 +296,7 @@ def contact_sales():
       <p class="dim small">By submitting you agree to our <a href="/privacy">Privacy Policy</a>. We reply within one business day.</p>
       <div class="cs-done" hidden><b>Thanks, we got it.</b><span>We will reply to your work email within one business day.</span></div>
     </form></div></section>"""
-    page("/contact-sales", "Contact sales", "Talk to the Delivrie team about volume pricing, dedicated IPs and security reviews.", body)
+    page("/contact-sales", "Contact sales", "Talk to Delivrie about high-volume email pricing in Naira or dollars, dedicated IPs, custom contracts and security reviews.", body)
 
 def support():
     feats = [("book", "Documentation", "Guides for sending, domains, webhooks, the API and the MCP server.", "/docs", "Read the docs"),
@@ -289,13 +311,13 @@ def support():
     body = hero("Support", "How can we help?", "Docs for most questions, and a person for the rest. Email support@delivrie.io and we reply within one business day.", [("Email support", "mailto:support@delivrie.io", "b-primary"), ("Read the docs", "/docs", "b-secondary")])
     body += f'<section class="section"><div class="wrap"><div class="grid4 reveal-stagger">{cards_html}</div></div></section>'
     body += f'<section class="section"><div class="wrap"><h2 style="margin:0 0 20px">Common questions</h2><div class="grid3">{faq_html}</div></div></section>'
-    page("/support", "Support", "Get help with Delivrie: documentation, email support, system status and security contacts.", body)
+    page("/support", "Support", "Get help with Delivrie: documentation, email support, system status and security contacts.", body, jsonld=[crumbs(("Home", "/"), ("Support", "/support")), {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}} for q, a in faq]}])
 
 def not_found():
     body = f"""<section class="nf"><div class="wrap reveal in"><span class="code">404</span><h1>This page bounced</h1><p class="lede">The link may be old or mistyped. Even our best deliverability can’t route this one.</p>
     <div class="btn-row"><a class="b-primary" href="/">Back to home</a><a class="b-secondary" href="/docs">Search docs</a></div>
     <div class="links"><a href="/pricing">Pricing</a><a href="/docs">Docs</a><a href="/status">Status</a><a href="mailto:support@delivrie.io">Contact support</a></div></div></section>"""
-    page("/404", "Page not found", "This page doesn’t exist.", body)
+    page("/404", "Page not found", "This page doesn’t exist.", body, noindex=True)
 
 def refresh_shell(fname):
     p = os.path.join(ROOT, fname); s = open(p).read()

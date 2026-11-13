@@ -3,7 +3,7 @@
 export const config = {
   matcher: [
     '/pricing', '/compare', '/vs/:path*', '/about', '/customers', '/careers', '/brand', '/changelog', '/blog', '/blog/:path*', '/status',
-    '/contact-sales', '/dpa', '/acceptable-use', '/cookies', '/subprocessors', '/security',
+    '/contact-sales', '/dpa', '/acceptable-use', '/cookies', '/subprocessors', '/security', '/sitemap.xml',
   ],
 };
 
@@ -25,8 +25,21 @@ async function offPages() {
   return cache.pages;
 }
 
+// The sitemap lists every page; switched-off pages are removed from it here.
+async function sitemap(url) {
+  const [res, pages] = await Promise.all([fetch(new URL('/sitemap.xml?raw=1', url)), offPages()]);
+  let xml = await res.text();
+  const off = Object.keys(pages).filter((p) => pages[p] === false);
+  if (off.length) xml = xml.replace(/  <url><loc>https:\/\/delivrie\.io([^<]*)<\/loc>.*?<\/url>\n/g, (m, p) => {
+    const path = p || '/', section = '/' + path.split('/')[1];
+    return off.includes(path) || off.includes(section) || ((path === '/compare' || path.startsWith('/vs/')) && off.includes('/pricing')) ? '' : m;
+  });
+  return new Response(xml, { headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'public, max-age=300' } });
+}
+
 export default async function middleware(request) {
   const url = new URL(request.url);
+  if (url.pathname === '/sitemap.xml') return url.searchParams.has('raw') ? new Response(null, { headers: { 'x-middleware-next': '1' } }) : sitemap(url);
   let path = url.pathname.replace(/\/+$/, '') || '/';
   if (path === '/compare' || path.startsWith('/vs/')) path = '/pricing'; // the Compare view is part of Pricing
   if (!ALWAYS_ON.has(path)) {

@@ -3,6 +3,30 @@
   "trailingSlash": false,
   "rewrites": [
     {
+      "source": "/compare",
+      "destination": "/compare.html"
+    },
+    {
+      "source": "/vs/:any*",
+      "destination": "/compare.html"
+    },
+    {
+      "source": "/docs",
+      "destination": "/docs-static/index.html"
+    },
+    {
+      "source": "/docs/api",
+      "destination": "/docs-static/api.html"
+    },
+    {
+      "source": "/docs/api/:slug(add-suppression|add-to-segment|cancel-broadcast|cancel-email|create-api-key|create-broadcast|create-contact|create-domain|create-template|create-webhook|delete-api-key|delete-contact|delete-domain|delete-suppression|list-api-keys|list-broadcasts|list-contacts|list-domains|list-emails|list-logs|list-suppressions|list-templates|list-webhooks|metrics|publish-template|replay-delivery|retrieve-contact|retrieve-domain|retrieve-email|retrieve-log|send-batch|send-broadcast|send-email|send-event|test-webhook|update-contact|update-domain|update-email|verify-domain|webhook-events)",
+      "destination": "/docs-static/api/:slug.html"
+    },
+    {
+      "source": "/docs/:slug(api-keys|broadcasts|contacts|cors|deliverability|dmarc|domain-not-verifying|domains|email-status|errors|getting-started|limits|mcp|send-email|smtp|suppressions|templates|test-mode|webhooks)",
+      "destination": "/docs-static/:slug.html"
+    },
+    {
       "source": "/api/billing/:path*",
       "destination": "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/billing/:path*"
     },
@@ -36,18 +60,6 @@
     },
     {
       "source": "/pricing",
-      "destination": "/pricing.html"
-    },
-    {
-      "source": "/vs/brevo",
-      "destination": "/pricing.html"
-    },
-    {
-      "source": "/vs/resend",
-      "destination": "/pricing.html"
-    },
-    {
-      "source": "/compare",
       "destination": "/pricing.html"
     },
     {
