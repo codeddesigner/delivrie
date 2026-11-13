@@ -53,73 +53,36 @@
   <section class="p-head">
     <div class="wrap reveal in">
       <span class="eyebrow"><i></i>Pricing</span>
-      <h1>Half the price.<br> All of the platform.</h1>
-      <p>Every plan gets the same API, logs and MCP server. Pay monthly, save with yearly,<br> or skip the subscription and pay only for what you send.</p>
+      <h1>Simple pricing.<br> Pay in Naira or dollars.</h1>
+      <p>6,000 free emails every month. API, SMTP and MCP on every plan.</p>
+      <div class="p-view seg-l" role="tablist" aria-label="View">
+        <button role="tab" data-view="plans" class="on">Plans</button>
+        <button role="tab" data-view="compare">Compare <span class="vs-logos" aria-hidden="true"><img src="/assets/compare/resend.svg" alt="" onerror="this.remove()"><img src="/assets/compare/brevo.svg" alt="" onerror="this.remove()"></span><span class="dim">vs Resend &amp; Brevo</span></button>
+      </div>
       <div class="p-toggles">
-        <div class="seg-l" role="group" aria-label="Billing"><button data-mode="monthly" class="on">Monthly</button><button data-mode="yearly">Yearly <span class="save">2 months free</span></button><button data-mode="payg">Pay as you go</button></div>
+        <div class="seg-l" role="group" aria-label="Billing" id="billing"><button data-mode="monthly" class="on">Monthly</button><button data-mode="yearly">Yearly <span class="save">2 months free</span></button><button data-mode="payg">Pay as you go</button></div>
         <div class="seg-l" role="group" aria-label="Currency"><button data-cur="NGN">₦ NGN</button><button data-cur="USD">$ USD</button></div>
       </div>
     </div>
   </section>
 
-  <section class="p-plans" id="plans"><div class="wrap"><div class="plans4" id="plan-grid"></div><p class="p-note" id="plan-note"></p></div></section>
+  <div id="v-plans">
+    <section class="p-plans" id="plans"><div class="wrap"><div class="plans4" id="plan-grid"></div><p class="p-note" id="plan-note"></p></div></section>
+    <section class="p-payg" id="payg-wrap"><div class="wrap"><div class="payg-card" id="payg"></div></div></section>
+    <section class="p-extra"><div class="wrap"><p id="mkt-line"></p></div></section>
+  </div>
 
-  <section class="p-payg"><div class="wrap"><div class="payg-card reveal" id="payg"></div></div></section>
-
-  <section class="section" id="calculator">
+  <section class="p-compare" id="v-compare" hidden>
     <div class="wrap">
-      <div class="section-head reveal"><div><span class="eyebrow"><i></i>Estimate</span><h2>What will I pay?</h2></div><div class="grow"></div><p class="lede">Drag to your expected monthly volume. We recommend the cheapest option, including overage.</p></div>
-      <div class="calc reveal">
-        <div class="calc-l">
-          <div class="row-b"><span class="dim">Emails per month</span><output id="calc-out">50,000</output></div>
-          <input type="range" id="calc" min="0" max="1000" value="566" aria-label="Emails per month">
-          <div class="ticks"><span>1k</span><span>10k</span><span>50k</span><span>100k</span><span>500k</span><span>1M+</span></div>
-          <div class="presets"><span class="dim">Presets</span><button data-v="2000">Side project · 2k</button><button data-v="20000">Startup · 20k</button><button data-v="50000">Growth · 50k</button><button data-v="150000">Scale · 150k</button></div>
-        </div>
-        <div class="calc-r"><div class="dim mono-h">Your estimate</div><div id="calc-opts"></div><p class="dim calc-foot" id="calc-foot"></p></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="marketing">
-    <div class="wrap">
-      <div class="section-head reveal"><div><span class="eyebrow"><i></i>Marketing</span><h2>Broadcasts and audiences</h2></div><div class="grow"></div><p class="lede">Add marketing to any plan. Priced by contacts, with unlimited broadcast sends to them.</p></div>
-      <div class="grid3 reveal-stagger" id="mkt"></div>
-    </div>
-  </section>
-
-  <section class="section" id="vs">
-    <div class="wrap">
-      <div class="section-head reveal"><div><span class="eyebrow"><i></i>Alternatives</span><h2>Delivrie vs Resend vs Brevo</h2></div><div class="grow"></div><p class="lede">What you pay at the same volume, and what you get for it. Switch between dollars and Naira at the top of the page.</p></div>
-      <div class="cmp-wrap reveal"><table class="cmp vs" id="vs-table"></table></div>
-      <div class="vs-notes reveal">
-        <div><b>Where Delivrie wins</b><p>Lower price at 20,000 and 100,000 emails a month, twice Resend’s free allowance, half the overage rate, and you pay in Naira through Paystack instead of a dollar card.</p></div>
-        <div><b>Where others are ahead</b><p>Resend keeps email content for 30 days (we keep it 1 to 7) and is slightly cheaper around 50,000 emails a month. Brevo adds SMS, WhatsApp and a CRM, and its free plan allows 300 emails a day.</p></div>
-      </div>
+      <div class="cmp-wrap"><table class="cmp vs" id="vs-table"></table></div>
       <p class="p-note" id="vs-note"></p>
-    </div>
-  </section>
-
-  <section class="section" id="compare">
-    <div class="wrap">
-      <div class="section-head reveal"><div><span class="eyebrow"><i></i>Compare</span><h2>Compare plans</h2></div><div class="grow"></div><p class="lede">Every limit, in one place. Enterprise limits are set with you.</p></div>
-      <div class="cmp-wrap reveal"><table class="cmp" id="cmp"></table></div>
     </div>
   </section>
 
   <section class="section" id="faq">
     <div class="wrap faq-wrap">
-      <div class="reveal"><span class="eyebrow"><i></i>FAQ</span><h2 class="faq-h">Questions, answered</h2><p class="lede">Can’t find it here? Email <a href="mailto:billing@delivrie.io">billing@delivrie.io</a> and a human will reply.</p></div>
-      <div class="faq reveal" id="faq-list"></div>
-    </div>
-  </section>
-
-  <section class="cta">
-    <div class="wrap reveal">
-      <img class="cta-mark" src="assets/mark.svg" width="72" height="51" alt="">
-      <h2>Email for builders.<br> Ready when you are.</h2>
-      <p>6,000 free emails every month. No card required.</p>
-      <div class="btn-row"><a class="b-primary" href="/signup">Start for free</a><a class="b-secondary" href="/contact-sales">Talk to sales</a></div>
+      <div><span class="eyebrow"><i></i>FAQ</span><h2 class="faq-h">Questions</h2><p class="lede">Anything else? Email <a href="mailto:billing@delivrie.io">billing@delivrie.io</a>.</p></div>
+      <div class="faq" id="faq-list"></div>
     </div>
   </section>
 </main>
