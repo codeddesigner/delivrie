@@ -473,6 +473,15 @@ async function handle(req: Request, path: string): Promise<Response> {
     if (!secret || req.headers.get("x-cron-secret") !== secret) throw new HttpError(401, "Unauthorized");
     return json(await overageRun());
   }
+  if (path === "/cron/health" && req.method === "POST") {
+    // For delivrie.io/status: can we reach Paystack with our key? Says test or live mode, never the key.
+    const secret = await setting("cron_secret");
+    if (!secret || req.headers.get("x-cron-secret") !== secret) throw new HttpError(401, "Unauthorized");
+    if (!PSK) return json({ ok: false, configured: false });
+    const t0 = Date.now();
+    try { await ps("GET", "/bank?currency=NGN&perPage=1"); return json({ ok: true, configured: true, mode: PSK.startsWith("sk_live_") ? "live" : "test", latency_ms: Date.now() - t0 }); }
+    catch (e) { return json({ ok: false, configured: true, mode: PSK.startsWith("sk_live_") ? "live" : "test", error: (e as Error).message.slice(0, 200) }); }
+  }
   if (path === "/cron/watch" && req.method === "POST") {
     const secret = await setting("cron_secret");
     if (!secret || req.headers.get("x-cron-secret") !== secret) throw new HttpError(401, "Unauthorized");

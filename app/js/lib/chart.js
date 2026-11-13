@@ -38,7 +38,4 @@ export function lineChart(host, { labels, series, height = 220, fmt = num, area 
 function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
 function short(v) { return v >= 1e6 ? (v / 1e6).toFixed(v % 1e6 ? 1 : 0) + "M" : v >= 1e3 ? (v / 1e3).toFixed(v % 1e3 ? 1 : 0) + "k" : String(Math.round(v * 100) / 100); }
 
-export function dayLabels(since, days) {
-  return Array.from({ length: days }, (_, i) => { const d = new Date(since); d.setDate(d.getDate() + i); return d; });
-}
 export const dayKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };

@@ -271,14 +271,16 @@ def blog():
         page(f"/blog/{p['slug']}", p["title"], p["lede"], body, jsonld=[post_ld, crumbs(("Home", "/"), ("Blog", "/blog"), (p["title"], f"/blog/{p['slug']}"))], og_type="article")
 
 def status():
-    comps = ["API", "Email delivery", "Webhooks", "Dashboard", "MCP server"]
-    rows = "".join(f'<div class="st-row" data-comp="{E(c)}"><b>{E(c)}</b><span class="grow"></span><span class="st-pill" data-state>Checking…</span></div>' for c in comps)
-    body = f"""<section class="s-hero"><div class="wrap narrow reveal in"><h1>System status</h1>
+    body = """<section class="s-hero st-hero"><div class="wrap st-wrap reveal in"><span class="eyebrow"><i></i>Status</span><h1>System status</h1>
+    <p class="lede">Every part of Delivrie is checked automatically every five minutes, around the clock. This page updates itself.</p>
     <div class="st-banner" id="st-banner"><i></i><div><b>Checking systems…</b><span id="st-time" class="dim"></span></div></div>
-    <div class="st-list">{rows}</div>
-    <h2 class="h2 sm">Past incidents</h2><p class="dim">No incidents have been reported. If something looks wrong, email <a href="mailto:support@delivrie.io">support@delivrie.io</a>.</p>
+    <div class="st-stats" id="st-stats"></div>
+    <div class="st-head"><h2 class="h2 sm">Components</h2><span class="st-legend"><span><i class="b ok"></i>Operational</span><span><i class="b degraded"></i>Degraded</span><span><i class="b down"></i>Outage</span><span><i class="b none"></i>No data</span></span></div>
+    <div class="st-list" id="st-list"><div class="st-row"><span class="dim">Loading…</span></div></div>
+    <h2 class="h2 sm">Incidents</h2><div class="st-inc" id="st-inc"><p class="dim">Loading…</p></div>
+    <p class="dim st-foot">Something not working for you? Email <a href="mailto:support@delivrie.io">support@delivrie.io</a> or use the chat in your dashboard. Status data: <a href="/api/public/status">/api/public/status</a>.</p>
   </div></section>"""
-    page("/status", "System status", "Live status of the Delivrie email API, email delivery, SMTP relay, webhooks, dashboard and MCP server.", body)
+    page("/status", "System status", "Live status of every part of Delivrie: email API, sending, delivery, SMTP relay, webhooks, scheduled sends, MCP server, dashboard and billing, with 90 days of uptime.", body)
 
 def contact_sales():
     feats = [("zap", "Volume pricing", "Discounts from 1M emails a month, billed in Naira or dollars."), ("shield", "Security review", "Our DPA, security answers and a call with the team."), ("globe", "Dedicated IPs", "Warm-up plans and help with deliverability."), ("users", "Migration help", "We help you move templates, contacts and suppressions.")]

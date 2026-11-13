@@ -126,13 +126,6 @@ export function renderVars(str, vars = {}, definitions = []) {
     .replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_m, n) => esc(get(n)));
 }
 
-/** Variable names used in a string (both {{x}} and {{{x}}}). */
-export function usedVars(str) {
-  const out = new Set();
-  String(str ?? "").replace(/\{\{\{?\s*([a-zA-Z_][a-zA-Z0-9_]*)/g, (_m, n) => { out.add(n); return ""; });
-  return [...out];
-}
-
 export function blocksToText(doc) {
   return (doc?.blocks || []).map((b) => {
     const strip = (h) => String(h ?? "").replace(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gi, "$2 ($1)").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");

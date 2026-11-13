@@ -271,7 +271,6 @@ function siteEditor(el, cfg, save) {
       <div class="card" style="overflow:hidden;height:calc(100vh - 230px);min-height:520px"><iframe data-frame title="Page editor" style="width:100%;height:100%;border:0;background:#fff"></iframe></div>
       <div class="card card-pad" data-side style="position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;font-size:13px"></div></div>`;
   const frame = el.querySelector("[data-frame]"), side = el.querySelector("[data-side]");
-  const pageEdits = () => ({ ...(cfg.edits[path] || {}), ...pending });
   const count = () => { const n = Object.keys(pending).length; el.querySelector("[data-count]").textContent = n ? `${n} unsaved change${n === 1 ? "" : "s"}` : ""; };
   const sideIdle = () => {
     const saved = Object.entries(cfg.edits[path] || {});

@@ -8,6 +8,7 @@ import { oauthAuthorize, oauthGrantFromToken, oauthPublic, scopeAllows } from ".
 import { handleMcp } from "./mcp.ts";
 import { registerExtra } from "./extra.ts";
 import { registerSupport } from "./support.ts";
+import { publicStatus, runStatusChecks } from "./status.ts";
 import { SES_REGIONS } from "./aws.ts";
 
 interface Ctx { teamId: string; userId: string | null; apiKey: Any | null; permission: "full" | "sending"; via: "api" | "dashboard"; userAgent: string; email?: string; scopes?: string[] }
@@ -732,7 +733,11 @@ async function askDelivrie(question: string) {
 
 // ---------------------------------------------------------------- public endpoints
 async function publicRoutes(req: Request, path: string, url: URL): Promise<Response | null> {
-  if (path === "/public/status") return json({ status: "operational", sending: hasAws() });
+  if (path === "/public/status") {
+    // Live component status, 90 days of uptime and incidents for delivrie.io/status (checked every 5 minutes).
+    try { return new Response(JSON.stringify(await publicStatus()), { headers: { ...CORS, "content-type": "application/json", "cache-control": "public, max-age=30, s-maxage=30" } }); }
+    catch (e) { console.error("status", e); return json({ status: "operational", sending: hasAws(), components: [], incidents: [] }); }
+  }
   // ChatGPT plugin domain verification: the token from the OpenAI portal, stored in system_settings, as plain text.
   if (path === "/public/site") {
     // Website settings from the admin area. Cached briefly at the edge; pages poll it on load.
@@ -821,6 +826,10 @@ Deno.serve(async (req) => {
       }
       if (msg.Type === "Notification") await handleSesEvent(JSON.parse(msg.Message));
       return json({ ok: true });
+    }
+    if (path === "/status/run" && req.method === "POST") {
+      if (req.headers.get("x-cron-secret") !== await setting("cron_secret")) return json({ error: "forbidden" }, 403);
+      return json(await runStatusChecks());
     }
     if (path === "/cron" && req.method === "POST") {
       if (req.headers.get("x-cron-secret") !== await setting("cron_secret")) return json({ error: "forbidden" }, 403);

@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>System status · Delivrie</title>
-  <meta name="description" content="Live status of the Delivrie email API, email delivery, SMTP relay, webhooks, dashboard and MCP server.">
+  <meta name="description" content="Live status of every part of Delivrie: email API, sending, delivery, SMTP relay, webhooks, scheduled sends, MCP server, dashboard and billing, with 90 days of uptime.">
   <meta name="theme-color" content="#211f20">
   <meta property="og:type" content="website"><meta property="og:site_name" content="Delivrie"><meta property="og:url" content="https://delivrie.io/status">
-  <meta property="og:title" content="System status · Delivrie"><meta property="og:description" content="Live status of the Delivrie email API, email delivery, SMTP relay, webhooks, dashboard and MCP server."><meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
+  <meta property="og:title" content="System status · Delivrie"><meta property="og:description" content="Live status of every part of Delivrie: email API, sending, delivery, SMTP relay, webhooks, scheduled sends, MCP server, dashboard and billing, with 90 days of uptime."><meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://delivrie.io/status">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -41,10 +41,14 @@
 </header>
 
 <main class="site">
-<section class="s-hero"><div class="wrap narrow reveal in"><h1>System status</h1>
+<section class="s-hero st-hero"><div class="wrap st-wrap reveal in"><span class="eyebrow"><i></i>Status</span><h1>System status</h1>
+    <p class="lede">Every part of Delivrie is checked automatically every five minutes, around the clock. This page updates itself.</p>
     <div class="st-banner" id="st-banner"><i></i><div><b>Checking systems…</b><span id="st-time" class="dim"></span></div></div>
-    <div class="st-list"><div class="st-row" data-comp="API"><b>API</b><span class="grow"></span><span class="st-pill" data-state>Checking…</span></div><div class="st-row" data-comp="Email delivery"><b>Email delivery</b><span class="grow"></span><span class="st-pill" data-state>Checking…</span></div><div class="st-row" data-comp="Webhooks"><b>Webhooks</b><span class="grow"></span><span class="st-pill" data-state>Checking…</span></div><div class="st-row" data-comp="Dashboard"><b>Dashboard</b><span class="grow"></span><span class="st-pill" data-state>Checking…</span></div><div class="st-row" data-comp="MCP server"><b>MCP server</b><span class="grow"></span><span class="st-pill" data-state>Checking…</span></div></div>
-    <h2 class="h2 sm">Past incidents</h2><p class="dim">No incidents have been reported. If something looks wrong, email <a href="mailto:support@delivrie.io">support@delivrie.io</a>.</p>
+    <div class="st-stats" id="st-stats"></div>
+    <div class="st-head"><h2 class="h2 sm">Components</h2><span class="st-legend"><span><i class="b ok"></i>Operational</span><span><i class="b degraded"></i>Degraded</span><span><i class="b down"></i>Outage</span><span><i class="b none"></i>No data</span></span></div>
+    <div class="st-list" id="st-list"><div class="st-row"><span class="dim">Loading…</span></div></div>
+    <h2 class="h2 sm">Incidents</h2><div class="st-inc" id="st-inc"><p class="dim">Loading…</p></div>
+    <p class="dim st-foot">Something not working for you? Email <a href="mailto:support@delivrie.io">support@delivrie.io</a> or use the chat in your dashboard. Status data: <a href="/api/public/status">/api/public/status</a>.</p>
   </div></section>
 </main>
 
