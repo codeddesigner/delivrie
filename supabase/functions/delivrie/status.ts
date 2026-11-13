@@ -104,7 +104,8 @@ const CHECKS: Record<string, () => Promise<Result>> = {
     return { state: ms > 4000 ? "degraded" : "operational", latency_ms: ms };
   },
   async billing() {
-    const [r, ms] = await timed(() => fetch(`${SUPABASE_URL}/functions/v1/billing/cron/health`, { method: "POST", headers: { "x-cron-secret": String(await setting("cron_secret")) } }));
+    const secret = String(await setting("cron_secret"));
+    const [r, ms] = await timed(() => fetch(`${SUPABASE_URL}/functions/v1/billing/cron/health`, { method: "POST", headers: { "x-cron-secret": secret } }));
     const j: Any = await r.json().catch(() => ({}));
     if (!j.configured) return { state: "degraded", latency_ms: ms, detail: "Payments aren't available right now" };
     return j.ok ? { state: "operational", latency_ms: ms } : { state: "degraded", latency_ms: ms, detail: "Checkout may be unavailable" };
