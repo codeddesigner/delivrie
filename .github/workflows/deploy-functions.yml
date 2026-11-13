@@ -29,6 +29,6 @@ jobs:
           version: latest
       # Both functions check their own credentials (API keys, user sessions, Paystack signatures),
       # so Supabase's JWT gate stays off.
-      - run: supabase functions deploy delivrie --project-ref "$PROJECT_REF" --no-verify-jwt
-      - run: supabase functions deploy billing --project-ref "$PROJECT_REF" --no-verify-jwt
-      - run: supabase functions deploy automations --project-ref "$PROJECT_REF" --no-verify-jwt
+      - run: supabase functions deploy delivrie --project-ref "$PROJECT_REF" --no-verify-jwt --yes
+      - run: supabase functions deploy billing --project-ref "$PROJECT_REF" --no-verify-jwt --yes
+      - run: supabase functions deploy automations --project-ref "$PROJECT_REF" --no-verify-jwt --yes
