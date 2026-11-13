@@ -112,6 +112,40 @@
       rows.map(function (r) { return r.length === 1 ? '<tr class="cg"><td colspan="5">' + r[0] + '</td></tr>' : '<tr>' + r.map(function (c, i) { return i ? '<td>' + c + '</td>' : '<th scope="row">' + c + '</th>'; }).join('') + '</tr>'; }).join('') + '</tbody>';
   }
 
+  // Delivrie vs Resend vs Brevo. Competitor prices are their published US-dollar prices (checked 13 Nov 2026);
+  // in Naira mode they are converted at the official NFEM rate below. Delivrie Naira prices are our own.
+  var FX = 1350, FX_DATE = '13 November 2026';
+  function vs() {
+    var p = P[cur], Y = check, N = dash;
+    var usd = function (v) { return cur === 'NGN' ? '₦' + (Math.round(v * FX / 100) * 100).toLocaleString('en-US') : '$' + v.toLocaleString('en-US', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); };
+    var cell = function (price, plan) { return '<b>' + price + '</b><span class="vs-sub">' + plan + '</span>'; };
+    var rows = [
+      ['Monthly cost at the same volume'],
+      ['3,000 emails / month', cell(m(0), 'Free'), cell(usd(0), 'Free'), cell(usd(0), 'Free, 300 / day')],
+      ['20,000 emails / month', cell(m(p.pro), 'Pro'), cell(usd(20), 'Pro'), cell(usd(32), 'Starter')],
+      ['100,000 emails / month', cell(m(p.scale), 'Scale'), cell(usd(65), 'Pro + 50,000 extra'), cell(usd(82), 'Starter')],
+      ['Plans and limits'],
+      ['Free emails', '6,000 / month', '3,000 / month', '300 / day'],
+      ['Free daily limit', '200', '100', '300'],
+      ['Extra emails, per 1,000', m(p.scaleOver, true) + ' to ' + m(p.proOver, true), usd(0.9), 'Move up a tier'],
+      ['Pay in Naira', Y + ' Paystack', N + ' Dollar card', N + ' Foreign currency'],
+      ['Email content kept', '1 to 7 days', '30 days', 'Not published'],
+      ['Dedicated IP', 'On request (Scale)', usd(30) + ' / month add-on', 'Professional plan and up'],
+      ['Features'],
+      ['Transactional email API', Y, Y, Y],
+      ['SMTP relay', N, Y, Y],
+      ['Marketing broadcasts', Y + ' Free up to 1,000 contacts', Y, Y],
+      ['Shared inbox for replies', Y, Y, Y],
+      ['MCP server for AI agents', Y + ' 64 tools, OAuth', Y, Y],
+      ['SMS & WhatsApp', N, N, Y]
+    ];
+    $('#vs-table').innerHTML = '<thead><tr><th></th><th class="us">Delivrie</th><th>Resend</th><th>Brevo</th></tr></thead><tbody>' +
+      rows.map(function (r) { return r.length === 1 ? '<tr class="cg"><td colspan="4">' + r[0] + '</td></tr>' : '<tr>' + r.map(function (c, i) { return i ? '<td' + (i === 1 ? ' class="us"' : '') + '>' + c + '</td>' : '<th scope="row">' + c + '</th>'; }).join('') + '</tr>'; }).join('') + '</tbody>';
+    $('#vs-note').textContent = 'Resend and Brevo prices are from their websites on ' + FX_DATE + ' and can change. ' +
+      (cur === 'NGN' ? 'Their dollar prices are shown in Naira at ₦' + FX.toLocaleString('en-US') + ' to $1 (official rate); dollar cards often cost more. ' : '') +
+      'Brevo prices are for its Starter marketing plan, billed monthly. Each column shows the cheapest plan that covers the volume.';
+  }
+
   var FAQ = [
     ['What counts as an email?', 'Each recipient is one email. Sending one message to a To, a CC and a BCC address counts as three. Bounced emails count; emails blocked by your suppression list do not.'],
     ['How do yearly plans work?', 'You pay for ten months and get twelve. Yearly plans are billed upfront and renew each year. Overage, if any, is still billed at the end of each month.'],
@@ -129,7 +163,7 @@
   function render(animate) {
     $$('[data-mode]').forEach(function (b) { b.classList.toggle('on', b.dataset.mode === mode); });
     $$('[data-cur]').forEach(function (b) { b.classList.toggle('on', b.dataset.cur === cur); });
-    plans(); payg(); calc(); marketing(); compare();
+    plans(); payg(); calc(); marketing(); vs(); compare();
     if (animate && !calm) $$('#plan-grid .plan, #payg').forEach(function (el, i) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'rise .5s ' + (i * 50) + 'ms cubic-bezier(.2,.8,.2,1) both'; });
   }
   $$('[data-mode]').forEach(function (b) { b.addEventListener('click', function () { mode = b.dataset.mode; render(true); if (mode === 'payg') $('#payg').scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'center' }); }); });

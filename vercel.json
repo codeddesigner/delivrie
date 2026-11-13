@@ -100,5 +100,22 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/compare",
+      "destination": "/pricing#vs",
+      "permanent": false
+    },
+    {
+      "source": "/vs/resend",
+      "destination": "/pricing#vs",
+      "permanent": false
+    },
+    {
+      "source": "/vs/brevo",
+      "destination": "/pricing#vs",
+      "permanent": false
+    }
   ]
 }
