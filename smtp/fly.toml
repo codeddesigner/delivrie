@@ -1,0 +1,45 @@
+# Delivrie SMTP relay on Fly.io. Deployed by .github/workflows/deploy-smtp.yml.
+# Fly terminates TLS on 465 and 2465 (certificate for smtp.delivrie.io via `fly certs add`)
+# and passes the client IP to the app with the PROXY protocol.
+app = "delivrie-smtp"
+primary_region = "lhr" # London: close to Lagos and to the Delivrie API in eu-west-1
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "2525"
+  SMTP_HOSTNAME = "smtp.delivrie.io"
+  DELIVRIE_API = "https://hnjejflinvaoxbduxeiu.supabase.co/functions/v1/delivrie"
+
+[[services]]
+  internal_port = 2525
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    port = 465
+    handlers = ["tls", "proxy_proto"]
+    proxy_proto_options = { version = "v1" }
+
+  # Same service on another port, for hosts that block 465 outbound.
+  [[services.ports]]
+    port = 2465
+    handlers = ["tls", "proxy_proto"]
+    proxy_proto_options = { version = "v1" }
+
+  [services.concurrency]
+    type = "connections"
+    soft_limit = 200
+    hard_limit = 500
+
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

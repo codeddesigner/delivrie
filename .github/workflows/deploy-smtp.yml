@@ -1,0 +1,64 @@
+# Tests and deploys the SMTP relay (smtp/) to Fly.io whenever it changes on main.
+# Needs one repository secret: FLY_API_TOKEN (an organization token from fly.io/dashboard → Tokens).
+# The first run also creates the Fly app, its IP addresses and the smtp.delivrie.io certificate.
+name: Deploy SMTP relay
+
+on:
+  push:
+    branches: [main]
+    paths: ["smtp/**", ".github/workflows/deploy-smtp.yml"]
+  workflow_dispatch:
+
+concurrency: smtp-relay
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_ORG: ${{ vars.FLY_ORG || 'personal' }}
+      APP: delivrie-smtp
+      HOSTNAME: smtp.delivrie.io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test
+        run: node smtp/test.mjs
+      - name: Check for Fly token
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::Add the FLY_API_TOKEN repository secret to deploy the SMTP relay."
+            exit 1
+          fi
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Create the app (first run only)
+        working-directory: smtp
+        run: flyctl status --app "$APP" >/dev/null 2>&1 || flyctl apps create "$APP" --org "$FLY_ORG"
+      - name: Deploy
+        working-directory: smtp
+        run: flyctl deploy --remote-only --ha=false --app "$APP"
+      - name: IP addresses (first run only)
+        working-directory: smtp
+        run: |
+          # SMTP is plain TCP, so it needs a dedicated IPv4 (shared IPv4 only serves HTTP).
+          flyctl ips list --app "$APP" --json | jq -e '.[] | select(.Type=="v4")' >/dev/null || flyctl ips allocate-v4 --yes --app "$APP"
+          flyctl ips list --app "$APP" --json | jq -e '.[] | select(.Type=="v6")' >/dev/null || flyctl ips allocate-v6 --app "$APP"
+      - name: Certificate (first run only)
+        working-directory: smtp
+        run: flyctl certs show "$HOSTNAME" --app "$APP" >/dev/null 2>&1 || flyctl certs add "$HOSTNAME" --app "$APP"
+      - name: Summary
+        working-directory: smtp
+        run: |
+          {
+            echo "## SMTP relay"
+            echo "Point these DNS records at Fly (only needed once):"
+            echo '```'
+            flyctl ips list --app "$APP" | grep -E 'v4|v6' | awk -v h="$HOSTNAME" '$1=="v4"{print "A     " h "  " $2} $1=="v6"{print "AAAA  " h "  " $2}'
+            echo '```'
+            echo "Certificate status:"
+            echo '```'
+            flyctl certs show "$HOSTNAME" --app "$APP" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

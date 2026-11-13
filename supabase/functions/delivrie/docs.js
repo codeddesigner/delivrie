@@ -57,7 +57,18 @@ Failed deliveries are retried with backoff for up to 72 hours. You can replay an
   { id: "contacts", title: "Contacts, segments and topics", body: `Contacts belong to your team and can be added by hand, imported from CSV or created with POST /contacts. Properties store custom data like plan or city. Segments group contacts for broadcasts. Topics power the hosted unsubscribe page so people can opt out of one kind of email without leaving entirely.` },
   { id: "mcp", title: "Can agents send through MCP?", body: `Yes. Delivrie runs a remote MCP server at https://delivrie.io/api/mcp with 64 tools: sending, the Inbox, automations and events, domains, contacts, segments, broadcasts, templates, webhooks, suppressions, metrics and logs. Add it to Claude Code with: claude mcp add --transport http delivrie https://delivrie.io/api/mcp. A Delivrie page opens where you pick the team and approve the scopes (send, read, manage); the app then shows under Settings → Connected apps, where you can revoke it. Clients without OAuth can send an API key as Authorization: Bearer dlv_your_key.` },
   { id: "cors", title: "How do I fix CORS errors?", body: `Never call the Delivrie API directly from a browser: it would expose your API key to anyone who opens the page. Call it from your server, a serverless function or an edge function, and keep the key in an environment variable.` },
-  { id: "smtp", title: "SMTP", body: `Delivrie is API-first. To send from software that only speaks SMTP, use Amazon SES SMTP credentials for the same AWS account behind Delivrie, or call the REST API from a small relay. Native Delivrie SMTP is on the roadmap.` },
+  { id: "smtp", title: "SMTP", body: `Send through Delivrie from anything that speaks SMTP: WordPress, Laravel, Django, Rails, Ghost, Supabase Auth, Nodemailer and most other frameworks and plugins.
+Host: smtp.delivrie.io
+Port: 465 (SSL/TLS). Use 2465 if your host blocks 465.
+Username: delivrie
+Password: a Delivrie API key (dlv_…). A sending-only key is enough.
+Encryption: SSL/TLS (sometimes called "implicit TLS" or "SMTPS"). STARTTLS on 587 is not supported.
+
+Mail sent over SMTP goes through the same pipeline as POST /emails: the From address must be on a verified domain, your plan's limits apply, and every message appears in Emails with its events and webhooks. To, Cc and Bcc come from the message and the SMTP envelope, attachments are kept (up to 40 MB), and custom X- headers and List-Unsubscribe are passed through.
+
+Add an X-Delivrie-Tags header to tag a message, for example X-Delivrie-Tags: source=wordpress, order. Each message is sent once even if your app retries, based on its Message-ID.
+
+If the relay replies 535, the API key is wrong or was deleted. 550 means the API rejected the message (for example an unverified From domain) and the reply says why. 452 means a sending limit was reached, so your app should retry later. After five failed logins from one address, logins from that address are blocked for 15 minutes.` },
   { id: "limits", title: "Plans and limits", body: `Free includes 6,000 emails a month with a limit of 200 a day, 1 custom domain and 1 webhook endpoint. Pro includes 20,000 emails a month, 10 domains and 10 webhooks with no daily limit. Scale includes 100,000 emails a month and 1,000 domains.
 On Pro and Scale, emails over the allowance keep sending and are billed per 1,000 at the end of the month. Set a spending cap in Billing to stop sending instead; the API then returns 429 spending_cap_reached.
 On Free, sending pauses at the limit with 429 daily_quota_exceeded or monthly_quota_exceeded. Pay-as-you-go credits keep you sending: one credit is one email, credits never expire, and they are used after the free allowance runs out.` },
