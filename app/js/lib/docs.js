@@ -59,10 +59,10 @@ Failed deliveries are retried with backoff for up to 72 hours. You can replay an
   { id: "cors", title: "How do I fix CORS errors?", body: `Never call the Delivrie API directly from a browser: it would expose your API key to anyone who opens the page. Call it from your server, a serverless function or an edge function, and keep the key in an environment variable.` },
   { id: "smtp", title: "SMTP", body: `Send through Delivrie from anything that speaks SMTP: WordPress, Laravel, Django, Rails, Ghost, Supabase Auth, Nodemailer and most other frameworks and plugins.
 Host: smtp.delivrie.io
-Port: 465 (SSL/TLS). Use 2465 if your host blocks 465.
+Port: 587 with STARTTLS, or 465 with SSL/TLS. Both work; use whichever your tool offers. If your host blocks them, use 2587 (STARTTLS) or 2465 (SSL/TLS).
 Username: delivrie
 Password: a Delivrie API key (dlv_…). A sending-only key is enough.
-Encryption: SSL/TLS (sometimes called "implicit TLS" or "SMTPS"). STARTTLS on 587 is not supported.
+Encryption: on 587 choose "STARTTLS" (sometimes called "TLS"); on 465 choose "SSL/TLS" (sometimes called "SSL" or "SMTPS"). Unencrypted connections can't log in.
 
 Mail sent over SMTP goes through the same pipeline as POST /emails: the From address must be on a verified domain, your plan's limits apply, and every message appears in Emails with its events and webhooks. To, Cc and Bcc come from the message and the SMTP envelope, attachments are kept (up to 40 MB), and custom X- headers and List-Unsubscribe are passed through.
 

@@ -70,7 +70,7 @@
         'What a busy month costs. Delivrie keeps sending past your allowance and bills the extra at month end. Resend charges about twice as much per 1,000. Brevo has no per-email overage: you move to a bigger plan.'],
       ['naira', 'Pay in Naira', Y + ' Paystack', N + ' Dollar card', N + ' Foreign currency',
         'Resend and Brevo bill in foreign currency, so you need a dollar card. Nigerian banks cap international card spending and add charges, and renewals can fail when the cap is reached. Delivrie bills in Naira through Paystack with local cards, and your price doesn’t move with the exchange rate.'],
-      ['smtp', 'SMTP relay', Y + ' Port 465', Y, Y,
+      ['smtp', 'SMTP relay', Y + ' Ports 587 and 465', Y, Y,
         'For tools that can’t call an API, like WordPress, Laravel or Supabase Auth. All three offer it. On Delivrie, SMTP mail gets the same limits, logs and webhooks as the API.'],
       ['brand', 'Provider branding', 'None', 'None', '“Sent with Brevo” on Starter',
         'A footer from your email provider sits at the bottom of every email you send and tells customers which plan you’re on. On Brevo Starter, removing it is a paid add-on.'],
