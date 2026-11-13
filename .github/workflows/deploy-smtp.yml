@@ -48,16 +48,18 @@ jobs:
       - name: Certificate (first run only)
         working-directory: smtp
         run: flyctl certs show "$HOSTNAME" --app "$APP" >/dev/null 2>&1 || flyctl certs add "$HOSTNAME" --app "$APP"
-      - name: Wait for the certificate
+      - name: Certificate status
         working-directory: smtp
         run: |
-          for i in $(seq 1 30); do
-            if flyctl certs show "$HOSTNAME" --app "$APP" --json | jq -e '.ClientStatus == "Ready" or .Configured == true' >/dev/null 2>&1; then echo "certificate ready"; exit 0; fi
-            flyctl certs check "$HOSTNAME" --app "$APP" >/dev/null 2>&1 || true
+          flyctl certs check "$HOSTNAME" --app "$APP" || true
+          echo "----- DNS setup options -----"
+          flyctl certs setup "$HOSTNAME" --app "$APP" || true
+          for i in $(seq 1 12); do
+            if flyctl certs show "$HOSTNAME" --app "$APP" --json | jq -e '[.. | strings] | any(test("^(ready|issued|Ready|Issued)$"))' >/dev/null 2>&1; then echo "certificate ready"; exit 0; fi
             sleep 10
           done
-          echo "::warning::Certificate for $HOSTNAME isn't ready yet. Check that the A and AAAA records point at the IPs below (DNS only, not proxied), then re-run."
-          flyctl certs show "$HOSTNAME" --app "$APP" || true
+          echo "::warning::Certificate for $HOSTNAME isn't issued yet. See the DNS setup options above."
+          flyctl certs show "$HOSTNAME" --app "$APP" --json || true
       - name: Live check
         env:
           SMTP_TEST_KEY: ${{ secrets.SMTP_TEST_KEY }}
