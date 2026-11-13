@@ -1,0 +1,24 @@
+# Daily live check of delivrie.io and smtp.delivrie.io. GitHub emails the repo owner if it fails.
+name: Site check
+
+on:
+  schedule:
+    - cron: "41 6 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Website, docs, API, OAuth and MCP
+        run: node tools/site-check.mjs https://delivrie.io
+      - name: SMTP relay (465, 2465, 587, 2587) and a real send
+        if: always()
+        env:
+          SMTP_TEST_KEY: ${{ secrets.SMTP_TEST_KEY }}
+          SMTP_CHECK_587: "1"
+        run: node smtp/smoke.mjs smtp.delivrie.io
