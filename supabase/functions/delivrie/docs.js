@@ -27,7 +27,7 @@ complained@test.delivrie.io is delivered and then marked as spam.
 suppressed@test.delivrie.io behaves like an address on a provider suppression list.
 Test sends count toward your plan like any other email. They are never added to your own suppression list.` },
   { id: "email-status", title: "Email statuses and events", body: `Each email moves through statuses: queued, scheduled, sent, delivered, delivery_delayed, opened, clicked, bounced, complained, failed, canceled and suppressed.
-sent means Amazon SES accepted the message. delivered means the recipient's mail server accepted it. opened and clicked need open or click tracking turned on for the sending domain.
+sent means Delivrie's mail servers accepted the message for delivery. delivered means the recipient's mail server accepted it. opened and clicked need open or click tracking turned on for the sending domain.
 bounced means the receiving server rejected the message. Permanent bounces add the address to your suppression list automatically. complained means the recipient marked it as spam; the address is suppressed and the contact unsubscribed.
 GET /emails/:id returns an email and its events. PATCH /emails/:id with scheduled_at reschedules, POST /emails/:id/cancel cancels a scheduled email.` },
   { id: "domains", title: "Domains and DNS", body: `Add a domain in Domains or with POST /domains { "name": "mail.example.com", "region": "eu-west-1" }. Use a subdomain like mail.example.com to protect your root domain's reputation.
@@ -45,7 +45,7 @@ Cloudflare proxying. MX and TXT records cannot be proxied; make sure they are DN
 Propagation. Wait a few minutes and use Verify DNS records. Delivrie also re-checks pending domains automatically.` },
   { id: "dmarc", title: "How do I set up DMARC?", body: `DMARC tells mailbox providers what to do with mail that fails SPF or DKIM. Add a TXT record at _dmarc.yourdomain.com. Start with v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com to monitor, then move to p=quarantine and finally p=reject once reports look clean. Gmail and Yahoo require a DMARC record for bulk senders.` },
   { id: "deliverability", title: "Deliverability guide", body: `Bounces happen when the receiving server rejects a message: the address doesn't exist, the mailbox is full, or the server blocks you. Complaints happen when a recipient marks your email as spam.
-Keep your bounce rate under 4% and your complaint rate under 0.08%. Mailbox providers and Amazon SES may pause sending above those thresholds.
+Keep your bounce rate under 4% and your complaint rate under 0.08%. Above those thresholds mailbox providers start blocking your mail, and Delivrie may pause sending to protect your domain's reputation.
 Verify addresses at sign-up, honour unsubscribes, only email people who opted in, send from a subdomain, add a plain-text part, and set up DKIM, SPF and DMARC.` },
   { id: "suppressions", title: "Suppression list", body: `Addresses that hard-bounce or complain are added to your team's suppression list and skipped on future sends, which protects your reputation. Add or remove addresses with POST /suppressions and DELETE /suppressions/:email.` },
   { id: "api-keys", title: "API keys", body: `Create keys in API keys. Full access keys can call every endpoint. Sending access keys can only send emails, optionally restricted to one domain. Keys are hashed when stored and shown only once. Revoke a key by deleting it.` },

@@ -159,11 +159,25 @@ export async function deliver(emailId: string) {
   } catch (err) {
     if (isTransient(err) && e.attempts + 1 < 5) {
       const wait = [30, 120, 600, 1800][e.attempts] || 1800;
-      await db.from("emails").update({ scheduled_at: new Date(Date.now() + wait * 1000).toISOString(), error: (err as Error).message }).eq("id", e.id);
+      console.error("send retry", e.id, err);
+      await db.from("emails").update({ scheduled_at: new Date(Date.now() + wait * 1000).toISOString(), error: "Temporary problem delivering; retrying automatically." }).eq("id", e.id);
       return;
     }
-    await fail(e, err instanceof AwsError ? `${err.code}: ${err.message}` : (err as Error).message);
+    console.error("send failed", e.id, err);
+    await fail(e, customerError(err));
   }
+}
+
+// Provider errors are logged for us; customers get a plain explanation without provider names, regions or account details.
+function customerError(err: unknown): string {
+  const code = err instanceof AwsError ? err.code : "", msg = (err as Error)?.message || "";
+  if (/not verified|identit/i.test(msg)) return "The from address isn't on a verified domain. Verify the domain in Domains, then send again.";
+  if (/AccountSendingPaused|SendingPaused|sending is paused/i.test(code + msg)) return "Sending is paused on this account. Contact support@delivrie.io.";
+  if (/MailFromDomainNotVerified/i.test(code + msg)) return "The domain's bounce (return-path) record isn't verified yet. Check the DNS records in Domains.";
+  if (/too large|size|MessageTooLong/i.test(code + msg)) return "The email is too large. Emails, including attachments, must be under 40 MB.";
+  if (/Throttl|rate|quota|Daily message quota/i.test(code + msg)) return "Sending limit reached. The email couldn't be sent; try again later.";
+  if (/Illegal address|InvalidParameter|address/i.test(code + msg)) return "One of the addresses isn't valid.";
+  return "The email couldn't be sent. Contact support@delivrie.io if this keeps happening.";
 }
 
 async function fail(e: Any, message: string) {

@@ -105,10 +105,10 @@ export async function verify(ctx) {
 }
 
 export async function confirm(ctx) {
-  // Supabase lands here with ?code= (PKCE) or #access_token; detectSessionInUrl handles the exchange.
+  // Sign-in links land here with ?code= (PKCE) or #access_token; detectSessionInUrl handles the exchange.
   const card = layout(ctx.root, `${mark}<h1>Confirm your account</h1><p class="sub" data-msg>Finishing sign-in…</p><button class="btn btn-primary btn-lg btn-block" data-go disabled>Confirm account</button><p class="legal">Trouble confirming? Email <a class="y" href="mailto:support@delivrie.io">support@delivrie.io</a></p>`);
   let err = ctx.query.error_description || new URLSearchParams(location.hash.slice(1)).get("error_description");
-  // Links in Delivrie's auth emails point at delivrie.io/confirm?token_hash=…&type=… (no supabase.co in the URL).
+  // Links in Delivrie's auth emails point at delivrie.io/confirm?token_hash=…&type=… (our own domain in the URL).
   if (ctx.query.token_hash && ctx.query.type) {
     const { error } = await sb.auth.verifyOtp({ token_hash: ctx.query.token_hash, type: ctx.query.type });
     history.replaceState(null, "", "/confirm");

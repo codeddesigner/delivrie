@@ -144,7 +144,7 @@ async function exportEmails(f, count) {
 
 // ---------------------------------------------------------------- detail
 const EVENT_INFO = {
-  sent: ["Sent", "Delivrie handed the message to Amazon SES, which accepted it for delivery."],
+  sent: ["Sent", "Delivrie’s mail servers accepted the message and are delivering it."],
   delivered: ["Delivered", "The recipient’s mail server accepted the message and returned a success response. This confirms delivery to the server, not the inbox."],
   opened: ["Opened", "The recipient’s mail client loaded the tracking pixel. Privacy features in Apple Mail can trigger opens automatically."],
   clicked: ["Clicked", "The recipient clicked a tracked link."],

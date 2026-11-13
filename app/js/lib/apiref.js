@@ -1,4 +1,4 @@
-// API reference data for the docs. Mirrors the routes in supabase/functions/delivrie/index.ts.
+// API reference data for the docs.
 // p: [name, type, required, description, default?]
 const ID = (what) => [["id", "string", true, `The ${what} id.`]];
 const PAGE = [["limit", "number", false, "Results per page, 1 to 100.", "50"], ["offset", "number", false, "How many results to skip.", "0"]];

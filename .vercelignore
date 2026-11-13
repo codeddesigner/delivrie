@@ -1,3 +1,10 @@
+# Not part of the website: keep these out of the deployment so they can't be downloaded from delivrie.io
 supabase/
+smtp/
+tools/
+integrations/
+.github/
+server.json
 README.md
 .gitignore
+assets/clients/README.md

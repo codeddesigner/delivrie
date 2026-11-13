@@ -624,7 +624,11 @@ const dash = (h: Handler): Handler => (req, c, p, u, b) => { if (c.via !== "dash
 route("GET", "/dashboard/status", dash(async (_r, c) => {
   const { data: d } = await db.from("domains").select("region").eq("team_id", c.teamId).limit(1);
   const { data: t } = await db.from("teams").select("plan_transactional,credits").eq("id", c.teamId).single();
-  return { credits: t?.credits || 0, aws: await accountStatus(d?.[0]?.region || "eu-west-1"), system_from: SYSTEM_FROM ? SYSTEM_FROM : null, regions: Object.entries(SES_REGIONS).map(([id]) => ({ id, label: regionLabel(id) })), limits_enforced: ENFORCE_LIMITS, plan: t?.plan_transactional || "free", limits: LIMITS[t?.plan_transactional || "free"] || LIMITS.free };
+  // Customers only learn whether sending works; account-wide quota and provider details are for platform admins.
+  const full = await accountStatus(d?.[0]?.region || "eu-west-1");
+  const { data: adm } = c.userId ? await db.from("platform_admins").select("user_id").eq("user_id", c.userId).maybeSingle() : { data: null };
+  const aws = adm ? full : { configured: !!full?.configured, sending: full?.configured ? full?.sending !== false : false };
+  return { credits: t?.credits || 0, aws, system_from: SYSTEM_FROM ? SYSTEM_FROM : null, regions: Object.entries(SES_REGIONS).map(([id]) => ({ id, label: regionLabel(id) })), limits_enforced: ENFORCE_LIMITS, plan: t?.plan_transactional || "free", limits: LIMITS[t?.plan_transactional || "free"] || LIMITS.free };
 }));
 route("POST", "/dashboard/test-email", dash(async (_r, c, _p, _u, b) => {
   const to = asArray(b?.to);
@@ -736,6 +740,17 @@ async function publicRoutes(req: Request, path: string, url: URL): Promise<Respo
     const only = url.searchParams.get("only");
     const body = only === "pages" ? { pages: cfg.pages } : cfg;
     return new Response(JSON.stringify(body), { headers: { ...CORS, "content-type": "application/json", "cache-control": "public, max-age=30, s-maxage=30, stale-while-revalidate=300" } });
+  }
+  if (path === "/public/sales-lead" && req.method === "POST") {
+    // Contact-sales form on delivrie.io/contact-sales
+    let b: Any = {};
+    try { b = await req.json(); } catch { /* empty body */ }
+    const s = (k: string, n: number) => String(b?.[k] ?? "").trim().slice(0, n);
+    const lead = { first_name: s("first_name", 80), last_name: s("last_name", 80), email: s("email", 254).toLowerCase(), company: s("company", 120), volume: s("volume", 40) || null, country: s("country", 60) || null, message: s("message", 4000) || null };
+    if (b?.website || !lead.first_name || !lead.last_name || !lead.company || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(lead.email)) return json({ error: "Please fill in your name, work email and company." }, 400);
+    const { error } = await db.from("sales_leads").insert(lead);
+    if (error) { console.error("sales lead", error); return json({ error: "Couldn't save your message. Email sales@delivrie.io." }, 500); }
+    return json({ ok: true });
   }
   if (path === "/public/openai-apps-challenge") {
     const token = await setting("openai_apps_challenge");

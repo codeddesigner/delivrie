@@ -35,7 +35,7 @@ export async function add(ctx) {
   try { status = await api("GET", "/dashboard/status"); } catch { }
   const regions = status?.regions || [{ id: "eu-west-1", label: "Ireland (eu-west-1)" }, { id: "us-east-1", label: "N. Virginia (us-east-1)" }];
   root.innerHTML = `<div class="page narrow"><div class="page-head"><h1>Add domain</h1></div>
-    ${status && !status.aws?.configured ? `<div class="banner warn">${icon("alert", 14)} Sending isn’t connected on this workspace yet, so domains can’t be registered with the mail provider. Ask your admin to add AWS credentials.</div>` : ""}
+    ${status && !status.aws?.configured ? `<div class="banner warn">${icon("alert", 14)} Sending isn’t set up on this workspace yet, so domains can’t be added. Contact support@delivrie.io.</div>` : ""}
     <div class="steps"><div class="step active"><div class="step-num">1</div><div class="step-card"><h3>Domain</h3><p class="sub">We recommend a subdomain like <span class="mono">updates.example.com</span> to keep your sending reputation separate from your main domain.</p>
       <div class="field"><label>Name</label><input class="input" data-name placeholder="updates.example.com" autofocus></div>
       <div class="field" style="margin-top:12px"><label>Region</label>${selectHtml("region", regions.map((r) => ({ value: r.id, label: `${FLAG[r.id] || ""} ${r.label}` })), "eu-west-1")}<span class="hint">Where emails are sent from. Pick the one closest to your users — it can’t be changed later.</span></div>

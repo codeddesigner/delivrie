@@ -4,7 +4,7 @@ import { b64 } from "./mime.ts";
 
 export function creds(): AwsCreds {
   const c = credsFromEnv();
-  if (!c) throw new HttpError(503, "sending_not_configured", "Sending isn't configured yet. Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to the Delivrie edge function secrets.");
+  if (!c) throw new HttpError(503, "sending_not_configured", "Sending isn't available right now. Try again shortly, or contact support@delivrie.io.");
   return c;
 }
 export const hasAws = () => !!credsFromEnv();

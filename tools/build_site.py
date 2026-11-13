@@ -350,7 +350,7 @@ ALTS = {
             ("Is Delivrie a good Resend alternative?", "If you send transactional email through an API or SMTP, yes: the request format matches Resend’s /emails endpoint, and Delivrie adds broadcasts, automations, a shared inbox and an MCP server for AI agents on every plan."),
             ("Can I switch from Resend without rewriting my code?", "For most REST integrations, yes. Change the base URL to https://delivrie.io/api and use a Delivrie API key. Verify your sending domain in Delivrie first, and update your webhook handler if you use one."),
             ("Is Delivrie better than Resend?", "It’s cheaper, has a larger free plan and lets you pay in Naira. Resend keeps email content longer (30 days) and renders React Email in its Node SDK. Pick the one that fits how you send."),
-            ("Does Delivrie work for teams in the US?", "Yes. Prices are in US dollars, sending runs on Amazon SES, and the API, SMTP relay and MCP server work from anywhere.")],
+            ("Does Delivrie work for teams in the US?", "Yes. Prices are in US dollars, you can pay by card, and the API, SMTP relay and MCP server work from anywhere.")],
   },
   "brevo": {
     "name": "Brevo", "slug": "brevo-alternative",

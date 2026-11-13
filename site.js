@@ -52,7 +52,7 @@
     });
   }
 
-  // contact sales: stored in Supabase (insert-only for the public)
+  // contact sales: sent to Delivrie's API
   var form = $('#sales-form');
   if (form) form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -63,9 +63,9 @@
     if (bad) { var first = form.querySelector('input:invalid, input[name=email]'); if (first) first.focus(); return; }
     delete d.website;
     var btn = form.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Sending…';
-    fetch('https://hnjejflinvaoxbduxeiu.supabase.co/rest/v1/sales_leads', {
+    fetch('/api/public/sales-lead', {
       method: 'POST',
-      headers: { 'content-type': 'application/json', prefer: 'return=minimal', apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuamVqZmxpbnZhb3hiZHV4ZWl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ0MjMyOTMsImV4cCI6MjEwOTk5OTI5M30.f0HGnl7_UsEyUBKnyWVyxuC9q1l7nKum0XFokyoKM-8' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify(d)
     }).then(function (r) {
       if (!r.ok) throw new Error('failed');
