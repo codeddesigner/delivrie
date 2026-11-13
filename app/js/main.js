@@ -231,6 +231,7 @@ export async function render(forceShell = false) {
   const ctx = { params, query, navigate, crumb, crumbs, path };
   if (r.kind === "app") {
     if (!shellMounted || forceShell || !$("#content")) { app().innerHTML = shellHtml(); bindShell(app()); shellMounted = true; }
+    import("./lib/chat.js").then((m) => m.mountChat()).catch(() => {});
     markNav();
     const content = $("#content");
     content.innerHTML = "";

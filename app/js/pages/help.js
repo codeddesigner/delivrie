@@ -27,6 +27,7 @@ export async function help(ctx) {
       <a class="card card-pad" href="/docs/deliverability"><div class="row-flex">${icon("shield", 15)}<b style="font-weight:500">Deliverability</b></div><p class="muted" style="font-size:12.5px;margin-top:6px">Stay out of spam folders.</p></a>
       <a class="card card-pad" href="/logs"><div class="row-flex">${icon("list", 15)}<b style="font-weight:500">Logs</b></div><p class="muted" style="font-size:12.5px;margin-top:6px">Debug API requests.</p></a></div>
     <h3 class="section-title" id="contact">Contact support</h3>
+    <div class="card card-pad row-flex" style="gap:12px;margin-bottom:12px"><div style="flex:1"><b style="font-weight:500">Chat with the Delivrie team</b><div class="muted" style="font-size:12.5px;margin-top:2px">The fastest way to reach us. We reply in the chat and by email.</div></div><button class="btn btn-primary" data-open-chat>${icon("send", 13)} Start a chat</button></div>
     <form class="card card-pad" data-support style="display:flex;flex-direction:column;gap:12px">
       <div class="field"><label>Subject</label><input class="input" name="subject" value="${esc(ctx.query.subject || "")}" placeholder="Emails to Outlook are delayed"></div>
       <div class="field"><label>Impact</label>${selectHtml("impact", [{ value: "low", label: "Low — a question or minor issue" }, { value: "medium", label: "Normal — something isn’t working" }, { value: "high", label: "High — production sending is affected" }, { value: "critical", label: "Urgent — all sending is down" }], "medium")}</div>
@@ -50,6 +51,7 @@ export async function help(ctx) {
   };
   root.querySelector("[data-ask]").addEventListener("submit", (e) => { e.preventDefault(); const i = root.querySelector("[data-q]"); const q = i.value.trim(); i.value = ""; ask(q); });
   on(root, "click", "[data-suggest]", (_e, b) => ask(b.textContent));
+  on(root, "click", "[data-open-chat]", () => import("../lib/chat.js").then((m) => m.openChat()));
   root.querySelector("[data-support]").addEventListener("submit", async (e) => {
     e.preventDefault(); const f = e.target;
     const subject = f.subject.value.trim(), message = f.message.value.trim();

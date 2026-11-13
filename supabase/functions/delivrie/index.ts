@@ -7,6 +7,7 @@ import { DOCS, searchDocs } from "./docs.js";
 import { oauthAuthorize, oauthGrantFromToken, oauthPublic, scopeAllows } from "./oauth.ts";
 import { handleMcp } from "./mcp.ts";
 import { registerExtra } from "./extra.ts";
+import { registerSupport } from "./support.ts";
 import { SES_REGIONS } from "./aws.ts";
 
 interface Ctx { teamId: string; userId: string | null; apiKey: Any | null; permission: "full" | "sending"; via: "api" | "dashboard"; userAgent: string; email?: string; scopes?: string[] }
@@ -355,6 +356,7 @@ function route(method: string, path: string, h: Handler) {
 const list = (data: unknown[], extra: Any = {}) => ({ object: "list", data, ...extra });
 // inbox, automations, events, usage, received mail (registered first so /emails/received wins over /emails/:id)
 registerExtra(route, { needFull, sendEmails });
+registerSupport(route);
 
 // emails
 route("POST", "/emails", async (req, c, _p, _u, b) => (await sendEmails(c, [b], req.headers.get("idempotency-key")))[0]);

@@ -1,10 +1,10 @@
 // Platform admin: sign-ups, users, teams, revenue, sending health, the support inbox and website settings.
 // Access is checked in the database (platform_admins + security-definer functions); this page only renders.
-import { sb, state } from "../lib/sb.js";
+import { sb, state, api } from "../lib/sb.js";
 import { esc, icon, num, fmtDate, fmtDateTime, ago, badge, toast, errToast, on, debounce, confirmModal, formModal, fieldHtml, emptyState, initials } from "../lib/ui.js";
 import { lineChart } from "../lib/chart.js";
 
-const TABS = [["overview", "Overview"], ["users", "Users"], ["teams", "Teams"], ["revenue", "Revenue"], ["inbox", "Inbox"], ["website", "Website"]];
+const TABS = [["overview", "Overview"], ["users", "Users"], ["teams", "Teams"], ["revenue", "Revenue"], ["support", "Support"], ["inbox", "Inbox"], ["website", "Website"]];
 const money = (amount, currency) => new Intl.NumberFormat(currency === "NGN" ? "en-NG" : "en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format((amount || 0) / 100);
 const moneyMap = (m) => Object.keys(m || {}).length ? Object.entries(m).map(([c, a]) => money(a, c)).join(" · ") : "—";
 const pct = (a, b, d = 1) => b ? `${((a / b) * 100).toFixed(d)}%` : "0%";
@@ -29,7 +29,8 @@ export default async function admin(ctx) {
     body.innerHTML = `<div class="card">${emptyState({ icon: "shield", title: "Admins only", desc: "This account isn't a Delivrie platform admin. Ask an existing admin to add you." })}</div>`;
     return;
   }
-  const fn = { overview, users, teams, revenue, inbox, website }[tab];
+  api("GET", "/support/admin/unread").then((r) => { const a = root.querySelector('.ul-tab[href="/admin/support"]'); if (a && r.unread_threads) a.insertAdjacentHTML("beforeend", ` <span class="badge yellow" style="margin-left:4px">${r.unread_threads}</span>`); }).catch(() => {});
+  const fn = { overview, users, teams, revenue, support, inbox, website }[tab];
   if (!fn) return ctx.navigate("/admin", { replace: true });
   try { await fn(body, ctx); } catch (e) { errToast(e); body.innerHTML = `<div class="card">${emptyState({ icon: "alert", title: "Couldn't load", desc: esc(e.message) })}</div>`; }
 }
@@ -337,3 +338,66 @@ function siteEditor(el, cfg, save) {
   load();
 }
 const stripTags = (h) => String(h || "").replace(/<[^>]+>/g, "");
+
+// ---------------------------------------------------------------- support chat
+// Customers write from the chat button in the dashboard. New messages also email every platform admin.
+async function support(body) {
+  let filter = "open", threads = [], current = new URLSearchParams(location.search).get("t"), conv = null, timer = null, lastSig = "";
+  body.innerHTML = `<div class="row-flex" style="margin-bottom:12px;gap:10px"><span class="dim" style="font-size:12.5px" data-sum></span><span class="grow"></span><button class="btn btn-secondary btn-sm" data-notify hidden>${icon("bell", 12)} Turn on desktop alerts</button></div>
+    <div class="sp"><div class="sp-list"><div class="sp-filter">${[["open", "Open"], ["closed", "Closed"], ["all", "All"]].map(([k, l]) => `<button class="seg-tab ${k === filter ? "on" : ""}" data-f="${k}" style="display:inline-flex;align-items:center">${l}</button>`).join("")}</div><div class="sp-items" data-items></div></div>
+    <div class="sp-conv" data-conv><div class="sp-empty">Pick a conversation.</div></div></div>`;
+  const items = body.querySelector("[data-items]"), convEl = body.querySelector("[data-conv]"), notifyBtn = body.querySelector("[data-notify]");
+  if ("Notification" in window && Notification.permission === "default") notifyBtn.hidden = false;
+  notifyBtn.addEventListener("click", async () => { await Notification.requestPermission(); notifyBtn.hidden = Notification.permission !== "default"; });
+
+  const listHtml = () => threads.length ? threads.map((t) => `<button class="sp-item ${t.id === current ? "on" : ""} ${t.unread ? "unread" : ""}" data-t="${t.id}"><div class="r1"><b>${esc(t.email || "Unknown")}</b><span class="dim" style="font-size:11.5px">${ago(t.last_message_at)}</span></div><div class="r2">${t.team ? esc(t.team) + " · " : ""}${t.last_author === "support" ? "You: " : ""}${esc(t.preview || "")}</div></button>`).join("") : `<div class="sp-empty">No ${filter === "all" ? "" : filter + " "}conversations.</div>`;
+  const loadList = async (alert = false) => {
+    const r = await api("GET", `/support/admin/threads?status=${filter}`);
+    const before = new Map(threads.map((t) => [t.id, t.last_message_at]));
+    if (alert && "Notification" in window && Notification.permission === "granted" && document.visibilityState !== "visible")
+      for (const t of r.data) if (t.unread && t.last_author === "customer" && before.get(t.id) !== t.last_message_at) new Notification(`Support: ${t.email || "a customer"}`, { body: t.preview || "", tag: t.id });
+    threads = r.data;
+    body.querySelector("[data-sum]").textContent = r.unread_threads ? `${r.unread_threads} conversation${r.unread_threads === 1 ? "" : "s"} waiting for a reply` : "You're all caught up";
+    document.title = (r.unread_threads ? `(${r.unread_threads}) ` : "") + "Support · Delivrie admin";
+    items.innerHTML = listHtml();
+  };
+  const msgHtml = (m) => `<div class="sc-m ${m.author === "support" ? "me" : "them"}"><div class="sc-who">${esc(m.author === "support" ? m.author_name : (m.author_name || "Customer"))}</div><div class="sc-b">${esc(m.body)}</div><div class="sc-t">${fmtDateTime(m.created_at)}</div></div>`;
+  const loadConv = async (keepDraft = true) => {
+    if (!current) return;
+    const r = await api("GET", `/support/admin/threads/${current}`);
+    const sig = r.messages.length + ":" + (r.messages.at(-1)?.id || "") + ":" + r.thread.status;
+    if (sig === lastSig && keepDraft && conv) return;
+    lastSig = sig; conv = r;
+    const draft = convEl.querySelector("textarea")?.value || "";
+    const t = r.thread;
+    convEl.innerHTML = `<div class="sp-top"><div class="who"><b>${esc(t.email || "Unknown")}</b><div>${t.team ? `${esc(t.team.name)} · ${esc((t.team.plan_transactional || "free").replace(/^\w/, (c) => c.toUpperCase()))} plan · ` : ""}started ${fmtDate(t.created_at)}${t.customer_seen_at ? ` · last seen ${ago(t.customer_seen_at)}` : ""}</div></div>
+        ${t.email ? `<a class="btn btn-ghost btn-sm" href="mailto:${esc(t.email)}">${icon("mail", 12)} Email</a>` : ""}<button class="btn btn-secondary btn-sm" data-status="${t.status === "open" ? "closed" : "open"}">${t.status === "open" ? `${icon("check", 12)} Close` : "Reopen"}</button></div>
+      <div class="sc-body">${r.messages.map(msgHtml).join("")}</div>
+      <form class="sc-form"><textarea rows="2" maxlength="5000" placeholder="Reply to ${esc(t.email || "the customer")}… (Enter to send, Shift+Enter for a new line)"></textarea><button class="btn btn-primary" type="submit" aria-label="Send">${icon("send", 14)}</button></form>`;
+    const ta = convEl.querySelector("textarea"); ta.value = draft;
+    const scroller = convEl.querySelector(".sc-body"); scroller.scrollTop = scroller.scrollHeight;
+    ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); convEl.querySelector("form").requestSubmit(); } });
+    convEl.querySelector("form").addEventListener("submit", async (e) => {
+      e.preventDefault(); const text = ta.value.trim(); if (!text) return;
+      const btn = e.target.querySelector("button"); btn.disabled = true;
+      try { const res = await api("POST", `/support/admin/threads/${current}/messages`, { body: text }); ta.value = ""; lastSig = ""; await loadConv(false); await loadList(); toast(res.emailed ? "Sent. They'll also get it by email." : "Sent"); }
+      catch (err) { errToast(err); }
+      btn.disabled = false; ta.focus();
+    });
+  };
+  const select = async (id) => {
+    current = id; lastSig = ""; conv = null;
+    history.replaceState(null, "", `/admin/support?t=${id}`);
+    items.querySelectorAll(".sp-item").forEach((b) => b.classList.toggle("on", b.dataset.t === id));
+    await loadConv(false); await loadList();
+  };
+  on(body, "click", "[data-t]", (_e, b) => select(b.dataset.t).catch(errToast));
+  on(body, "click", "[data-f]", (_e, b) => { filter = b.dataset.f; body.querySelectorAll("[data-f]").forEach((x) => x.classList.toggle("on", x === b)); loadList().catch(errToast); });
+  on(body, "click", "[data-status]", async (_e, b) => {
+    try { await api("PATCH", `/support/admin/threads/${current}`, { status: b.dataset.status }); toast(b.dataset.status === "closed" ? "Conversation closed" : "Conversation reopened"); lastSig = ""; await loadConv(false); await loadList(); } catch (e) { errToast(e); }
+  });
+  await loadList();
+  if (current) await loadConv(false); else if (threads[0]) await select(threads[0].id);
+  const poll = async () => { if (!document.body.contains(body)) return; try { await loadList(true); if (current) await loadConv(true); } catch { /* retry */ } timer = setTimeout(poll, 8000); };
+  timer = setTimeout(poll, 8000);
+}
