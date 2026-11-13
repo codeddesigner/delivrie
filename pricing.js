@@ -133,7 +133,7 @@
       ['Dedicated IP', 'On request (Scale)', usd(30) + ' / month add-on', 'Professional plan and up'],
       ['Features'],
       ['Transactional email API', Y, Y, Y],
-      ['SMTP relay', N, Y, Y],
+      ['SMTP relay', Y + ' Port 465', Y, Y],
       ['Marketing broadcasts', Y + ' Free up to 1,000 contacts', Y, Y],
       ['Shared inbox for replies', Y, Y, Y],
       ['MCP server for AI agents', Y + ' 64 tools, OAuth', Y, Y],
