@@ -7,10 +7,6 @@
       "destination": "/compare.html"
     },
     {
-      "source": "/vs/:any*",
-      "destination": "/compare.html"
-    },
-    {
       "source": "/docs",
       "destination": "/docs-static/index.html"
     },
@@ -63,7 +59,7 @@
       "destination": "/pricing.html"
     },
     {
-      "source": "/:page(terms|privacy|dpa|acceptable-use|cookies|subprocessors|security|about|customers|careers|brand|changelog|blog|status|contact-sales|support)",
+      "source": "/:page(terms|privacy|dpa|acceptable-use|cookies|subprocessors|security|about|customers|careers|brand|changelog|blog|status|contact-sales|support|resend-alternative|brevo-alternative)",
       "destination": "/pages/:page.html"
     },
     {
@@ -123,6 +119,23 @@
           "value": "strict-origin-when-cross-origin"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/vs/resend",
+      "destination": "/resend-alternative",
+      "permanent": true
+    },
+    {
+      "source": "/vs/brevo",
+      "destination": "/brevo-alternative",
+      "permanent": true
+    },
+    {
+      "source": "/resend-vs-delivrie",
+      "destination": "/resend-alternative",
+      "permanent": true
     }
   ]
 }

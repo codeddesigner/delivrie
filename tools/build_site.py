@@ -28,7 +28,7 @@ NAV = """<header class="nav">
 FOOTER = """<footer class="footer">
   <div class="wrap">
     <div class="brand"><img src="/assets/footer-mark.svg" width="27" height="19" alt="Delivrie"></div>
-    <nav class="fcol"><h4>Product</h4><a href="/signup">Emails</a><a href="/signup">Broadcasts</a><a href="/signup">Templates</a><a href="/pricing">Pricing</a><a href="/changelog">Changelog</a></nav>
+    <nav class="fcol"><h4>Product</h4><a href="/signup">Emails</a><a href="/signup">Broadcasts</a><a href="/signup">Templates</a><a href="/pricing">Pricing</a><a href="/resend-alternative">Resend alternative</a><a href="/brevo-alternative">Brevo alternative</a><a href="/changelog">Changelog</a></nav>
     <nav class="fcol"><h4>Developers</h4><a href="/docs">Docs</a><a href="/docs/api">API reference</a><a href="/docs/mcp">MCP server</a><a href="/status">Status</a></nav>
     <nav class="fcol"><h4>Company</h4><a href="/about">About</a><a href="/customers">Customers</a><a href="/careers">Careers</a><a href="/brand">Brand</a><a href="/contact-sales">Contact sales</a></nav>
     <nav class="fcol"><h4>Legal</h4><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/dpa">DPA</a><a href="/acceptable-use">Acceptable use</a><a href="/security">Security</a></nav>
@@ -71,21 +71,22 @@ def ld(*items):
 def crumbs(*pairs):
     return {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": i + 1, "name": n, "item": "https://delivrie.io" + u} for i, (n, u) in enumerate(pairs)]}
 
-def page(path, title, desc, body, extra_script="", jsonld=None, noindex=False, og_type="website"):
+def page(path, title, desc, body, extra_script="", jsonld=None, noindex=False, og_type="website", full_title=False):
     canonical = "https://delivrie.io" + ("" if path == "/" else path)
     if jsonld is None and path not in ("/", "/404"):
         jsonld = [crumbs(("Home", "/"), (title, path))]
+    if not full_title: title = f"{title} · Delivrie"
     head_extra = (ld(*jsonld) if jsonld else "") + ('\n  <meta name="robots" content="noindex">' if noindex else "")
     doc = f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{E(title)} · Delivrie</title>
+  <title>{E(title)}</title>
   <meta name="description" content="{E(desc)}">
   <meta name="theme-color" content="#211f20">
   <meta property="og:type" content="{og_type}"><meta property="og:site_name" content="Delivrie"><meta property="og:url" content="{canonical}">
-  <meta property="og:title" content="{E(title)} · Delivrie"><meta property="og:description" content="{E(desc)}"><meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
+  <meta property="og:title" content="{E(title)}"><meta property="og:description" content="{E(desc)}"><meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="{canonical}">
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -319,6 +320,84 @@ def not_found():
     <div class="links"><a href="/pricing">Pricing</a><a href="/docs">Docs</a><a href="/status">Status</a><a href="mailto:support@delivrie.io">Contact support</a></div></div></section>"""
     page("/404", "Page not found", "This page doesn’t exist.", body, noindex=True)
 
+# ---------------------------------------------------------------- alternative pages (search: "Resend alternative", "cheaper than Resend", "Brevo alternative")
+# Competitor figures: their published US-dollar prices, checked 13 Nov 2026 (Brevo via its Starter plan). Keep in step with pricing.js.
+ALTS = {
+  "resend": {
+    "name": "Resend", "slug": "resend-alternative",
+    "title": "Resend alternative: half the price, same API · Delivrie",
+    "desc": "Looking for a cheaper Resend alternative? Delivrie sends with the same API request format at half the price: Pro $10 vs $20, 6,000 free emails vs 3,000, SMTP, MCP and pricing in dollars or Naira.",
+    "h1": "The Resend alternative<br> at half the price.",
+    "lede": "Same request format as Resend’s /emails endpoint, so switching is a URL and key change. Pro is $10 instead of $20, the free plan sends twice as much, and extra emails cost half as much.",
+    "rows": [("Free plan", "6,000 / month, 200 a day", "3,000 / month, 100 a day"),
+             ("20,000 emails a month", "$10 (Pro)", "$20 (Pro)"),
+             ("100,000 emails a month", "$45 (Scale)", "$65 (Pro + 50,000 extra at $0.90 per 1,000)"),
+             ("Extra emails, per 1,000", "$0.40 to $0.45", "$0.90"),
+             ("Pay in Naira", "Yes, through Paystack", "No, dollar card only"),
+             ("SMTP relay", "Yes", "Yes"),
+             ("MCP server for AI agents", "Yes, 64 tools with OAuth", "Yes"),
+             ("Shared inbox for replies", "Yes", "Yes"),
+             ("Email content kept", "1 to 7 days", "30 days")],
+    "why": [("zap", "Half the price", "$10 a month for 20,000 emails instead of $20, and $0.45 per extra 1,000 instead of $0.90. At 100,000 emails a month you pay $45 instead of $65."),
+            ("code", "Same API shape", "POST /emails with from, to, subject, html, text, cc, bcc, reply_to, headers, attachments, tags, template and an Idempotency-Key header. The response is { id }."),
+            ("mail", "A bigger free plan", "6,000 emails a month and 200 a day, enough to launch a real product before you pay anything."),
+            ("globe", "Dollars or Naira", "Pay by card in US dollars, or in Naira through Paystack with local cards and no exchange-rate surprises.")],
+    "fair": "Resend keeps the full body of sent emails for 30 days; Delivrie keeps it for 1 to 7 days depending on plan, while recipients, statuses and every event stay so logs and metrics keep working. Resend also renders React Email components in its Node SDK; with Delivrie you send the rendered HTML.",
+    "before": 'curl https://api.resend.com/emails \\\n  -H "Authorization: Bearer re_…" \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "from": "Acme <hi@acme.com>",\n    "to": "ada@example.com",\n    "subject": "Welcome",\n    "html": "<p>Hi Ada</p>"\n  }\'',
+    "after": 'curl https://delivrie.io/api/emails \\\n  -H "Authorization: Bearer dlv_…" \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "from": "Acme <hi@acme.com>",\n    "to": "ada@example.com",\n    "subject": "Welcome",\n    "html": "<p>Hi Ada</p>"\n  }\'',
+    "steps": "Add and verify your domain in Delivrie, create an API key, then change the base URL and key in your code. Webhook event names and payloads differ, so update your webhook handler if you use one.",
+    "faq": [("Is Delivrie cheaper than Resend?", "Yes. Pro is $10 a month for 20,000 emails (Resend Pro is $20), extra emails are $0.40 to $0.45 per 1,000 (Resend charges $0.90), and the free plan sends 6,000 a month instead of 3,000."),
+            ("Is Delivrie a good Resend alternative?", "If you send transactional email through an API or SMTP, yes: the request format matches Resend’s /emails endpoint, and Delivrie adds broadcasts, automations, a shared inbox and an MCP server for AI agents on every plan."),
+            ("Can I switch from Resend without rewriting my code?", "For most REST integrations, yes. Change the base URL to https://delivrie.io/api and use a Delivrie API key. Verify your sending domain in Delivrie first, and update your webhook handler if you use one."),
+            ("Is Delivrie better than Resend?", "It’s cheaper, has a larger free plan and lets you pay in Naira. Resend keeps email content longer (30 days) and renders React Email in its Node SDK. Pick the one that fits how you send."),
+            ("Does Delivrie work for teams in the US?", "Yes. Prices are in US dollars, sending runs on Amazon SES, and the API, SMTP relay and MCP server work from anywhere.")],
+  },
+  "brevo": {
+    "name": "Brevo", "slug": "brevo-alternative",
+    "title": "Brevo alternative for developers: cheaper email API · Delivrie",
+    "desc": "A Brevo alternative built for developers: a simple email API, SMTP and MCP, no “Sent with Brevo” footer, 6,000 free emails a month and Pro at $10 instead of $32. Pay in dollars or Naira.",
+    "h1": "The Brevo alternative<br> built for developers.",
+    "lede": "Brevo is a marketing suite. Delivrie is an email API: transactional email, broadcasts and an inbox with a clean REST API, SMTP and an MCP server, no provider footer and a third of the price at 20,000 emails.",
+    "rows": [("Free plan", "6,000 / month, 200 a day", "300 a day, with a “Sent with Brevo” footer"),
+             ("20,000 emails a month", "$10 (Pro)", "$32 (Starter)"),
+             ("100,000 emails a month", "$45 (Scale)", "$82 (Starter)"),
+             ("Extra emails", "$0.40 to $0.45 per 1,000", "Move up a plan"),
+             ("Provider branding", "None", "“Sent with Brevo” on Starter unless you pay $12 a month"),
+             ("Pay in Naira", "Yes, through Paystack", "No"),
+             ("SMTP relay", "Yes", "Yes"),
+             ("MCP server for AI agents", "Yes, 64 tools with OAuth", "Yes"),
+             ("SMS, WhatsApp and CRM", "No", "Yes")],
+    "why": [("zap", "A third of the price", "$10 a month for 20,000 emails instead of $32, and $45 for 100,000 instead of $82."),
+            ("shield", "Your brand only", "No provider footer on any plan, so emails look like they come from you."),
+            ("code", "Built for code", "One POST /emails call, signed webhooks, templates, test addresses and an MCP server for AI agents."),
+            ("mail", "No daily cap on paid plans", "Send a launch or a burst of password resets without hitting a 300-a-day limit.")],
+    "fair": "Brevo is a full marketing suite with SMS, WhatsApp, a CRM and landing pages. If you need those in one place, Brevo covers more. Delivrie focuses on email for products and developers.",
+    "before": 'curl https://api.brevo.com/v3/smtp/email \\\n  -H "api-key: xkeysib-…" \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "sender": { "email": "hi@acme.com" },\n    "to": [{ "email": "ada@example.com" }],\n    "subject": "Welcome",\n    "htmlContent": "<p>Hi Ada</p>"\n  }\'',
+    "after": 'curl https://delivrie.io/api/emails \\\n  -H "Authorization: Bearer dlv_…" \\\n  -H "Content-Type: application/json" \\\n  -d \'{\n    "from": "hi@acme.com",\n    "to": "ada@example.com",\n    "subject": "Welcome",\n    "html": "<p>Hi Ada</p>"\n  }\'',
+    "steps": "Add and verify your domain in Delivrie, create an API key, then map sender to from, htmlContent to html and the to list to plain addresses. Import your contacts into Delivrie if you send broadcasts.",
+    "faq": [("Is Delivrie cheaper than Brevo?", "For email, yes: Pro is $10 a month for 20,000 emails (Brevo Starter is $32), Scale is $45 for 100,000 (Brevo Starter is $82), and there’s no paid add-on to remove a provider footer."),
+            ("Is Delivrie a good Brevo alternative?", "If you mainly send transactional email and newsletters from your product, yes. If you rely on Brevo’s SMS, WhatsApp or CRM, Brevo still covers more."),
+            ("Does Delivrie add a footer to my emails?", "No. Delivrie doesn’t add its own branding to your transactional emails on any plan."),
+            ("Can I send newsletters with Delivrie?", "Yes. Broadcasts are free up to 1,000 contacts, with segments, topics and an unsubscribe page included.")],
+  },
+}
+
+def alternative(key):
+    a = ALTS[key]; n = a["name"]
+    rows = "".join(f'<tr><th scope="row">{E(r)}</th><td class="us">{E(d)}</td><td>{E(o)}</td></tr>' for r, d, o in a["rows"])
+    why = cards(a["why"], 4)
+    faq = "".join(f'<details class="faq-i"><summary>{E(q)}</summary><p>{E(x)}</p></details>' for q, x in a["faq"])
+    body = hero(f"{n} alternative", a["h1"], a["lede"], [("Start free", "/signup", "b-primary"), ("Compare all three", "/compare", "b-secondary")], center=True)
+    body += f"""<section class="section"><div class="wrap">{head2("Side by side", f"Delivrie vs {E(n)}", "Prices in US dollars, checked 13 November 2026. Naira prices are on the pricing page.")}
+      <div class="cmp-wrap reveal"><table class="cmp alt"><thead><tr><th></th><th class="us"><img src="/assets/logo.svg" alt="Delivrie" height="18"></th><th><img src="/assets/compare/{key}.png" alt="{E(n)}" height="17"></th></tr></thead><tbody>{rows}</tbody></table></div></div></section>"""
+    body += f'<section class="section"><div class="wrap">{head2("Why switch", f"Why teams move from {E(n)} to Delivrie")}{why}<p class="fair reveal"><b>Where {E(n)} is still a good fit.</b> {E(a["fair"])}</p></div></section>'
+    body += f"""<section class="section"><div class="wrap">{head2("Switch", "Switch in a few minutes", a["steps"])}
+      <div class="grid2 reveal-stagger"><div><div class="code-h">Before · {E(n)}</div><pre class="post-code"><code>{E(a["before"])}</code></pre></div><div><div class="code-h">After · Delivrie</div><pre class="post-code"><code>{E(a["after"])}</code></pre></div></div></div></section>"""
+    body += f'<section class="section"><div class="wrap narrow">{head2("FAQ", f"Delivrie vs {E(n)}: common questions")}<div class="faq-list reveal">{faq}</div></div></section>' + CTA
+    faq_ld = {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": x}} for q, x in a["faq"]]}
+    path = "/" + a["slug"]
+    page(path, a["title"], a["desc"], body, jsonld=[faq_ld, crumbs(("Home", "/"), ("Compare", "/compare"), (f"{n} alternative", path))], full_title=True)
+
 def refresh_shell(fname):
     p = os.path.join(ROOT, fname); s = open(p).read()
     s = re.sub(r'<header class="nav">.*?</header>', lambda m: NAV, s, count=1, flags=re.S)
@@ -329,5 +408,6 @@ def refresh_shell(fname):
 if __name__ == "__main__":
     for d in LEGAL: legal(d)
     about(); customers(); careers(); brand(); changelog(); blog(); status(); contact_sales(); support(); not_found()
+    alternative("resend"); alternative("brevo")
     for f in ("index.html", "pricing.html"): refresh_shell(f)
     print("built", sum(len(fs) for _, _, fs in os.walk(os.path.join(ROOT, "pages"))), "pages")

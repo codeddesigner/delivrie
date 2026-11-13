@@ -165,7 +165,7 @@ async function inbox(body) {
 // ---------------------------------------------------------------- website
 // Public pages read these settings from /api/public/site (cached ~30 seconds). See site-config.js and middleware.js.
 const SITE_PAGES = [
-  ["/", "Home", true], ["/pricing", "Pricing"], ["/about", "About"], ["/customers", "Customers"], ["/careers", "Careers"],
+  ["/", "Home", true], ["/pricing", "Pricing"], ["/resend-alternative", "Resend alternative"], ["/brevo-alternative", "Brevo alternative"], ["/about", "About"], ["/customers", "Customers"], ["/careers", "Careers"],
   ["/blog", "Blog"], ["/changelog", "Changelog"], ["/brand", "Brand"], ["/status", "Status"], ["/contact-sales", "Contact sales"],
   ["/support", "Support", true], ["/terms", "Terms", true], ["/privacy", "Privacy", true], ["/dpa", "DPA"], ["/acceptable-use", "Acceptable use"],
   ["/cookies", "Cookies"], ["/subprocessors", "Subprocessors"], ["/security", "Security"],

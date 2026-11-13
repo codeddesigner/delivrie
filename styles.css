@@ -856,3 +856,22 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .cmp.vs .explain { height: 22px; padding: 0 7px; font-size: 11.5px; }
   .cmp.vs tr.ex td { padding: 0 10px 12px; }
 }
+
+/* Alternative pages (/resend-alternative, /brevo-alternative) */
+.cmp.alt { min-width: 560px; }
+.cmp.alt th[scope=row] { width: 34%; }
+.cmp.alt thead img { height: 18px; width: auto; display: block; }
+.cmp.alt .us { background: color-mix(in srgb, var(--yellow) 6%, transparent); color: var(--fg); font-weight: 500; }
+.fair { margin: 22px 0 0; padding: 16px 18px; border: 1px solid var(--border-app); border-radius: 12px; background: var(--panel); color: var(--fg-2); font-size: 14px; line-height: 1.6; }
+.fair b { color: var(--fg); font-weight: 500; }
+.code-h { font: 500 12px/1 "Geist Mono", monospace; color: var(--fg-3); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 10px; }
+.faq-list { display: flex; flex-direction: column; border-top: 1px solid var(--line-soft); }
+.faq-i { border-bottom: 1px solid var(--line-soft); padding: 16px 0; }
+.faq-i summary { cursor: pointer; font-weight: 500; font-size: 16px; color: var(--fg); list-style: none; }
+.faq-i summary::-webkit-details-marker { display: none; }
+.faq-i summary::after { content: "+"; float: right; color: var(--fg-3); font-weight: 400; }
+.faq-i[open] summary::after { content: "–"; }
+.faq-i p { margin: 10px 0 0; color: var(--fg-2); line-height: 1.6; font-size: 14.5px; }
+@media (max-width: 720px) { .cmp.alt { min-width: 0; table-layout: fixed; font-size: 13px; } .cmp.alt th[scope=row] { width: 36%; } }
+.grid2 > div { min-width: 0; }
+.grid2 .post-code { overflow-x: auto; }

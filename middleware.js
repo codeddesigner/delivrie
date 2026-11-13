@@ -3,7 +3,7 @@
 export const config = {
   matcher: [
     '/pricing', '/compare', '/vs/:path*', '/about', '/customers', '/careers', '/brand', '/changelog', '/blog', '/blog/:path*', '/status',
-    '/contact-sales', '/dpa', '/acceptable-use', '/cookies', '/subprocessors', '/security', '/sitemap.xml',
+    '/contact-sales', '/dpa', '/acceptable-use', '/cookies', '/subprocessors', '/security', '/resend-alternative', '/brevo-alternative', '/sitemap.xml',
   ],
 };
 
@@ -41,7 +41,7 @@ export default async function middleware(request) {
   const url = new URL(request.url);
   if (url.pathname === '/sitemap.xml') return url.searchParams.has('raw') ? new Response(null, { headers: { 'x-middleware-next': '1' } }) : sitemap(url);
   let path = url.pathname.replace(/\/+$/, '') || '/';
-  if (path === '/compare' || path.startsWith('/vs/')) path = '/pricing'; // the Compare view is part of Pricing
+  if (path === '/compare') path = '/pricing'; // the Compare view is part of Pricing
   if (!ALWAYS_ON.has(path)) {
     const pages = await offPages();
     const section = '/' + path.split('/')[1];
