@@ -48,16 +48,31 @@ jobs:
       - name: Certificate (first run only)
         working-directory: smtp
         run: flyctl certs show "$HOSTNAME" --app "$APP" >/dev/null 2>&1 || flyctl certs add "$HOSTNAME" --app "$APP"
+      - name: Wait for the certificate
+        working-directory: smtp
+        run: |
+          for i in $(seq 1 30); do
+            if flyctl certs show "$HOSTNAME" --app "$APP" --json | jq -e '.ClientStatus == "Ready" or .Configured == true' >/dev/null 2>&1; then echo "certificate ready"; exit 0; fi
+            flyctl certs check "$HOSTNAME" --app "$APP" >/dev/null 2>&1 || true
+            sleep 10
+          done
+          echo "::warning::Certificate for $HOSTNAME isn't ready yet. Check that the A and AAAA records point at the IPs below (DNS only, not proxied), then re-run."
+          flyctl certs show "$HOSTNAME" --app "$APP" || true
+      - name: Live check
+        env:
+          SMTP_TEST_KEY: ${{ secrets.SMTP_TEST_KEY }}
+        run: node smtp/smoke.mjs "$HOSTNAME"
       - name: Summary
+        if: always()
         working-directory: smtp
         run: |
           {
             echo "## SMTP relay"
-            echo "Point these DNS records at Fly (only needed once):"
+            echo "DNS records for $HOSTNAME (DNS only, not proxied):"
             echo '```'
-            flyctl ips list --app "$APP" | grep -E 'v4|v6' | awk -v h="$HOSTNAME" '$1=="v4"{print "A     " h "  " $2} $1=="v6"{print "AAAA  " h "  " $2}'
+            flyctl ips list --app "$APP" --json | jq -r --arg h "$HOSTNAME" '.[] | select(.Type=="v4") | "A     \($h)  \(.Address)"'
+            flyctl ips list --app "$APP" --json | jq -r --arg h "$HOSTNAME" '.[] | select(.Type=="v6") | "AAAA  \($h)  \(.Address)"'
             echo '```'
-            echo "Certificate status:"
             echo '```'
             flyctl certs show "$HOSTNAME" --app "$APP" || true
             echo '```'
