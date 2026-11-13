@@ -815,8 +815,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .p-view { padding: 4px; border-radius: 12px; }
 .p-view button { height: 38px; padding: 0 18px; font-size: 14px; border-radius: 9px; }
 .p-view .dim { color: var(--fg-3); font-weight: 400; }
-.p-view .vs-logos { display: inline-flex; gap: 4px; }
-.p-view .vs-logos img { height: 14px; width: auto; opacity: .85; }
+.p-view .vs-logos { display: inline-flex; align-items: center; gap: 7px; margin-left: 2px; }
+.p-view .vs-logos img { height: 13px; width: auto; opacity: .75; transition: opacity .2s; }
+.p-view button.on .vs-logos img, .p-view button:hover .vs-logos img { opacity: 1; }
 .p-extra .wrap { padding-bottom: 8px; }
 .p-extra p { text-align: center; color: var(--fg-2); font-size: 14px; line-height: 1.6; margin: 8px auto 0; max-width: 760px; }
 .p-extra a { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
@@ -827,7 +828,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cmp.vs th[scope=row] > span { display: block; color: var(--fg); }
 .cmp.vs .us { background: color-mix(in srgb, var(--yellow) 6%, transparent); }
 .cmp.vs .brand-h { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: var(--fg); }
-.cmp.vs .brand-h img { height: 18px; width: auto; }
+.cmp.vs .brand-h img { height: 18px; width: auto; display: block; }
+.cmp.vs .brand-h.wm img { height: 17px; }
 .cmp.vs td b { font-weight: 500; font-size: 15px; display: block; }
 .cmp.vs .vs-sub { display: block; color: var(--fg-3); font-size: 12px; margin-top: 2px; }
 .cmp.vs td svg { vertical-align: -2px; margin-right: 4px; }
@@ -838,7 +840,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cmp.vs .explain[aria-expanded=true] svg { transform: rotate(180deg); }
 .cmp.vs tr.ex td { border-top: 0; padding: 0 18px 16px; background: transparent; }
 .cmp.vs tr.ex p { margin: 0; padding: 12px 14px; border-radius: 10px; background: var(--bg-active); color: var(--fg-2); font-size: 13.5px; line-height: 1.6; max-width: 820px; }
-@media (max-width: 720px) { .p-view button { padding: 0 12px; } .p-view .dim { display: none; } }
+@media (max-width: 720px) { .p-view button { padding: 0 12px; } .p-view .vs-logos img { height: 11px; } }
 @media (max-width: 720px) {
   .cmp.vs { min-width: 0; table-layout: fixed; font-size: 12.5px; }
   .cmp.vs th[scope=row] { width: 31%; padding: 11px 8px 11px 12px; }
@@ -846,6 +848,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   .cmp.vs thead th { font-size: 13px; }
   .cmp.vs .brand-h { gap: 5px; }
   .cmp.vs .brand-h img { height: 14px; }
+  .cmp.vs .brand-h.wm img { height: 12px; }
   .cmp.vs td b { font-size: 13px; }
   .cmp.vs .vs-sub { font-size: 11px; }
   .cmp.vs td svg { display: block; margin: 0 0 2px; }

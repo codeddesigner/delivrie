@@ -52,7 +52,7 @@
   // in Naira they are converted at the official NFEM rate below. Delivrie Naira prices are our own.
   // Defaults below; Admin → Website → Compare can change the figures, any cell, and the Explain notes.
   var CMP_DEFAULT = { fx: 1350, date: '13 November 2026', prices: { r20: 20, b20: 32, r100: 65, b100: 82, rOver: 0.9, bBrand: 12 } };
-  var BRANDS = [['delivrie', 'Delivrie', '/assets/mark.svg'], ['resend', 'Resend', '/assets/compare/resend.svg'], ['brevo', 'Brevo', '/assets/compare/brevo.svg']];
+  var BRANDS = [['delivrie', 'Delivrie', '/assets/mark.svg', false], ['resend', 'Resend', '/assets/compare/resend.png', true], ['brevo', 'Brevo', '/assets/compare/brevo.png', true]];
   var arrow = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
   var escH = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   function compareRows(c) {
@@ -93,7 +93,8 @@
       return [r[0], o.label ? escH(o.label) : r[1], o.delivrie ? escH(o.delivrie) : r[2], o.resend ? escH(o.resend) : r[3], o.brevo ? escH(o.brevo) : r[4], o.explain ? escH(o.explain) : r[5]];
     });
     var head = '<thead><tr><th></th>' + BRANDS.map(function (b, i) {
-      return '<th class="' + (i ? '' : 'us') + '"><span class="brand-h"><img src="' + b[2] + '" alt="" height="18" onerror="this.remove()"><span>' + b[1] + '</span></span></th>';
+      // Resend and Brevo logos are wordmarks, so their name only shows if the image fails to load.
+      return '<th class="' + (i ? '' : 'us') + '"><span class="brand-h' + (b[3] ? ' wm' : '') + '"><img src="' + b[2] + '" alt="' + b[1] + '" onerror="this.nextElementSibling.hidden=false;this.remove()"><span' + (b[3] ? ' hidden' : '') + '>' + b[1] + '</span></span></th>';
     }).join('') + '</tr></thead>';
     $('#vs-table').innerHTML = head + '<tbody>' + rows.map(function (r, i) {
       return '<tr class="vr"><th scope="row"><span>' + r[1] + '</span><button class="explain" aria-expanded="false" aria-controls="ex-' + i + '">Explain' + arrow + '</button></th>' +
