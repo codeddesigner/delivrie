@@ -63,7 +63,10 @@ jobs:
       - name: Live check
         env:
           SMTP_TEST_KEY: ${{ secrets.SMTP_TEST_KEY }}
-        run: node smtp/smoke.mjs "$HOSTNAME"
+        run: |
+          # also check port 587 once its certificate has been installed (see smtp-cert.yml)
+          if flyctl secrets list --app "$APP" 2>/dev/null | grep -q TLS_CERT; then export SMTP_CHECK_587=1; fi
+          node smtp/smoke.mjs "$HOSTNAME"
       - name: Summary
         if: always()
         working-directory: smtp

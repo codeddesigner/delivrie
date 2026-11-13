@@ -1,6 +1,6 @@
 # Delivrie SMTP relay on Fly.io. Deployed by .github/workflows/deploy-smtp.yml.
 # Fly terminates TLS on 465 and 2465 (certificate for smtp.delivrie.io via `fly certs add`)
-# and passes the client IP to the app with the PROXY protocol.
+# and passes the client IP to the app with the PROXY protocol. Port 587 is handled by the app (see below).
 app = "delivrie-smtp"
 primary_region = "lhr" # London: close to Lagos and to the Delivrie API in eu-west-1
 
@@ -39,6 +39,30 @@ primary_region = "lhr" # London: close to Lagos and to the Delivrie API in eu-we
     interval = "15s"
     timeout = "2s"
     grace_period = "10s"
+
+# Port 587 (and 2587 as a backup): plain text, upgraded with STARTTLS by the app itself using the certificate
+# in the TLS_CERT / TLS_KEY secrets (renewed monthly by .github/workflows/smtp-cert.yml).
+[[services]]
+  internal_port = 2587
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    port = 587
+    handlers = ["proxy_proto"]
+    proxy_proto_options = { version = "v1" }
+
+  [[services.ports]]
+    port = 2587
+    handlers = ["proxy_proto"]
+    proxy_proto_options = { version = "v1" }
+
+  [services.concurrency]
+    type = "connections"
+    soft_limit = 200
+    hard_limit = 500
 
 [[vm]]
   size = "shared-cpu-1x"

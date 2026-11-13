@@ -5,6 +5,10 @@ import net from "node:net";
 import { spawn } from "node:child_process";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import tls from "node:tls";
+import os from "node:os";
+import fs from "node:fs";
 
 const GOOD = "dlv_live_goodkey12345", SEND_ONLY = "dlv_live_sendonly1234";
 const sent = [];
@@ -21,15 +25,17 @@ const api = http.createServer((req, res) => {
   });
 });
 await new Promise((r) => api.listen(0, "127.0.0.1", r));
-const apiPort = api.address().port, port = 30000 + Math.floor(Math.random() * 20000);
-const relay = spawn(process.execPath, [fileURLToPath(new URL("./server.mjs", import.meta.url))], { env: { ...process.env, PORT: String(port), DELIVRIE_API: `http://127.0.0.1:${apiPort}`, PROXY_PROTOCOL: process.env.TEST_PROXY || "0" }, stdio: ["ignore", "pipe", "inherit"] });
-await new Promise((r) => relay.stdout.once("data", r));
+const apiPort = api.address().port, port = 30000 + Math.floor(Math.random() * 20000), tlsPort = port + 1;
+const dir = fs.mkdtempSync(os.tmpdir() + "/smtp-test-");
+execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=smtp.test", "-keyout", dir + "/k.pem", "-out", dir + "/c.pem"], { stdio: "ignore" });
+const relay = spawn(process.execPath, [fileURLToPath(new URL("./server.mjs", import.meta.url))], { env: { ...process.env, PORT: String(port), STARTTLS_PORT: String(tlsPort), TLS_CERT: fs.readFileSync(dir + "/c.pem", "utf8"), TLS_KEY: fs.readFileSync(dir + "/k.pem", "utf8"), DELIVRIE_API: `http://127.0.0.1:${apiPort}`, PROXY_PROTOCOL: process.env.TEST_PROXY || "0" }, stdio: ["ignore", "pipe", "inherit"] });
+let started = ""; await new Promise((r) => relay.stdout.on("data", (d) => { started += d; if (started.includes(String(tlsPort))) r(); }));
 process.on("exit", () => relay.kill());
 process.on("uncaughtException", (e) => { console.error(e); relay.kill(); process.exit(1); });
 process.on("unhandledRejection", (e) => { console.error(e); relay.kill(); process.exit(1); });
 
-function client() {
-  const s = net.connect(port, "127.0.0.1");
+function client(p = port) {
+  let s = net.connect(p, "127.0.0.1");
   let buf = "", waiters = [];
   s.on("data", (d) => { buf += d; flush(); });
   function flush() {
@@ -40,7 +46,8 @@ function client() {
   }
   const read = () => new Promise((r) => { waiters.push(r); flush(); });
   const cmd = async (line) => { s.write(line + "\r\n"); return read(); };
-  return { s, read, cmd, write: (x) => s.write(x) };
+  const upgrade = () => new Promise((res) => { s.removeAllListeners("data"); s = tls.connect({ socket: s, rejectUnauthorized: false, servername: "smtp.test" }, () => res()); s.on("data", (d) => { buf += d; flush(); }); });
+  return { get s() { return s; }, read, cmd, upgrade, write: (x) => s.write(x) };
 }
 const b64 = (s) => Buffer.from(s).toString("base64");
 const ok = (r, code) => assert.ok(r.startsWith(String(code)), `expected ${code}, got: ${r}`);
@@ -96,6 +103,23 @@ const ok = (r, code) => assert.ok(r.startsWith(String(code)), `expected ${code},
   c.write("From: hello@delivrie.io\r\nTo: z@example.com\r\nSubject: piped\r\n\r\nbody\r\n.\r\nQUIT\r\n");
   ok(await c.read(), 250); ok(await c.read(), 221);
   assert.equal(sent[1].subject, "piped"); assert.equal(sent[1].text, "body\r\n");
+}
+// 2b. port 587: plain text first, STARTTLS, then log in and send
+{
+  const c = client(tlsPort); ok(await c.read(), 220);
+  const e1 = await c.cmd("EHLO app.example"); assert.match(e1, /STARTTLS/); assert.doesNotMatch(e1, /AUTH/);
+  ok(await c.cmd("AUTH PLAIN " + b64("\0delivrie\0" + GOOD)), 530);
+  ok(await c.cmd("STARTTLS"), 220);
+  await c.upgrade();
+  const e2 = await c.cmd("EHLO app.example"); assert.match(e2, /AUTH PLAIN LOGIN/); assert.doesNotMatch(e2, /STARTTLS/);
+  ok(await c.cmd("STARTTLS"), 503);
+  ok(await c.cmd("AUTH PLAIN " + b64("\0delivrie\0" + GOOD)), 235);
+  ok(await c.cmd("MAIL FROM:<hello@delivrie.io>"), 250); ok(await c.cmd("RCPT TO:<delivered@test.delivrie.io>"), 250); ok(await c.cmd("DATA"), 354);
+  c.write("From: hello@delivrie.io\r\nTo: delivered@test.delivrie.io\r\nSubject: over 587\r\n\r\nencrypted\r\n.\r\n");
+  ok(await c.read(), 250); assert.equal(sent.at(-1).subject, "over 587");
+  ok(await c.cmd("QUIT"), 221);
+  // 465-style port never offers STARTTLS
+  const d = client(); await d.read(); const e3 = await d.cmd("EHLO x"); assert.doesNotMatch(e3, /STARTTLS/); ok(await d.cmd("STARTTLS"), 454); await d.cmd("QUIT");
 }
 // 3. brute force: five bad logins, then the IP is locked out
 {

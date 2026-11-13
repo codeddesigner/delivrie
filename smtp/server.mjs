@@ -5,6 +5,7 @@
 // TLS is terminated by Fly (ports 465 and 2465, implicit TLS); this process speaks plain SMTP behind it.
 // Set ALLOW_INSECURE_AUTH=1 only for local testing.
 import net from "node:net";
+import tls from "node:tls";
 import crypto from "node:crypto";
 import { parseMessage, bareEmail } from "./mime.mjs";
 
@@ -15,6 +16,12 @@ const MAX_SIZE = +(process.env.MAX_MESSAGE_BYTES || 40 * 1024 * 1024); // matche
 const MAX_RCPT = 50; // the API accepts up to 50 recipients per email
 const IDLE_MS = 5 * 60 * 1000;
 const PROXY = process.env.PROXY_PROTOCOL !== "0"; // Fly's proxy_proto handler sends the client IP first
+// Port 587 (and 2587): the client connects in plain text and upgrades with STARTTLS, so this process holds the
+// certificate for smtp.delivrie.io (Fly secrets TLS_CERT and TLS_KEY, renewed by .github/workflows/smtp-cert.yml).
+const STARTTLS_PORT = +(process.env.STARTTLS_PORT || 2587);
+const TLS_CTX = process.env.TLS_CERT && process.env.TLS_KEY
+  ? tls.createSecureContext({ cert: process.env.TLS_CERT.replace(/\\n/g, "\n"), key: process.env.TLS_KEY.replace(/\\n/g, "\n"), minVersion: "TLSv1.2" })
+  : null;
 
 const TERM = Buffer.from("\r\n.\r\n");
 const log = (o) => console.log(JSON.stringify({ t: new Date().toISOString(), ...o }));
@@ -70,18 +77,20 @@ async function send(key, raw, envFrom, rcpts) {
 }
 
 // ---- SMTP session
-function session(sock, ip) {
+function session(sock, ip, starttls = false) {
+  let io = sock, secure = !starttls; // 465/2465 arrive already encrypted (Fly terminates TLS)
   let state = { helo: false, key: null, from: null, rcpt: [] };
   let tail = Buffer.from("\r\n"), mode = "cmd", authStep = null, authUser = "", data = [], dataLen = 0, tooBig = false, busy = false, buf = Buffer.alloc(0), proxyDone = !PROXY;
-  const reply = (s) => { if (!sock.destroyed) sock.write(s + "\r\n"); };
+  const reply = (s) => { if (!io.destroyed) io.write(s + "\r\n"); };
   const reset = () => { state.from = null; state.rcpt = []; data = []; dataLen = 0; tooBig = false; tail = Buffer.from("\r\n"); };
-  sock.setTimeout(IDLE_MS, () => { reply("421 4.4.2 Idle timeout, closing connection"); sock.end(); });
+  const idle = (x) => x.setTimeout(IDLE_MS, () => { reply("421 4.4.2 Idle timeout, closing connection"); io.end(); });
+  idle(sock);
 
-  const greet = () => { if (blocked(ip)) { reply("421 4.7.0 Too many failed logins, try again later"); return sock.end(); } reply(`220 ${HOST} ESMTP Delivrie`); };
+  const greet = () => { if (blocked(ip)) { reply("421 4.7.0 Too many failed logins, try again later"); return io.end(); } reply(`220 ${HOST} ESMTP Delivrie`); };
   if (proxyDone) greet();
 
   async function finishAuth(user, pass) {
-    if (blocked(ip)) { reply("421 4.7.0 Too many failed logins, try again later"); return sock.end(); }
+    if (blocked(ip)) { reply("421 4.7.0 Too many failed logins, try again later"); return io.end(); }
     let ok = false;
     try { ok = await checkKey(pass); } catch (e) { log({ ev: "auth_error", ip, err: String(e) }); return reply("454 4.7.0 Temporary authentication failure, try again"); }
     if (!ok) { failed(ip); log({ ev: "auth_fail", ip, user }); return reply("535 5.7.8 Authentication failed. Use username \"delivrie\" and a Delivrie API key as the password."); }
@@ -104,9 +113,11 @@ function session(sock, ip) {
       case "EHLO": case "HELO":
         state.helo = true; reset();
         if (verb === "HELO") return reply(`250 ${HOST}`);
-        return reply([`250-${HOST} Hello`, `250-SIZE ${MAX_SIZE}`, "250-8BITMIME", "250-ENHANCEDSTATUSCODES", "250-AUTH PLAIN LOGIN", "250 SMTPUTF8"].join("\r\n"));
+        // Before STARTTLS on 587 we only offer the upgrade; logins are allowed once the connection is encrypted.
+        return reply([`250-${HOST} Hello`, `250-SIZE ${MAX_SIZE}`, "250-8BITMIME", "250-ENHANCEDSTATUSCODES", ...(secure ? ["250-AUTH PLAIN LOGIN"] : TLS_CTX ? ["250-STARTTLS"] : []), "250 SMTPUTF8"].join("\r\n"));
       case "AUTH": {
         if (!state.helo) return reply("503 5.5.1 Send EHLO first");
+        if (!secure) return reply("530 5.7.0 Must issue a STARTTLS command first");
         if (state.key) return reply("503 5.5.1 Already authenticated");
         const [mech, initial] = arg.split(/\s+/);
         if (/^PLAIN$/i.test(mech)) {
@@ -139,8 +150,19 @@ function session(sock, ip) {
         mode = "data"; return reply("354 End data with <CR><LF>.<CR><LF>");
       case "RSET": reset(); return reply("250 2.0.0 OK");
       case "NOOP": return reply("250 2.0.0 OK");
-      case "QUIT": reply("221 2.0.0 Bye"); return sock.end();
-      case "STARTTLS": return reply("454 4.7.0 Connect with TLS on port 465 or 2465 instead");
+      case "QUIT": reply("221 2.0.0 Bye"); return io.end();
+      case "STARTTLS": {
+        if (secure) return reply(starttls ? "503 5.5.1 TLS is already active" : "454 4.7.0 This port is already encrypted");
+        if (!TLS_CTX) return reply("454 4.7.0 TLS not available, connect with TLS on port 465 instead");
+        reply("220 2.0.0 Ready to start TLS");
+        buf = Buffer.alloc(0); // anything pipelined before the handshake is discarded (RFC 3207)
+        sock.removeListener("data", onData);
+        const t = new tls.TLSSocket(sock, { isServer: true, secureContext: TLS_CTX });
+        t.on("data", onData); t.on("error", () => sock.destroy()); idle(t);
+        io = t; secure = true;
+        state = { helo: false, key: null, from: null, rcpt: [] }; // the client starts over with EHLO
+        return;
+      }
       case "VRFY": return reply("252 2.5.2 Cannot verify, but will try to deliver");
       case "HELP": return reply("214 2.0.0 See https://delivrie.io/docs/smtp");
       default: return reply("502 5.5.2 Command not recognised");
@@ -173,10 +195,10 @@ function session(sock, ip) {
     try {
       for (;;) {
         if (!proxyDone) {
-          const i = buf.indexOf("\r\n"); if (i === -1) { if (buf.length > 200) return sock.destroy(); break; }
+          const i = buf.indexOf("\r\n"); if (i === -1) { if (buf.length > 200) return io.destroy(); break; }
           const line = buf.subarray(0, i).toString("latin1"); buf = buf.subarray(i + 2);
           const p = line.match(/^PROXY (?:TCP4|TCP6) (\S+) /); if (p) ip = p[1];
-          else if (!/^PROXY UNKNOWN/.test(line)) return sock.destroy();
+          else if (!/^PROXY UNKNOWN/.test(line)) return io.destroy();
           proxyDone = true; greet(); continue;
         }
         if (mode === "data") {
@@ -200,24 +222,31 @@ function session(sock, ip) {
           continue;
         }
         const i = buf.indexOf("\r\n");
-        if (i === -1) { if (buf.length > 8192) { reply("500 5.5.6 Line too long"); return sock.end(); } break; }
+        if (i === -1) { if (buf.length > 8192) { reply("500 5.5.6 Line too long"); return io.end(); } break; }
         const line = buf.subarray(0, i).toString("utf8"); buf = buf.subarray(i + 2);
         await command(line);
-        if (sock.destroyed) return;
+        if (io.destroyed) return;
       }
     } finally { busy = false; }
   }
 
-  sock.on("data", (d) => { buf = Buffer.concat([buf, d]); pump().catch((e) => { log({ ev: "session_error", ip, err: String(e) }); sock.destroy(); }); });
+  function onData(d) { buf = Buffer.concat([buf, d]); pump().catch((e) => { log({ ev: "session_error", ip, err: String(e) }); io.destroy(); }); }
+  sock.on("data", onData);
   sock.on("error", () => {});
 }
 
 let open = 0;
-const server = net.createServer((sock) => {
+const accept = (starttls) => (sock) => {
   if (open >= 500) { sock.end("421 4.3.2 Busy, try again later\r\n"); return; }
   open++; sock.on("close", () => open--);
-  session(sock, sock.remoteAddress || "unknown");
-});
-if (process.env.SMTP_NO_LISTEN !== "1") server.listen(PORT, () => log({ ev: "listening", port: PORT, api: API, proxy: PROXY }));
-process.on("SIGTERM", () => { server.close(); setTimeout(() => process.exit(0), 10_000).unref(); });
-export { server };
+  session(sock, sock.remoteAddress || "unknown", starttls);
+};
+const server = net.createServer(accept(false));
+const starttlsServer = TLS_CTX ? net.createServer(accept(true)) : null;
+if (process.env.SMTP_NO_LISTEN !== "1") {
+  server.listen(PORT, () => log({ ev: "listening", port: PORT, api: API, proxy: PROXY }));
+  if (starttlsServer) starttlsServer.listen(STARTTLS_PORT, () => log({ ev: "listening", port: STARTTLS_PORT, starttls: true }));
+  else log({ ev: "starttls_off", reason: "TLS_CERT and TLS_KEY not set" });
+}
+process.on("SIGTERM", () => { server.close(); starttlsServer?.close(); setTimeout(() => process.exit(0), 10_000).unref(); });
+export { server, starttlsServer };
