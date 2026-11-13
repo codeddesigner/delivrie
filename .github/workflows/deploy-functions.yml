@@ -24,6 +24,11 @@ jobs:
             echo "::error::Add the SUPABASE_ACCESS_TOKEN repository secret to deploy functions."
             exit 1
           fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check every function file parses
+        run: npm install --no-save --silent typescript@5 && node tools/check-functions.mjs
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -32,3 +37,11 @@ jobs:
       - run: supabase functions deploy delivrie --project-ref "$PROJECT_REF" --no-verify-jwt --yes
       - run: supabase functions deploy billing --project-ref "$PROJECT_REF" --no-verify-jwt --yes
       - run: supabase functions deploy automations --project-ref "$PROJECT_REF" --no-verify-jwt --yes
+      - name: Check the API is up after deploying
+        run: |
+          for i in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "https://$PROJECT_REF.supabase.co/functions/v1/delivrie/public/status")
+            [ "$code" = "200" ] && { echo "API is up"; exit 0; }
+            echo "API answered $code, retrying…"; sleep 10
+          done
+          echo "::error::The API isn't starting after this deploy. Check the function logs, then fix or redeploy the previous commit."; exit 1
