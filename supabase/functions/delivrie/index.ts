@@ -728,6 +728,15 @@ async function askDelivrie(question: string) {
 async function publicRoutes(req: Request, path: string, url: URL): Promise<Response | null> {
   if (path === "/public/status") return json({ status: "operational", sending: hasAws() });
   // ChatGPT plugin domain verification: the token from the OpenAI portal, stored in system_settings, as plain text.
+  if (path === "/public/site") {
+    // Website settings from the admin area. Cached briefly at the edge; pages poll it on load.
+    const { data } = await db.from("site_config").select("key,value");
+    const cfg: Any = { pages: {}, banner: null, compare: null, edits: {} };
+    for (const r of data || []) cfg[r.key] = r.value;
+    const only = url.searchParams.get("only");
+    const body = only === "pages" ? { pages: cfg.pages } : cfg;
+    return new Response(JSON.stringify(body), { headers: { ...CORS, "content-type": "application/json", "cache-control": "public, max-age=30, s-maxage=30, stale-while-revalidate=300" } });
+  }
   if (path === "/public/openai-apps-challenge") {
     const token = await setting("openai_apps_challenge");
     return new Response(token || "", { status: token ? 200 : 404, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" } });

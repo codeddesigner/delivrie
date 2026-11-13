@@ -1,10 +1,10 @@
-// Platform admin: sign-ups, users, teams, revenue, sending health and the support inbox.
+// Platform admin: sign-ups, users, teams, revenue, sending health, the support inbox and website settings.
 // Access is checked in the database (platform_admins + security-definer functions); this page only renders.
 import { sb, state } from "../lib/sb.js";
-import { esc, icon, num, fmtDate, fmtDateTime, ago, badge, toast, errToast, on, debounce, confirmModal, formModal, emptyState, initials } from "../lib/ui.js";
+import { esc, icon, num, fmtDate, fmtDateTime, ago, badge, toast, errToast, on, debounce, confirmModal, formModal, fieldHtml, emptyState, initials } from "../lib/ui.js";
 import { lineChart } from "../lib/chart.js";
 
-const TABS = [["overview", "Overview"], ["users", "Users"], ["teams", "Teams"], ["revenue", "Revenue"], ["inbox", "Inbox"]];
+const TABS = [["overview", "Overview"], ["users", "Users"], ["teams", "Teams"], ["revenue", "Revenue"], ["inbox", "Inbox"], ["website", "Website"]];
 const money = (amount, currency) => new Intl.NumberFormat(currency === "NGN" ? "en-NG" : "en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format((amount || 0) / 100);
 const moneyMap = (m) => Object.keys(m || {}).length ? Object.entries(m).map(([c, a]) => money(a, c)).join(" · ") : "—";
 const pct = (a, b, d = 1) => b ? `${((a / b) * 100).toFixed(d)}%` : "0%";
@@ -29,7 +29,7 @@ export default async function admin(ctx) {
     body.innerHTML = `<div class="card">${emptyState({ icon: "shield", title: "Admins only", desc: "This account isn't a Delivrie platform admin. Ask an existing admin to add you." })}</div>`;
     return;
   }
-  const fn = { overview, users, teams, revenue, inbox }[tab];
+  const fn = { overview, users, teams, revenue, inbox, website }[tab];
   if (!fn) return ctx.navigate("/admin", { replace: true });
   try { await fn(body, ctx); } catch (e) { errToast(e); body.innerHTML = `<div class="card">${emptyState({ icon: "alert", title: "Couldn't load", desc: esc(e.message) })}</div>`; }
 }
@@ -161,3 +161,179 @@ async function inbox(body) {
       <p style="margin:10px 0;white-space:pre-wrap;font-size:13px;line-height:1.55">${esc(r.message)}</p>
       <div class="row-flex dim" style="font-size:12px;gap:6px">${icon("users", 12)} ${esc(r.email || "Unknown")}${r.team ? ` · ${esc(r.team)}` : ""}<span class="grow"></span>${r.email ? `<a class="btn btn-secondary btn-sm" href="mailto:${esc(r.email)}?subject=${encodeURIComponent("Re: " + (r.subject || "Your Delivrie feedback"))}" data-native>Reply</a>` : ""}</div></div>`).join("")}</div>` : `<div class="card">${emptyState({ icon: "mail", title: "Inbox zero", desc: "Support requests and feedback from the app land here." })}</div>`;
 }
+
+// ---------------------------------------------------------------- website
+// Public pages read these settings from /api/public/site (cached ~30 seconds). See site-config.js and middleware.js.
+const SITE_PAGES = [
+  ["/", "Home", true], ["/pricing", "Pricing"], ["/about", "About"], ["/customers", "Customers"], ["/careers", "Careers"],
+  ["/blog", "Blog"], ["/changelog", "Changelog"], ["/brand", "Brand"], ["/status", "Status"], ["/contact-sales", "Contact sales"],
+  ["/support", "Support", true], ["/terms", "Terms", true], ["/privacy", "Privacy", true], ["/dpa", "DPA"], ["/acceptable-use", "Acceptable use"],
+  ["/cookies", "Cookies"], ["/subprocessors", "Subprocessors"], ["/security", "Security"],
+];
+const CMP_PRICES = [["r20", "Resend at 20,000 emails ($)", 20], ["b20", "Brevo at 20,000 emails ($)", 32], ["r100", "Resend at 100,000 emails ($)", 65], ["b100", "Brevo at 100,000 emails ($)", 82], ["rOver", "Resend per extra 1,000 ($)", 0.9], ["bBrand", "Brevo footer removal ($/month)", 12]];
+const SITE_TABS = [["pages", "Pages"], ["banner", "Announcement bar"], ["compare", "Compare"], ["edit", "Edit pages"]];
+
+async function website(body, ctx) {
+  const sub = new URLSearchParams(location.search).get("s") || "pages";
+  const raw = await rpc("admin_site_get");
+  const cfg = { pages: raw.pages?.value || {}, banner: raw.banner?.value || {}, compare: raw.compare?.value || {}, edits: raw.edits?.value || {} };
+  const save = async (key, value, msg = "Saved. Live within a minute.") => { await rpc("admin_site_set", { p_key: key, p_value: value }); cfg[key] = value; toast(msg); };
+  body.innerHTML = `<div class="seg-tabs">${SITE_TABS.map(([k, l]) => `<a class="seg-tab ${k === sub ? "on" : ""}" href="/admin/website?s=${k}" style="display:inline-flex;align-items:center">${l}</a>`).join("")}</div><div data-site></div>`;
+  const el = body.querySelector("[data-site]");
+  const view = { pages: sitePages, banner: siteBanner, compare: siteCompare, edit: siteEditor }[sub] || sitePages;
+  await view(el, cfg, save, ctx);
+}
+
+function sitePages(el, cfg, save) {
+  el.innerHTML = `<p class="dim" style="margin:0 0 14px;font-size:13px">A page that's off shows "not found" and its links disappear from the menus and footer. Home, Support, Terms and Privacy always stay on, because app directories (ChatGPT, Claude) link to them.</p>
+    <div class="table-wrap"><table class="t"><thead><tr><th>Page</th><th>Address</th><th class="r">On</th></tr></thead><tbody>${SITE_PAGES.map(([path, name, locked]) => `<tr>
+      <td>${esc(name)}</td><td class="muted mono" style="font-size:12px"><a href="${path}" target="_blank" rel="noopener">delivrie.io${path === "/" ? "" : path}</a></td>
+      <td class="r">${locked ? `<span class="dim" style="font-size:12px">Always on</span>` : `<input type="checkbox" class="toggle" data-page="${path}" ${cfg.pages[path] === false ? "" : "checked"} aria-label="${esc(name)} on">`}</td></tr>`).join("")}</tbody></table></div>`;
+  on(el, "change", "[data-page]", async (_e, t) => {
+    const next = { ...cfg.pages };
+    if (t.checked) delete next[t.dataset.page]; else next[t.dataset.page] = false;
+    try { await save("pages", next, t.checked ? "Page is on" : "Page is off. It shows \"not found\" within a minute."); } catch (e) { t.checked = !t.checked; errToast(e); }
+  });
+}
+
+function siteBanner(el, cfg, save) {
+  const b = { on: false, text: "", link: "", link_text: "", tone: "yellow", ...cfg.banner };
+  el.innerHTML = `<div class="card card-pad" style="max-width:640px;display:flex;flex-direction:column;gap:14px">
+      <label class="row-flex" style="justify-content:space-between"><span><b style="font-weight:500">Show the announcement bar</b><div class="dim" style="font-size:12px">A strip at the very top of every public page. Visitors can close it.</div></span><input type="checkbox" class="toggle" name="on" ${b.on ? "checked" : ""}></label>
+      ${fieldHtml({ name: "text", label: "Message", value: b.text, placeholder: "SMTP is live: send from WordPress, Laravel and more" })}
+      <div class="row-flex" style="gap:12px;align-items:flex-start"><div style="flex:2">${fieldHtml({ name: "link", label: "Link", value: b.link, placeholder: "/docs/smtp", optional: true })}</div><div style="flex:1">${fieldHtml({ name: "link_text", label: "Link text", value: b.link_text, placeholder: "Learn more", optional: true })}</div></div>
+      <div class="field"><label>Colour</label><div class="row-flex" style="gap:16px"><label class="row-flex" style="gap:6px"><input type="radio" name="tone" value="yellow" ${b.tone !== "dark" ? "checked" : ""}> Yellow</label><label class="row-flex" style="gap:6px"><input type="radio" name="tone" value="dark" ${b.tone === "dark" ? "checked" : ""}> Dark</label></div></div>
+      <div class="field"><label>Preview</label><div data-preview></div></div>
+      <div class="row-flex" style="justify-content:flex-end"><button class="btn btn-primary" data-save>Save</button></div></div>`;
+  const read = () => ({ on: el.querySelector("[name=on]").checked, text: el.querySelector("[name=text]").value.trim(), link: el.querySelector("[name=link]").value.trim(), link_text: el.querySelector("[name=link_text]").value.trim(), tone: el.querySelector("[name=tone]:checked").value });
+  const preview = () => { const v = read(); el.querySelector("[data-preview]").innerHTML = v.text ? `<div style="padding:9px 14px;border-radius:8px;text-align:center;font-size:13px;font-weight:500;${v.tone === "dark" ? "background:#2a2829;color:#f4f2f0" : "background:#fad600;color:#1b1a1a"}">${esc(v.text)}${v.link ? ` <u style="font-weight:600">${esc(v.link_text || "Learn more")} →</u>` : ""}${v.on ? "" : ` <span style="opacity:.6">(hidden)</span>`}</div>` : `<div class="dim" style="font-size:12.5px">Type a message to see it here.</div>`; };
+  el.addEventListener("input", preview); el.addEventListener("change", preview); preview();
+  el.querySelector("[data-save]").addEventListener("click", async (e) => {
+    const v = read();
+    if (v.on && !v.text) return toast("Add a message first", "error");
+    if (v.link && !/^(https?:\/\/|\/|mailto:)/.test(v.link)) return toast("Links start with /, https:// or mailto:", "error");
+    e.target.disabled = true; try { await save("banner", v); } catch (err) { errToast(err); } e.target.disabled = false;
+  });
+}
+
+async function siteCompare(el, cfg, save) {
+  const c = { fx: "", date: "", prices: {}, rows: {}, ...cfg.compare };
+  el.innerHTML = `<div class="card card-pad row-flex" style="gap:10px"><span class="spinner"></span><span class="dim">Loading the comparison…</span></div>`;
+  // The default rows and notes live in pricing.js; read them from the pricing page.
+  const rows = await new Promise((resolve) => {
+    const f = document.createElement("iframe"); f.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"; f.src = "/pricing?dlv_edit=1";
+    const done = (v) => { f.remove(); resolve(v); };
+    f.onload = () => { try { done(f.contentWindow.DelivrieCompareRows()); } catch { done([]); } };
+    setTimeout(() => done([]), 8000); document.body.appendChild(f);
+  });
+  const inp = (name, value, ph, w = "") => `<input class="input" name="${name}" value="${esc(value ?? "")}" placeholder="${esc(ph ?? "")}" style="${w}">`;
+  el.innerHTML = `<p class="dim" style="margin:0 0 14px;font-size:13px">Figures and notes for Pricing → Compare. Leave a box empty to keep the default (shown in grey). Delivrie's own prices come from your plans and aren't edited here.</p>
+    <div class="card card-pad" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+      <div class="field"><label>₦ per $1</label>${inp("fx", c.fx, "1350")}</div>
+      <div class="field"><label>Prices checked on</label>${inp("date", c.date, "13 November 2026")}</div>
+      ${CMP_PRICES.map(([k, l, d]) => `<div class="field"><label>${l}</label>${inp("p_" + k, c.prices?.[k], String(d))}</div>`).join("")}
+    </div>
+    <h3 class="section-title">Rows</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">${(rows.length ? rows : Object.keys(c.rows).map((id) => ({ id, label: id, explain: "" }))).map((r) => { const o = c.rows?.[r.id] || {}; return `<div class="card card-pad" data-row="${r.id}" style="display:flex;flex-direction:column;gap:10px">
+      <div class="row-flex" style="gap:10px"><b style="font-weight:500">${esc(r.label)}</b><span class="grow"></span><label class="row-flex dim" style="gap:6px;font-size:12px">Show row <input type="checkbox" class="toggle" name="show" ${o.hidden ? "" : "checked"}></label></div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">
+        <div class="field"><label>Row name</label>${inp("label", o.label, r.label)}</div>
+        <div class="field"><label>Delivrie</label>${inp("delivrie", o.delivrie, "Default")}</div>
+        <div class="field"><label>Resend</label>${inp("resend", o.resend, "Default")}</div>
+        <div class="field"><label>Brevo</label>${inp("brevo", o.brevo, "Default")}</div></div>
+      <div class="field"><label>Explain note</label><textarea class="textarea" name="explain" rows="3" placeholder="${esc(r.explain)}">${esc(o.explain || "")}</textarea></div></div>`; }).join("")}</div>
+    <div class="row-flex" style="justify-content:flex-end;margin-top:14px;position:sticky;bottom:12px"><button class="btn btn-primary" data-save>Save comparison</button></div>`;
+  el.querySelector("[data-save]").addEventListener("click", async (e) => {
+    const v = (n) => el.querySelector(`[name="${n}"]`).value.trim();
+    const next = { prices: {}, rows: {} };
+    if (v("fx")) { if (!(+v("fx") > 0)) return toast("₦ per $1 must be a number", "error"); next.fx = +v("fx"); }
+    if (v("date")) next.date = v("date");
+    for (const [k] of CMP_PRICES) { const x = v("p_" + k); if (x) { if (!(+x >= 0)) return toast("Prices must be numbers", "error"); next.prices[k] = +x; } }
+    el.querySelectorAll("[data-row]").forEach((r) => {
+      const o = {}; ["label", "delivrie", "resend", "brevo", "explain"].forEach((n) => { const x = r.querySelector(`[name="${n}"]`).value.trim(); if (x) o[n] = x; });
+      if (!r.querySelector("[name=show]").checked) o.hidden = true;
+      if (Object.keys(o).length) next.rows[r.dataset.row] = o;
+    });
+    e.target.disabled = true; try { await save("compare", next); } catch (err) { errToast(err); } e.target.disabled = false;
+  });
+}
+
+function siteEditor(el, cfg, save) {
+  let path = new URLSearchParams(location.search).get("p") || "/";
+  let pending = {}, selected = null, frameWin = null;
+  el.innerHTML = `<div class="row-flex" style="gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <select class="input" data-path style="width:auto;min-width:200px">${SITE_PAGES.map(([p, n]) => `<option value="${p}" ${p === path ? "selected" : ""}>${esc(n)}  (${p})</option>`).join("")}</select>
+      <span class="dim" style="font-size:12.5px">Click any text on the page to edit it. Links can also change where they go.</span><span class="grow"></span>
+      <span class="dim" data-count style="font-size:12.5px"></span>
+      <button class="btn btn-ghost" data-discard>Discard</button><button class="btn btn-primary" data-save>Save changes</button></div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:14px;align-items:start">
+      <div class="card" style="overflow:hidden;height:calc(100vh - 230px);min-height:520px"><iframe data-frame title="Page editor" style="width:100%;height:100%;border:0;background:#fff"></iframe></div>
+      <div class="card card-pad" data-side style="position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;font-size:13px"></div></div>`;
+  const frame = el.querySelector("[data-frame]"), side = el.querySelector("[data-side]");
+  const pageEdits = () => ({ ...(cfg.edits[path] || {}), ...pending });
+  const count = () => { const n = Object.keys(pending).length; el.querySelector("[data-count]").textContent = n ? `${n} unsaved change${n === 1 ? "" : "s"}` : ""; };
+  const sideIdle = () => {
+    const saved = Object.entries(cfg.edits[path] || {});
+    side.innerHTML = `<b style="font-weight:500">Edits on this page</b>${saved.length ? `<div style="display:flex;flex-direction:column;gap:8px">${saved.map(([k, v]) => `<div class="row-flex" style="gap:8px;align-items:flex-start"><div style="flex:1;min-width:0"><div class="dim" style="font-size:11.5px;text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.orig || "")}</div><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(stripTags(v.html))}</div></div><button class="ibtn" title="Undo this edit" data-undo="${esc(k)}">${icon("x", 12)}</button></div>`).join("")}</div>` : `<div class="dim">None yet. Click text on the page to change it.</div>`}
+      <div class="dim" style="font-size:11.5px;line-height:1.5">If a page is later rewritten in code, edits to text that no longer exists simply stop applying.</div>`;
+  };
+  const sideSelected = (k) => {
+    const isLink = k.el.tagName === "A";
+    side.innerHTML = `<b style="font-weight:500">Editing</b><div class="dim" style="font-size:12px">Original: ${esc(k.text).slice(0, 160)}</div>
+      ${isLink ? fieldHtml({ name: "href", label: "Link goes to", value: k.el.getAttribute("href") || "", placeholder: "/signup" }) : ""}
+      <div class="dim" style="font-size:11.5px">Use Ctrl/⌘ + B or I for bold and italic.</div>
+      <div class="row-flex" style="gap:8px"><button class="btn btn-secondary btn-sm" data-revert>Back to original</button><button class="btn btn-ghost btn-sm" data-done>Done</button></div>`;
+    side.querySelector("[name=href]")?.addEventListener("input", (e) => { k.el.setAttribute("href", e.target.value.trim()); record(k); });
+  };
+  const record = (k) => {
+    const D = frameWin.DelivrieSite, html = D.clean(k.el.innerHTML).trim(), href = k.el.tagName === "A" ? k.el.getAttribute("href") : undefined;
+    const before = k.base;
+    if (html === before.html && href === before.href) delete pending[k.key];
+    else pending[k.key] = { html, ...(href !== undefined && href !== k.origHref ? { href } : {}), orig: k.text };
+    count();
+  };
+  const load = () => {
+    pending = {}; selected = null; count(); sideIdle();
+    frame.src = path + (path.includes("?") ? "&" : "?") + "dlv_edit=1";
+    history.replaceState(null, "", `/admin/website?s=edit&p=${encodeURIComponent(path)}`);
+  };
+  frame.addEventListener("load", () => {
+    frameWin = frame.contentWindow; const doc = frame.contentDocument, D = frameWin.DelivrieSite;
+    if (!D) { side.innerHTML = `<div class="dim">This page can't be edited here.</div>`; return; }
+    D.set({ ...cfg, edits: { ...cfg.edits } });
+    const st = doc.createElement("style");
+    st.textContent = "[data-dlv-ed]{cursor:text}[data-dlv-ed]:hover{outline:1px dashed #fad600;outline-offset:2px}[data-dlv-ed].dlv-sel{outline:2px solid #fad600;outline-offset:2px}[data-dlv-ed].dlv-changed{box-shadow:0 2px 0 #fad600}";
+    doc.head.appendChild(st);
+    const map = new Map();
+    for (const k of D.keyed()) { k.el.setAttribute("data-dlv-ed", ""); k.base = { html: D.clean(k.el.innerHTML).trim(), href: k.el.tagName === "A" ? k.el.getAttribute("href") : undefined }; k.origHref = cfg.edits[path]?.[k.key]?.href ? undefined : k.base.href; map.set(k.el, k); if (cfg.edits[path]?.[k.key]) k.el.classList.add("dlv-changed"); }
+    // links and buttons shouldn't navigate while editing
+    doc.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-dlv-ed]"); if (e.target.closest("a,button,summary")) e.preventDefault();
+      if (!t) return;
+      const k = map.get(t); if (!k) return;
+      if (selected && selected !== k) { selected.el.contentEditable = "false"; selected.el.classList.remove("dlv-sel"); }
+      selected = k; t.contentEditable = "true"; t.classList.add("dlv-sel"); t.focus(); sideSelected(k);
+    }, true);
+    doc.addEventListener("input", (e) => { const k = map.get(e.target.closest("[data-dlv-ed]")); if (k) { record(k); k.el.classList.toggle("dlv-changed", !!pending[k.key] || !!cfg.edits[path]?.[k.key]); } });
+    doc.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey && selected) { e.preventDefault(); } if (e.key === "Escape" && selected) { selected.el.blur(); } });
+    side.onclick = (e) => {
+      if (e.target.closest("[data-done]") && selected) { selected.el.contentEditable = "false"; selected.el.classList.remove("dlv-sel"); selected = null; sideIdle(); }
+      if (e.target.closest("[data-revert]") && selected) { pending[selected.key] = null; count(); toast("Will go back to the original when you save"); }
+      const u = e.target.closest("[data-undo]"); if (u) { pending[u.dataset.undo] = null; count(); u.closest(".row-flex").style.opacity = ".4"; }
+    };
+  });
+  el.querySelector("[data-path]").addEventListener("change", (e) => { if (Object.keys(pending).length && !confirm("Discard unsaved changes on this page?")) { e.target.value = path; return; } path = e.target.value; load(); });
+  el.querySelector("[data-discard]").addEventListener("click", () => load());
+  el.querySelector("[data-save]").addEventListener("click", async (e) => {
+    if (!Object.keys(pending).length) return toast("No changes to save");
+    const page = { ...(cfg.edits[path] || {}) };
+    for (const [k, v] of Object.entries(pending)) { if (v === null) delete page[k]; else page[k] = { ...(page[k] || {}), ...v }; }
+    const edits = { ...cfg.edits }; if (Object.keys(page).length) edits[path] = page; else delete edits[path];
+    e.target.disabled = true;
+    try { await save("edits", edits, "Saved. Visitors see it within a minute."); load(); } catch (err) { errToast(err); }
+    e.target.disabled = false;
+  });
+  window.addEventListener("beforeunload", (e) => { if (Object.keys(pending).length) { e.preventDefault(); e.returnValue = ""; } });
+  load();
+}
+const stripTags = (h) => String(h || "").replace(/<[^>]+>/g, "");

@@ -50,45 +50,58 @@
 
   // Delivrie vs Resend vs Brevo. Competitor prices are their published US-dollar prices (checked 13 Nov 2026);
   // in Naira they are converted at the official NFEM rate below. Delivrie Naira prices are our own.
-  var FX = 1350, FX_DATE = '13 November 2026';
+  // Defaults below; Admin → Website → Compare can change the figures, any cell, and the Explain notes.
+  var CMP_DEFAULT = { fx: 1350, date: '13 November 2026', prices: { r20: 20, b20: 32, r100: 65, b100: 82, rOver: 0.9, bBrand: 12 } };
   var BRANDS = [['delivrie', 'Delivrie', '/assets/mark.svg'], ['resend', 'Resend', '/assets/compare/resend.svg'], ['brevo', 'Brevo', '/assets/compare/brevo.svg']];
   var arrow = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
-  function vs() {
-    var p = P[cur], Y = check, N = dash;
+  var escH = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function compareRows(c) {
+    var p = P[cur], Y = check, N = dash, pr = c.prices, FX = c.fx;
     var usd = function (v) { return cur === 'NGN' ? '₦' + (Math.round(v * FX / 100) * 100).toLocaleString('en-US') : '$' + v.toLocaleString('en-US', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); };
     var price = function (v, plan) { return '<b>' + v + '</b><span class="vs-sub">' + plan + '</span>'; };
-    var rows = [
-      ['Free plan', price('6,000 / month', '200 a day'), price('3,000 / month', '100 a day'), price('300 / day', 'about 9,000 a month'),
+    return [
+      ['free', 'Free plan', price('6,000 / month', '200 a day'), price('3,000 / month', '100 a day'), price('300 / day', 'about 9,000 a month'),
         'Free plans are where you build and launch. Delivrie gives you twice Resend’s monthly allowance. Brevo’s 300 a day adds up to more over a month, but the daily cap stops a busy day, like a launch or a burst of password resets, at 300, and every email carries a “Sent with Brevo” footer.'],
-      ['20,000 emails / month', price(m(p.pro), 'Pro'), price(usd(20), 'Pro'), price(usd(32), 'Starter'),
-        'A typical early product: sign-ups, receipts, password resets. Resend costs about twice as much and Brevo about three times. Brevo’s Starter is a marketing plan, so it also keeps the Brevo footer unless you pay ' + usd(12) + ' a month more.'],
-      ['100,000 emails / month', price(m(p.scale), 'Scale'), price(usd(65), 'Pro + 50,000 extra'), price(usd(82), 'Starter'),
-        'A product with steady traffic. Resend’s cheapest option here is Pro (50,000 included) plus 50,000 extra emails at ' + usd(0.9) + ' per 1,000. Brevo moves you up a Starter tier. Delivrie Scale includes all 100,000.'],
-      ['Extra emails, per 1,000', m(p.scaleOver, true) + ' – ' + m(p.proOver, true), usd(0.9), 'Upgrade the plan',
+      ['v20', '20,000 emails / month', price(m(p.pro), 'Pro'), price(usd(pr.r20), 'Pro'), price(usd(pr.b20), 'Starter'),
+        'A typical early product: sign-ups, receipts, password resets. Resend costs about twice as much and Brevo about three times. Brevo’s Starter is a marketing plan, so it also keeps the Brevo footer unless you pay ' + usd(pr.bBrand) + ' a month more.'],
+      ['v100', '100,000 emails / month', price(m(p.scale), 'Scale'), price(usd(pr.r100), 'Pro + 50,000 extra'), price(usd(pr.b100), 'Starter'),
+        'A product with steady traffic. Resend’s cheapest option here is Pro (50,000 included) plus 50,000 extra emails at ' + usd(pr.rOver) + ' per 1,000. Brevo moves you up a Starter tier. Delivrie Scale includes all 100,000.'],
+      ['over', 'Extra emails, per 1,000', m(p.scaleOver, true) + ' – ' + m(p.proOver, true), usd(pr.rOver), 'Upgrade the plan',
         'What a busy month costs. Delivrie keeps sending past your allowance and bills the extra at month end. Resend charges about twice as much per 1,000. Brevo has no per-email overage: you move to a bigger plan.'],
-      ['Pay in Naira', Y + ' Paystack', N + ' Dollar card', N + ' Foreign currency',
+      ['naira', 'Pay in Naira', Y + ' Paystack', N + ' Dollar card', N + ' Foreign currency',
         'Resend and Brevo bill in foreign currency, so you need a dollar card. Nigerian banks cap international card spending and add charges, and renewals can fail when the cap is reached. Delivrie bills in Naira through Paystack with local cards, and your price doesn’t move with the exchange rate.'],
-      ['SMTP relay', Y + ' Port 465', Y, Y,
+      ['smtp', 'SMTP relay', Y + ' Port 465', Y, Y,
         'For tools that can’t call an API, like WordPress, Laravel or Supabase Auth. All three offer it. On Delivrie, SMTP mail gets the same limits, logs and webhooks as the API.'],
-      ['Provider branding', 'None', 'None', '“Sent with Brevo” on Starter',
+      ['brand', 'Provider branding', 'None', 'None', '“Sent with Brevo” on Starter',
         'A footer from your email provider sits at the bottom of every email you send and tells customers which plan you’re on. On Brevo Starter, removing it is a paid add-on.'],
-      ['Email content kept', '1 to 7 days', '30 days', 'Not published',
+      ['retention', 'Email content kept', '1 to 7 days', '30 days', 'Not published',
         'How long you can open the full body of a sent email in the dashboard. Resend keeps it longer, which helps when you investigate old emails. Delivrie deletes the body sooner but keeps the recipient, status and every delivery event, so logs and metrics keep working and less customer data is stored.'],
-      ['MCP server for AI agents', Y + ' 64 tools', Y, Y,
+      ['mcp', 'MCP server for AI agents', Y + ' 64 tools', Y, Y,
         'Lets ChatGPT, Claude or Cursor send email and check delivery for you. All three have one.'],
-      ['SMS & WhatsApp', N, N, Y,
+      ['sms', 'SMS & WhatsApp', N, N, Y,
         'Brevo is a full marketing suite with SMS, WhatsApp and a CRM. If you need those in one place, Brevo covers more. Delivrie and Resend focus on email.']
     ];
+  }
+  window.DelivrieCompareRows = function () { return compareRows(CMP_DEFAULT).map(function (r) { return { id: r[0], label: r[1], explain: r[5] }; }); };
+  function vs() {
+    var site = window.DelivrieSite && window.DelivrieSite.config && window.DelivrieSite.config.compare || {};
+    var c = { fx: +site.fx || CMP_DEFAULT.fx, date: site.date || CMP_DEFAULT.date, prices: {} };
+    Object.keys(CMP_DEFAULT.prices).forEach(function (k) { var v = site.prices && site.prices[k]; c.prices[k] = v === 0 || +v ? +v : CMP_DEFAULT.prices[k]; });
+    var over = site.rows || {};
+    var rows = compareRows(c).filter(function (r) { return !(over[r[0]] && over[r[0]].hidden); }).map(function (r) {
+      var o = over[r[0]] || {};
+      return [r[0], o.label ? escH(o.label) : r[1], o.delivrie ? escH(o.delivrie) : r[2], o.resend ? escH(o.resend) : r[3], o.brevo ? escH(o.brevo) : r[4], o.explain ? escH(o.explain) : r[5]];
+    });
     var head = '<thead><tr><th></th>' + BRANDS.map(function (b, i) {
       return '<th class="' + (i ? '' : 'us') + '"><span class="brand-h"><img src="' + b[2] + '" alt="" height="18" onerror="this.remove()"><span>' + b[1] + '</span></span></th>';
     }).join('') + '</tr></thead>';
     $('#vs-table').innerHTML = head + '<tbody>' + rows.map(function (r, i) {
-      return '<tr class="vr"><th scope="row"><span>' + r[0] + '</span><button class="explain" aria-expanded="false" aria-controls="ex-' + i + '">Explain' + arrow + '</button></th>' +
-        '<td class="us">' + r[1] + '</td><td>' + r[2] + '</td><td>' + r[3] + '</td></tr>' +
-        '<tr class="ex" id="ex-' + i + '" hidden><td colspan="4"><p>' + r[4] + '</p></td></tr>';
+      return '<tr class="vr"><th scope="row"><span>' + r[1] + '</span><button class="explain" aria-expanded="false" aria-controls="ex-' + i + '">Explain' + arrow + '</button></th>' +
+        '<td class="us">' + r[2] + '</td><td>' + r[3] + '</td><td>' + r[4] + '</td></tr>' +
+        '<tr class="ex" id="ex-' + i + '" hidden><td colspan="4"><p>' + r[5] + '</p></td></tr>';
     }).join('') + '</tbody>';
-    $('#vs-note').textContent = 'Resend and Brevo prices are from their websites on ' + FX_DATE + ' and can change. Each column shows the cheapest plan that covers the volume; Brevo prices are its Starter plan, billed monthly. ' +
-      (cur === 'NGN' ? 'Their dollar prices are shown in Naira at ₦' + FX.toLocaleString('en-US') + ' to $1, the official rate; dollar cards often cost more.' : '');
+    $('#vs-note').textContent = 'Resend and Brevo prices are from their websites on ' + c.date + ' and can change. Each column shows the cheapest plan that covers the volume; Brevo prices are its Starter plan, billed monthly. ' +
+      (cur === 'NGN' ? 'Their dollar prices are shown in Naira at ₦' + c.fx.toLocaleString('en-US') + ' to $1, the official rate; dollar cards often cost more.' : '');
   }
 
   function extra() {
@@ -125,6 +138,7 @@
     var row = document.getElementById(b.getAttribute('aria-controls')), open = b.getAttribute('aria-expanded') !== 'true';
     b.setAttribute('aria-expanded', open); row.hidden = !open;
   });
+  window.addEventListener('dlv:site', function () { vs(); });
   faq(); render(false);
 
   var sys = $('#sys');

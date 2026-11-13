@@ -93,6 +93,7 @@ def page(path, title, desc, body, extra_script=""):
 
 {FOOTER}
 
+<script src="/site-config.js"></script>
 <script src="/site.js"></script>{extra_script}
 </body>
 </html>
