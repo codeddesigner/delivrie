@@ -62,16 +62,20 @@ async function resolveTemplate(teamId: string, ref: Any) {
 async function checkFrom(c: Ctx, from: string, recipients: string[]) {
   const fromDomain = domainOf(from);
   if (!fromDomain || !EMAIL_RE.test(emailOnly(from))) throw bad("Invalid `from` field. Use \"Name <you@yourdomain.com>\" or you@yourdomain.com");
-  if (fromDomain === await systemDomain()) {
-    // the shared onboarding sender may only email the team's own members
+  const { data: doms } = await db.from("domains").select("*").eq("team_id", c.teamId);
+  const owned = (doms || []).find((x: Any) => x.name === fromDomain) || (doms || []).find((x: Any) => fromDomain.endsWith("." + x.name));
+  if (fromDomain === await systemDomain() && owned?.status !== "verified") {
+    // the shared onboarding sender may only email the team's own members (and the test addresses),
+    // unless this team owns and has verified the domain itself
+    recipients = recipients.filter((r) => !/@test\.delivrie\.io$/i.test(emailOnly(r)));
+    if (!recipients.length) return null;
     const { data: members } = await db.from("team_members").select("user_id").eq("team_id", c.teamId);
     const emails = new Set<string>();
     for (const m of members || []) { const { data } = await db.auth.admin.getUserById(m.user_id); if (data?.user?.email) emails.add(data.user.email.toLowerCase()); }
     if (recipients.some((r) => !emails.has(emailOnly(r)))) throw bad(`${fromDomain} can only send to members of your team. Verify your own domain to send to anyone.`);
     return null;
   }
-  const { data: doms } = await db.from("domains").select("*").eq("team_id", c.teamId);
-  const d = (doms || []).find((x: Any) => x.name === fromDomain) || (doms || []).find((x: Any) => fromDomain.endsWith("." + x.name));
+  const d = owned;
   if (!d) throw bad(`The from domain ${fromDomain} is not verified. Add it in Domains.`);
   if (d.status !== "verified") throw bad(`The from domain ${fromDomain} is not verified yet (status: ${d.status}).`);
   if (!d.sending_enabled) throw bad(`Sending is turned off for ${d.name}.`);
