@@ -52,7 +52,7 @@
   // in Naira they are converted at the official NFEM rate below. Delivrie Naira prices are our own.
   // Defaults below; Admin → Website → Compare can change the figures, any cell, and the Explain notes.
   var CMP_DEFAULT = { fx: 1350, date: '13 November 2026', prices: { r20: 20, b20: 32, r100: 65, b100: 82, rOver: 0.9, bBrand: 12 } };
-  var BRANDS = [['delivrie', 'Delivrie', '/assets/mark.svg', false], ['resend', 'Resend', '/assets/compare/resend.png', true], ['brevo', 'Brevo', '/assets/compare/brevo.png', true]];
+  var BRANDS = [['delivrie', 'Delivrie', '/assets/logo.svg', true], ['resend', 'Resend', '/assets/compare/resend.png', true], ['brevo', 'Brevo', '/assets/compare/brevo.png', true]];
   var arrow = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
   var escH = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   function compareRows(c) {

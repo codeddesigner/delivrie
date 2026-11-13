@@ -830,6 +830,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cmp.vs .brand-h { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; color: var(--fg); }
 .cmp.vs .brand-h img { height: 18px; width: auto; display: block; }
 .cmp.vs .brand-h.wm img { height: 17px; }
+.cmp.vs th.us .brand-h.wm img { height: 19px; }
 .cmp.vs td b { font-weight: 500; font-size: 15px; display: block; }
 .cmp.vs .vs-sub { display: block; color: var(--fg-3); font-size: 12px; margin-top: 2px; }
 .cmp.vs td svg { vertical-align: -2px; margin-right: 4px; }
