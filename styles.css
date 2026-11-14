@@ -1041,3 +1041,6 @@ html.mm-open, html.mm-open body { overflow: hidden; }
 .s-hero.center .eyebrow { align-self: center; }
 .s-hero.center .lede { margin-left: auto; margin-right: auto; }
 .p-head p { max-width: 640px; margin-left: auto; margin-right: auto; }
+/* "Start for free" buttons are Delivrie yellow with an ink label */
+a.b-primary[href="/signup"] { background: var(--yellow); color: #1f1d1e; }
+a.b-primary[href="/signup"]:hover { background: #ffe033; }

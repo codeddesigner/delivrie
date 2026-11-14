@@ -92,15 +92,19 @@
     });
   }
 
+  // Shown until an announcement is set in Admin → Website (Figma: Landing · Announcement).
+  var DEFAULT_BANNER = { on: true, text: 'Automations and Inbox are live.', link: '/changelog', link_text: 'Read the changelog', tone: 'warm' };
   function banner() {
-    var b = cfg && cfg.banner, old = document.querySelector('.dlv-banner');
+    var b = (cfg && cfg.banner) || DEFAULT_BANNER, old = document.querySelector('.dlv-banner');
+    if (window.DLV_V) return; // not on the dashboard or docs app
     if (!b || !b.on || !b.text) { if (old) old.remove(); return; }
     var id = hash(b.text + (b.link || ''));
     try { if (localStorage.getItem('dlv_banner_closed') === id) { if (old) old.remove(); return; } } catch (e) {}
     if (!document.getElementById('dlv-banner-css')) {
       var st = document.createElement('style'); st.id = 'dlv-banner-css';
       st.textContent = '.dlv-banner{position:relative;z-index:60;display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 44px;font:500 13.5px/1.4 Inter,system-ui,sans-serif;text-align:center}' +
-        '.dlv-banner.warm{margin:16px 24px 0;border-radius:10px;background:var(--warm,#f4eee4);color:var(--fg,#1f1d1e);font-family:var(--sans,Inter,system-ui,sans-serif)}.dlv-banner.warm:before{content:"";width:6px;height:6px;border-radius:50%;background:#fad600;flex:none}.dlv-banner.warm a{color:var(--fg-2,#67625f);text-decoration:none;font-weight:400}.dlv-banner.warm a:hover{color:var(--fg,#1f1d1e)}' +
+        '.dlv-banner.warm{margin:16px 24px 0;border-radius:10px;padding:11px 24px;font-size:14px;background:var(--warm,#f4eee4);color:var(--fg,#1f1d1e);font-family:var(--sans,Inter,system-ui,sans-serif)}.dlv-banner.warm:before{content:"";width:6px;height:6px;border-radius:50%;background:#fad600;flex:none}.dlv-banner.warm a{color:var(--fg-2,#67625f);text-decoration:none;font-weight:400}.dlv-banner.warm a:hover{color:var(--fg,#1f1d1e)}' +
+        '@media(max-width:640px){.dlv-banner.warm{margin:0;border-radius:0;padding:10px 16px;gap:6px;font-size:13px;background:var(--bg-2,#f6f4f1)}.dlv-banner.warm:before{content:"New";width:auto;height:auto;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:500;color:#1f1d1e;line-height:1.3}.dlv-banner.warm span:first-child{font-weight:400;color:var(--fg-2,#67625f)}.dlv-banner.warm .lt{display:none}.dlv-banner.warm span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}' +
         '.dlv-banner.yellow{background:#fad600;color:#1b1a1a}.dlv-banner.dark{background:#2a2829;color:#f4f2f0;border-bottom:1px solid rgba(255,255,255,.08)}' +
         '.dlv-banner a{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:600}' +
         '.dlv-banner button{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:inherit;opacity:.7;cursor:pointer;font-size:18px;line-height:1}.dlv-banner button:hover{opacity:1}';
@@ -111,15 +115,15 @@
     el.setAttribute('role', 'region'); el.setAttribute('aria-label', 'Announcement');
     var t = document.createElement('span'); t.textContent = b.text;
     el.innerHTML = ''; el.appendChild(t);
-    if (b.link) { var a = document.createElement('a'); a.href = b.link; a.textContent = (b.link_text || 'Learn more') + ' →'; el.appendChild(a); }
+    if (b.link) { var a = document.createElement('a'); a.href = b.link; var lt = document.createElement('span'); lt.className = 'lt'; lt.textContent = (b.link_text || 'Learn more') + ' '; a.appendChild(lt); a.appendChild(document.createTextNode('→')); a.setAttribute('aria-label', b.link_text || 'Learn more'); el.appendChild(a); }
     var x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label', 'Dismiss'); x.textContent = '×';
     x.onclick = function () { try { localStorage.setItem('dlv_banner_closed', id); } catch (e) {} el.remove(); };
-    el.appendChild(x);
+    if (b.tone === 'yellow' || b.tone === 'dark') el.appendChild(x); // the warm bar in the design has no close button
     if (!old) document.body.insertBefore(el, document.body.firstChild);
   }
 
   function applyAll() {
-    if (!cfg) return;
+    if (!cfg) { banner(); return; }
     banner(); hideOffLinks(); applyEdits();
     try { window.dispatchEvent(new CustomEvent('dlv:site', { detail: cfg })); } catch (e) {}
   }
@@ -127,6 +131,7 @@
   window.DelivrieSite = { pagePath: pagePath, keyed: keyed, clean: clean, norm: norm, get config() { return cfg; }, set: function (c) { cfg = c; applyAll(); }, apply: applyAll, editing: editing };
 
   try { var c = JSON.parse(localStorage.getItem(CACHE) || 'null'); if (c) { cfg = c; applyAll(); } } catch (e) {}
+  if (!cfg) banner();
   if (!editing && window.fetch) {
     fetch(API, { credentials: 'omit' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (fresh) {
       if (!fresh) return;
