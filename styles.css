@@ -228,7 +228,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .footer { border-top: 1px solid var(--line); }
 .footer .wrap { padding-top: 56px; padding-bottom: 64px; display: flex; gap: 40px; align-items: flex-start; }
 .footer .brand { flex: 1; }
-.footer .brand img { width: 133px; height: 24px; }
+.footer .brand img { width: 188px; height: 26px; }
+:root[data-theme="dark"] img[src$="/assets/footer-logo.svg"] { content: url("/assets/footer-logo-dark.svg"); }
 .fcol { width: 150px; flex: none; display: flex; flex-direction: column; gap: 12px; font-size: 13px; white-space: nowrap; }
 .fcol h4 { margin: 0; font-weight: 500; font-size: 13px; color: var(--fg); }
 .fcol a { color: var(--fg-2); transition: color 0.15s; }

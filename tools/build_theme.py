@@ -20,8 +20,8 @@ NAV_TOGGLE = ('<div class="nav-theme" role="group" aria-label="Theme">'
               f'<button type="button" data-theme-set="light" title="Light" aria-label="Light theme">{ICONS["light"]}</button>'
               f'<button type="button" data-theme-set="dark" title="Dark" aria-label="Dark theme">{ICONS["dark"]}</button></div>'
               '<span class="divider" aria-hidden="true"></span>')
-BRAND_OLD = re.compile(r'<div class="brand"><img src="/assets/(?:footer-mark|logo)\.svg"[^>]*></div>')
-BRAND_NEW = '<div class="brand"><a href="/" aria-label="Delivrie home"><img src="/assets/logo.svg" width="133" height="24" alt="Delivrie"></a></div>'
+BRAND_OLD = re.compile(r'<div class="brand">(?:<a [^>]*>)?<img src="/assets/(?:footer-mark|logo|footer-logo)\.svg"[^>]*>(?:</a>)?</div>')
+BRAND_NEW = '<div class="brand"><a href="/" aria-label="Delivrie, by South Circle"><img src="/assets/footer-logo.svg" width="188" height="26" alt="Delivrie by South Circle"></a></div>'
 
 def files():
     out = glob.glob(os.path.join(ROOT, "*.html"))
