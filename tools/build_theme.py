@@ -16,6 +16,10 @@ ICONS = {
 }
 SWITCH = ('<div class="theme-sw" role="group" aria-label="Theme">' + "".join(
     f'<button type="button" data-theme-set="{t}" title="{t.title()}" aria-label="{t.title()} theme">{ICONS[t]}</button>' for t in ("system", "light", "dark")) + "</div>")
+NAV_TOGGLE = ('<div class="nav-theme" role="group" aria-label="Theme">'
+              f'<button type="button" data-theme-set="light" title="Light" aria-label="Light theme">{ICONS["light"]}</button>'
+              f'<button type="button" data-theme-set="dark" title="Dark" aria-label="Dark theme">{ICONS["dark"]}</button></div>'
+              '<span class="divider" aria-hidden="true"></span>')
 BRAND_OLD = re.compile(r'<div class="brand"><img src="/assets/(?:footer-mark|logo)\.svg"[^>]*></div>')
 BRAND_NEW = '<div class="brand"><a href="/" aria-label="Delivrie home"><img src="/assets/logo.svg" width="133" height="24" alt="Delivrie"></a></div>'
 
@@ -33,6 +37,8 @@ def apply(s):
     s = BRAND_OLD.sub(BRAND_NEW, s)
     s = re.sub(r'<div class="theme-sw" role="group" aria-label="Theme">.*?</div>(?=<a class="sys")', "", s, flags=re.S)
     s = s.replace('<span class="grow"></span><a class="sys"', '<span class="grow"></span>' + SWITCH + '<a class="sys"')
+    s = re.sub(r'<div class="nav-theme" role="group".*?</div><span class="divider" aria-hidden="true"></span>', "", s, flags=re.S)
+    s = re.sub(r'(<div class="spacer"></div>\s*)(<a class="nav-link keep" href="/login">)', lambda m: m[1] + NAV_TOGGLE + m[2], s, count=1)
     return s
 
 def main():

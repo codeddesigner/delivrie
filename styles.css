@@ -955,3 +955,30 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 :root:not([data-theme="dark"]) img[src*="/assets/clients/"]:not([src$="claude.svg"]) { filter: invert(1) brightness(.25); }
 /* The Resend wordmark was recoloured white for dark surfaces. */
 :root:not([data-theme="dark"]) img[src$="/assets/compare/resend.png"] { filter: invert(1); }
+
+/* Hero and product shot (Figma: Marketing / 01 Landing) */
+.hero { background: var(--bg); }
+.hero .wrap { padding-top: 112px; padding-bottom: 72px; align-items: center; text-align: center; gap: 22px; }
+.hero h1 { font-size: 80px; line-height: 1.02; letter-spacing: -1.6px; }
+.hero-lede { max-width: 620px; font-size: 17px; line-height: 1.55; color: var(--fg-2); }
+.hero-cta { justify-content: center; }
+.b-primary.pill, .b-secondary.pill { height: 32px; padding: 0 12px; border-radius: 999px; font-size: 13px; gap: 6px; }
+.b-secondary.pill { box-shadow: var(--shadow-xs); }
+.shot { background: var(--bg); }
+.shot-inner { padding: 0 64px; }
+.shot .warm { background: var(--warm); border-radius: 24px; padding: 72px 96px 0; height: 600px; overflow: hidden; }
+.shot .window { border: 1px solid var(--border-app); box-shadow: 0 24px 48px rgba(92, 69, 31, 0.10); }
+:root[data-theme="dark"] .shot .window { box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35); }
+@media (max-width: 1100px) { .hero h1 { font-size: 60px; } .shot .warm { padding: 48px 48px 0; height: auto; max-height: 600px; } .shot-inner { padding: 0 32px; } }
+@media (max-width: 640px) { .hero .wrap { padding-top: 72px; padding-bottom: 40px; } .hero h1 { font-size: 40px; letter-spacing: -1px; } .hero-lede { font-size: 16px; } .shot .warm { padding: 24px 16px 0; border-radius: 16px; } .shot-inner { padding: 0 12px; } }
+
+/* Nav: centred links, theme toggle (Figma: Nav theme toggle) */
+.nav .wrap { gap: 30px; }
+.nav-links { margin: 0 auto; }
+.nav .spacer { display: none; }
+.nav-theme { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--border-app); flex: none; }
+.nav-theme button { width: 28px; height: 26px; border-radius: 999px; display: grid; place-items: center; color: var(--fg-3); border: 1px solid transparent; transition: background .15s, color .15s; }
+.nav-theme button svg { width: 15px; height: 15px; }
+.nav-theme button:hover { color: var(--fg); }
+.nav-theme button.on { background: var(--surface); border-color: var(--border-app); color: var(--fg); box-shadow: 0 1px 2px rgba(31, 28, 28, 0.08); }
+@media (max-width: 900px) { .nav-theme, .nav-theme + .divider { display: none; } }
