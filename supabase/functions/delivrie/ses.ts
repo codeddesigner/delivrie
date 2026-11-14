@@ -2,6 +2,9 @@ import { awsQuery, AwsError, credsFromEnv, sesv2, SES_RECEIVING_REGIONS, SES_REG
 import { type Any, db, FUNCTION_URL, HttpError, setting, setSetting } from "./util.ts";
 import { b64 } from "./mime.ts";
 
+// SPF include customers add to their return-path subdomain. TXT _spf.delivrie.io = "v=spf1 include:amazonses.com ~all".
+export const SPF_INCLUDE = "_spf.delivrie.io";
+
 export function creds(): AwsCreds {
   const c = credsFromEnv();
   if (!c) throw new HttpError(503, "sending_not_configured", "Sending isn't available right now. Try again shortly, or contact support@delivrie.io.");
@@ -54,7 +57,8 @@ export function buildRecords(d: Any, dkimPublic: string) {
   const recs: Any[] = [
     { group: "dkim", record: "DKIM", type: "TXT", name: `${d.dkim_selector}._domainkey`, value: `p=${dkimPublic}`, ttl: "Auto", priority: null, status: "not_started" },
     { group: "sending", record: "SPF", type: "MX", name: d.return_path, value: `feedback-smtp.${d.region}.amazonses.com`, ttl: "Auto", priority: 10, status: "not_started" },
-    { group: "sending", record: "SPF", type: "TXT", name: d.return_path, value: "v=spf1 include:amazonses.com ~all", ttl: "Auto", priority: null, status: "not_started" },
+    // _spf.delivrie.io (published by us) includes the sending servers, so customers never see a provider name here.
+    { group: "sending", record: "SPF", type: "TXT", name: d.return_path, value: `v=spf1 include:${SPF_INCLUDE} ~all`, ttl: "Auto", priority: null, status: "not_started" },
     { group: "dmarc", record: "DMARC", type: "TXT", name: "_dmarc", value: "v=DMARC1; p=none;", ttl: "Auto", priority: null, status: "optional" },
   ];
   if (d.receiving_enabled) {
@@ -126,7 +130,7 @@ export async function verifyDomain(d: Any) {
   for (const r of recs) {
     const fqdn = r.name === "@" ? d.name : `${r.name}.${d.name}`;
     const answers = await doh(fqdn, r.type);
-    const found = r.type === "MX" ? answers.some((a) => a.toLowerCase().includes(String(r.value).toLowerCase())) : answers.some((a) => a.replace(/\s+/g, "") === String(r.value).replace(/\s+/g, "") || (r.record === "DMARC" && a.startsWith("v=DMARC1")) || (r.record === "SPF" && a.startsWith("v=spf1") && a.includes("amazonses.com")));
+    const found = r.type === "MX" ? answers.some((a) => a.toLowerCase().includes(String(r.value).toLowerCase())) : answers.some((a) => a.replace(/\s+/g, "") === String(r.value).replace(/\s+/g, "") || (r.record === "DMARC" && a.startsWith("v=DMARC1")) || (r.record === "SPF" && a.startsWith("v=spf1") && (a.includes(SPF_INCLUDE) || a.includes("amazonses.com"))));
     if (r.status !== "optional" || found) r.status = found ? "verified" : (r.status === "not_started" ? "pending" : r.status === "verified" ? "verified" : "pending");
   }
   let status = d.status;
