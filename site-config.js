@@ -141,24 +141,32 @@
   }
 })();
 
-// Theme switch in the site footer (System / Light / Dark). Same storage key as the dashboard.
+// Theme switches on the site: System / Light / Dark in the footer, Light / Dark in the nav. Same storage key as the dashboard.
 (function () {
+  if (window.DLV_V) return; // the dashboard and docs app handle their own switch (app/js/lib/theme.js)
   var KEY = "dlv_theme", mq = window.matchMedia && matchMedia("(prefers-color-scheme: dark)");
   function get() { try { return localStorage.getItem(KEY) || "light"; } catch (e) { return "light"; } }
-  function apply(t) {
-    var r = t === "system" ? (mq && mq.matches ? "dark" : "light") : t;
-    document.documentElement.setAttribute("data-theme", r);
+  function apply(t, animate) {
+    var root = document.documentElement, r = t === "system" ? (mq && mq.matches ? "dark" : "light") : t;
+    if (animate && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+      root.classList.add("theme-anim"); setTimeout(function () { root.classList.remove("theme-anim"); }, 350);
+    }
+    root.setAttribute("data-theme", r);
     var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", r === "dark" ? "#1f1d1e" : "#ffffff");
-    var b = document.querySelectorAll("[data-theme-set]");
+    // Footer shows the stored choice (including System); the nav shows the theme on screen.
+    var b = document.querySelectorAll(".theme-sw [data-theme-set]");
     for (var i = 0; i < b.length; i++) b[i].classList.toggle("on", b[i].getAttribute("data-theme-set") === t);
+    var n = document.querySelectorAll(".nav-theme [data-theme-set]");
+    for (var j = 0; j < n.length; j++) { var on = n[j].getAttribute("data-theme-set") === r; n[j].classList.toggle("on", on); n[j].setAttribute("aria-pressed", on ? "true" : "false"); }
   }
   document.addEventListener("click", function (e) {
     var b = e.target.closest && e.target.closest("[data-theme-set]");
-    if (!b || document.getElementById("app")) return; // the dashboard has its own handler
+    if (!b) return;
     var t = b.getAttribute("data-theme-set");
     try { localStorage.setItem(KEY, t); } catch (err) {}
-    apply(t);
+    apply(t, true);
   });
-  if (mq && mq.addEventListener) mq.addEventListener("change", function () { if (get() === "system") apply("system"); });
+  window.addEventListener("storage", function (e) { if (e.key === KEY) apply(get()); }); // other tabs
+  if (mq && mq.addEventListener) mq.addEventListener("change", function () { if (get() === "system") apply("system", true); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { apply(get()); }); else apply(get());
 })();
