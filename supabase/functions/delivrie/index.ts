@@ -1,5 +1,5 @@
 import { type Any, APP_URL, asArray, bad, CORS, db, domainOf, emailOnly, ENFORCE_LIMITS, errorJson, forbidden, HttpError, json, LIMITS, notFound, pageParams, randomToken, setting, sha256, SYSTEM_FROM, waitUntil } from "./util.ts";
-import { accountStatus, createDomain, deleteDomain, doh, hasAws, regionLabel, updateDomainConfig, verifyDomain } from "./ses.ts";
+import { accountStatus, createDomain, deleteDomain, doh, hasAws, regionLabel, SENDING_REGIONS, updateDomainConfig, verifyDomain } from "./ses.ts";
 import { attemptDelivery, deliver, emit, handleSesEvent, payloadFor, systemDomain, validateRecipients, verifyUnsubscribeToken } from "./send.ts";
 import { EMAIL_RE, parseAddress } from "./mime.ts";
 import { blocksToText, renderBlocks, renderVars, usedVars } from "./blocks.js";
@@ -9,7 +9,6 @@ import { handleMcp } from "./mcp.ts";
 import { registerExtra } from "./extra.ts";
 import { registerSupport } from "./support.ts";
 import { publicStatus, runStatusChecks } from "./status.ts";
-import { SES_REGIONS } from "./aws.ts";
 
 interface Ctx { teamId: string; userId: string | null; apiKey: Any | null; permission: "full" | "sending"; via: "api" | "dashboard"; userAgent: string; email?: string; scopes?: string[] }
 
@@ -631,7 +630,7 @@ route("GET", "/dashboard/status", dash(async (_r, c) => {
   const full = await accountStatus(d?.[0]?.region || "eu-west-1");
   const { data: adm } = c.userId ? await db.from("platform_admins").select("user_id").eq("user_id", c.userId).maybeSingle() : { data: null };
   const aws = adm ? full : { configured: !!full?.configured, sending: full?.configured ? full?.sending !== false : false };
-  return { credits: t?.credits || 0, aws, system_from: SYSTEM_FROM ? SYSTEM_FROM : null, regions: Object.entries(SES_REGIONS).map(([id]) => ({ id, label: regionLabel(id) })), limits_enforced: ENFORCE_LIMITS, plan: t?.plan_transactional || "free", limits: LIMITS[t?.plan_transactional || "free"] || LIMITS.free };
+  return { credits: t?.credits || 0, aws, system_from: SYSTEM_FROM ? SYSTEM_FROM : null, regions: SENDING_REGIONS.map((id) => ({ id, label: regionLabel(id) })), limits_enforced: ENFORCE_LIMITS, plan: t?.plan_transactional || "free", limits: LIMITS[t?.plan_transactional || "free"] || LIMITS.free };
 }));
 route("POST", "/dashboard/test-email", dash(async (_r, c, _p, _u, b) => {
   const to = asArray(b?.to);

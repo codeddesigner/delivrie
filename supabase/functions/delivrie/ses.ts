@@ -14,6 +14,10 @@ export const hasAws = () => !!credsFromEnv();
 
 export function regionLabel(r: string) { return `${SES_REGIONS[r] || r} (${r})`; }
 
+// Regions where our sending account has full (production) access. Others can only send to verified test
+// addresses, so customers aren't offered them. Add a region here once it has production access.
+export const SENDING_REGIONS = ["eu-west-1"];
+
 const EVENT_TYPES_BASE = ["SEND", "DELIVERY", "BOUNCE", "COMPLAINT", "DELIVERY_DELAY", "REJECT", "RENDERING_FAILURE"];
 
 /** SNS topic per region that SES publishes events (and inbound mail) to; auto-subscribed to this function. */
@@ -73,7 +77,7 @@ export function buildRecords(d: Any, dkimPublic: string) {
 export async function createDomain(teamId: string, name: string, region: string, opts: Any = {}) {
   name = name.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
   if (!/^(?=.{3,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(name)) throw new HttpError(422, "validation_error", "Enter a valid domain like mail.example.com");
-  if (!SES_REGIONS[region]) throw new HttpError(422, "validation_error", `Unsupported region ${region}`);
+  if (!SENDING_REGIONS.includes(region)) throw new HttpError(422, "validation_error", `Region ${region} isn't available. Available: ${SENDING_REGIONS.join(", ")}`);
   const c = creds();
   const { data: existing } = await db.from("domains").select("id").eq("name", name).limit(1);
   if (existing?.length) throw new HttpError(409, "domain_exists", `${name} is already registered on Delivrie`);

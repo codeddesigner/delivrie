@@ -33,12 +33,12 @@ export async function add(ctx) {
   const root = ctx.root;
   let status = null;
   try { status = await api("GET", "/dashboard/status"); } catch { }
-  const regions = status?.regions || [{ id: "eu-west-1", label: "Ireland (eu-west-1)" }, { id: "us-east-1", label: "N. Virginia (us-east-1)" }];
+  const regions = status?.regions?.length ? status.regions : [{ id: "eu-west-1", label: "Ireland (eu-west-1)" }];
   root.innerHTML = `<div class="page narrow"><div class="page-head"><h1>Add domain</h1></div>
     ${status && !status.aws?.configured ? `<div class="banner warn">${icon("alert", 14)} Sending isn’t set up on this workspace yet, so domains can’t be added. Contact support@delivrie.io.</div>` : ""}
     <div class="steps"><div class="step active"><div class="step-num">1</div><div class="step-card"><h3>Domain</h3><p class="sub">We recommend a subdomain like <span class="mono">updates.example.com</span> to keep your sending reputation separate from your main domain.</p>
       <div class="field"><label>Name</label><input class="input" data-name placeholder="updates.example.com" autofocus></div>
-      <div class="field" style="margin-top:12px"><label>Region</label>${selectHtml("region", regions.map((r) => ({ value: r.id, label: `${FLAG[r.id] || ""} ${r.label}` })), "eu-west-1")}<span class="hint">Where emails are sent from. Pick the one closest to your users — it can’t be changed later.</span></div>
+      ${regions.length > 1 ? `<div class="field" style="margin-top:12px"><label>Region</label>${selectHtml("region", regions.map((r) => ({ value: r.id, label: `${FLAG[r.id] || ""} ${r.label}` })), regions[0].id)}<span class="hint">Where emails are sent from. Pick the one closest to your users — it can’t be changed later.</span></div>` : `<input type="hidden" name="region" value="${regions[0].id}">`}
       <details style="margin-top:14px"><summary class="muted" style="cursor:pointer">Advanced options</summary><div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
         <div class="field"><label>Custom return path</label><input class="input mono" data-rp value="send"><span class="hint">Subdomain used for SPF and bounces. Defaults to <span class="mono">send</span>.</span></div>
         <label class="row-flex" style="justify-content:space-between"><span>Click tracking</span><input type="checkbox" class="toggle" data-click></label>
