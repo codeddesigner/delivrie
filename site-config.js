@@ -140,3 +140,25 @@
       .observe(document.body, { childList: true, subtree: true });
   }
 })();
+
+// Theme switch in the site footer (System / Light / Dark). Same storage key as the dashboard.
+(function () {
+  var KEY = "dlv_theme", mq = window.matchMedia && matchMedia("(prefers-color-scheme: dark)");
+  function get() { try { return localStorage.getItem(KEY) || "light"; } catch (e) { return "light"; } }
+  function apply(t) {
+    var r = t === "system" ? (mq && mq.matches ? "dark" : "light") : t;
+    document.documentElement.setAttribute("data-theme", r);
+    var m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute("content", r === "dark" ? "#1f1d1e" : "#ffffff");
+    var b = document.querySelectorAll("[data-theme-set]");
+    for (var i = 0; i < b.length; i++) b[i].classList.toggle("on", b[i].getAttribute("data-theme-set") === t);
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("[data-theme-set]");
+    if (!b || document.getElementById("app")) return; // the dashboard has its own handler
+    var t = b.getAttribute("data-theme-set");
+    try { localStorage.setItem(KEY, t); } catch (err) {}
+    apply(t);
+  });
+  if (mq && mq.addEventListener) mq.addEventListener("change", function () { if (get() === "system") apply("system"); });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { apply(get()); }); else apply(get());
+})();

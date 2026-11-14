@@ -1,13 +1,13 @@
 // System / Light / Dark theme. Stored per browser; "system" follows the OS.
 const KEY = "dlv_theme";
 const mq = matchMedia("(prefers-color-scheme: light)");
-export function getTheme() { try { return localStorage.getItem(KEY) || "dark"; } catch { return "dark"; } }
+export function getTheme() { try { return localStorage.getItem(KEY) || "light"; } catch { return "light"; } }
 export function resolved(t = getTheme()) { return t === "system" ? (mq.matches ? "light" : "dark") : t; }
 export function applyTheme(t = getTheme(), animate = false) {
   const el = document.documentElement;
   if (animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) { el.classList.add("theme-anim"); setTimeout(() => el.classList.remove("theme-anim"), 400); }
   el.dataset.theme = resolved(t);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolved(t) === "light" ? "#ffffff" : "#211f20");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolved(t) === "light" ? "#ffffff" : "#1f1d1e");
   document.querySelectorAll("[data-theme-set]").forEach((b) => b.classList.toggle("on", b.dataset.themeSet === t));
 }
 export function setTheme(t) { try { localStorage.setItem(KEY, t); } catch {} applyTheme(t, true); window.dispatchEvent(new CustomEvent("themechange")); }

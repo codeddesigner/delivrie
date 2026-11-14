@@ -67,7 +67,7 @@ def crumbs(*pairs):
 def marketing():
     pd = pricing_data()
     home = rd("index.html")
-    home = set_head(home, title="Delivrie: the Resend alternative at half the price · Email API, SMTP & MCP",
+    home = set_head(home, title="Delivrie | Better than Resend",
                     desc="A cheaper Resend alternative: email API, SMTP relay and MCP server for transactional email, broadcasts and an inbox. 6,000 free emails a month, Pro from $10 (₦10,000).",
                     extra_ld=ld(ORG, {"@type": "WebSite", "@id": f"{SITE}/#site", "url": SITE, "name": "Delivrie", "publisher": {"@id": f"{SITE}/#org"}}, app_ld(pd)))
     wr("index.html", home)
@@ -199,7 +199,7 @@ def noindex_app():
     # The app shell (dashboard, sign-in) stays out of search results; docs-static pages are built without this tag.
     s = rd("app.html")
     if 'name="robots"' not in s:
-        s = s.replace('<meta name="theme-color" content="#211f20">', '<meta name="theme-color" content="#211f20">\n  <meta name="robots" content="noindex">', 1)
+        s = re.sub(r'(<meta name="theme-color" content="[^"]*">)', r'\1\n  <meta name="robots" content="noindex">', s, count=1)
         wr("app.html", s)
 
 if __name__ == "__main__":
@@ -209,3 +209,5 @@ if __name__ == "__main__":
     routes(paths)
     n = sitemap(paths)
     print(f"seo: {len(paths)} docs pages, {n} sitemap URLs")
+    import build_theme
+    build_theme.main()

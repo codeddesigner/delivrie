@@ -1,10 +1,24 @@
+/* Calamantus (FH Type Foundry). It has no / # $ % & + = — · ₦, so those characters fall back to Inter. */
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Light.woff") format("woff"); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Light-Italic.woff") format("woff"); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Book.woff") format("woff"); font-weight: 350; font-style: normal; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Book-Italic.woff") format("woff"); font-weight: 350; font-style: italic; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Regular.woff") format("woff"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Regular-Italic.woff") format("woff"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Medium.woff") format("woff"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Medium-Italic.woff") format("woff"); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-SemiBold.woff") format("woff"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-SemiBold-Italic.woff") format("woff"); font-weight: 600; font-style: italic; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Bold.woff") format("woff"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Calamantus"; src: url("/assets/fonts/Calamantus-Bold-Italic.woff") format("woff"); font-weight: 700; font-style: italic; font-display: swap; }
+
 :root {
   /* Warm dark palette from the Figma redesign */
   --bg: #211f20; --bg-2: #1c1a1b; --panel: #262425; --surface: #2b2829; --muted: #302d2e; --active: #363334; --hover: #302d2e;
   --border: #3d3a3b; --border-strong: #484445; --border-soft: rgba(255,255,255,.06); --line: rgba(255,255,255,.08);
   --fg: #f7f8f8; --fg-2: #8a8f98; --fg-3: #62666d; --fg-4: #4f4b4c;
   --yellow: #fad600; --yellow-ink: #211f20; --green: #3fa672; --green-2: #4cb782; --red: #e5484d; --blue: #4c8df6; --purple: #a774f2; --orange: #f2994a; --amber: #e2b400;
-  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+  --sans: "Calamantus", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --r: 7px; --r-lg: 10px;
   --side: 240px;
@@ -14,7 +28,7 @@
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.45 var(--sans); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.45 var(--sans); letter-spacing: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
 button { cursor: pointer; background: none; border: 0; padding: 0; }
@@ -656,16 +670,16 @@ a.card:hover, .card.hover:hover, .plan-card:hover { border-color: var(--border-s
 
 /* ---------------------------------------------------------------- light theme (Figma Color/Light) */
 :root[data-theme="light"] {
-  --bg: #ffffff; --bg-2: #f6f5f3; --panel: #ffffff; --surface: #ffffff; --muted: #f0eeeb; --active: #e6e3df; --hover: #eceae7;
-  --border: #e5e2de; --border-strong: #d4d0cb; --border-soft: rgba(33,31,32,.05); --line: rgba(33,31,32,.08);
-  --fg: #211f20; --fg-2: #625d5f; --fg-3: #948f91; --fg-4: #bcb7b9; --fg-soft: #3b3738;
-  --green: #16a35a; --green-2: #16804a; --red: #c8352a; --blue: #2a62d6; --orange: #a3620a; --amber: #8c6f00;
-  --code-bg: #211f20; --code-fg: #ece9e6; --glass: rgba(255,255,255,.88); --shadow: rgba(33,31,32,.14); --overlay: rgba(33,31,32,.32);
+  --bg: #ffffff; --bg-2: #f6f4f1; --panel: #ffffff; --surface: #ffffff; --muted: #f1eeea; --active: #e8e4de; --hover: #eeebe6;
+  --border: #e9e5e0; --border-strong: #d8d3cd; --border-soft: rgba(31,29,30,.05); --line: rgba(31,29,30,.08);
+  --fg: #1f1d1e; --fg-2: #67625f; --fg-3: #9a9592; --fg-4: #c5c0bc; --fg-soft: #3b3738; --yellow-ink: #1f1d1e;
+  --green: #11743f; --green-2: #11743f; --red: #c2362b; --blue: #2453c2; --orange: #9c5a00; --amber: #876800;
+  --code-bg: #1f1d1e; --code-fg: #edeae6; --glass: rgba(255,255,255,.88); --shadow: rgba(33,31,32,.14); --overlay: rgba(33,31,32,.32);
   color-scheme: light;
 }
 :root[data-theme="light"] body { background: var(--bg-2); }
 :root[data-theme="light"] .panel, :root[data-theme="light"] .main .panel { background: var(--bg); }
-:root[data-theme="light"] .btn-secondary { box-shadow: 0 1px 2px rgba(33,31,32,.06); }
+:root[data-theme="light"] .btn-secondary { box-shadow: 0 1px 2px rgba(33,31,32,.05); }
 :root[data-theme="light"] .modal, :root[data-theme="light"] .menu, :root[data-theme="light"] .popover, :root[data-theme="light"] .toast, :root[data-theme="light"] .drawer { box-shadow: 0 18px 50px rgba(33,31,32,.16); }
 :root[data-theme="light"] .badge.yellow, :root[data-theme="light"] .scope.y, :root[data-theme="light"] .d-param .req { color: #8c6f00; }
 :root[data-theme="light"] .banner { color: #2a62d6; }
@@ -690,7 +704,7 @@ html.theme-anim, html.theme-anim * { transition: background-color .25s ease, bor
 .bulk-bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; margin-bottom: 10px; border-radius: 10px; border: 1px solid rgba(250,214,0,.4); background: rgba(250,214,0,.08); animation: rise .25s var(--ease); font-size: 13px; }
 .cb { width: 14px; height: 14px; accent-color: var(--yellow); cursor: pointer; }
 .t tbody tr.sel { background: rgba(250,214,0,.06); }
-:root[data-theme="light"] img[src$="/assets/logo.svg"] { content: url("/assets/brand/wordmark-on-light.svg"); }
+:root:not([data-theme="light"]) img[src$="/assets/logo.svg"] { content: url("/assets/logo-dark.svg"); }
 :root[data-theme="light"] img[src*="/assets/clients/"]:not([src$="claude.svg"]) { filter: invert(1) brightness(.25); }
 .tpl-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 24px; }
 .tpl-folders { display: flex; flex-direction: column; gap: 1px; position: sticky; top: 12px; align-self: start; }

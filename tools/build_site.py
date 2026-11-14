@@ -10,7 +10,7 @@ E = html.escape
 
 NAV = """<header class="nav">
   <div class="wrap">
-    <a class="logo" href="/" aria-label="Delivrie home"><img src="/assets/logo.svg" width="118" height="22" alt="Delivrie"></a>
+    <a class="logo" href="/" aria-label="Delivrie home"><img src="/assets/logo.svg" width="122" height="22" alt="Delivrie"></a>
     <nav class="nav-links" aria-label="Main">
       <a class="nav-link" href="/#integrate">Product</a>
       <a class="nav-link" href="/docs">Docs</a>
@@ -27,7 +27,7 @@ NAV = """<header class="nav">
 
 FOOTER = """<footer class="footer">
   <div class="wrap">
-    <div class="brand"><img src="/assets/footer-mark.svg" width="27" height="19" alt="Delivrie"></div>
+    <div class="brand"><a href="/" aria-label="Delivrie home"><img src="/assets/logo.svg" width="133" height="24" alt="Delivrie"></a></div>
     <nav class="fcol"><h4>Product</h4><a href="/signup">Emails</a><a href="/signup">Broadcasts</a><a href="/signup">Templates</a><a href="/pricing">Pricing</a><a href="/resend-alternative">Resend alternative</a><a href="/brevo-alternative">Brevo alternative</a><a href="/changelog">Changelog</a></nav>
     <nav class="fcol"><h4>Developers</h4><a href="/docs">Docs</a><a href="/docs/api">API reference</a><a href="/docs/mcp">MCP server</a><a href="/status">Status</a></nav>
     <nav class="fcol"><h4>Company</h4><a href="/about">About</a><a href="/customers">Customers</a><a href="/careers">Careers</a><a href="/brand">Brand</a><a href="/contact-sales">Contact sales</a></nav>
@@ -84,7 +84,7 @@ def page(path, title, desc, body, extra_script="", jsonld=None, noindex=False, o
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{E(title)}</title>
   <meta name="description" content="{E(desc)}">
-  <meta name="theme-color" content="#211f20">
+  <meta name="theme-color" content="#ffffff">
   <meta property="og:type" content="{og_type}"><meta property="og:site_name" content="Delivrie"><meta property="og:url" content="{canonical}">
   <meta property="og:title" content="{E(title)}"><meta property="og:description" content="{E(desc)}"><meta property="og:image" content="https://delivrie.io/assets/og-image.jpg">
   <meta name="twitter:card" content="summary_large_image">
@@ -93,7 +93,7 @@ def page(path, title, desc, body, extra_script="", jsonld=None, noindex=False, o
   <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="alternate" type="application/rss+xml" title="Delivrie changelog" href="/changelog.xml">
-  <style>.nav .logo img{{width:118px;height:22px}}.footer .brand img{{width:27px;height:19px}}.cta-mark{{width:72px;height:51px}}</style>
+  <style>.nav .logo img{{width:122px;height:22px}}.footer .brand img{{width:27px;height:19px}}.cta-mark{{width:72px;height:51px}}</style>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">

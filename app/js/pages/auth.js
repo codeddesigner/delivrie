@@ -3,7 +3,7 @@ import { esc, icon, toast, errToast, confirmModal, $ } from "../lib/ui.js";
 import { MARK } from "../lib/icons.js";
 import { nextAfterAuth, takeNext } from "../lib/intent.js";
 
-const LOGO = `<a href="/" data-native><img src="/assets/logo.svg" width="96" height="18" alt="Delivrie"></a>`;
+const LOGO = `<a href="/" data-native><img src="/assets/logo.svg" width="100" height="18" alt="Delivrie"></a>`;
 function layout(root, inner) {
   root.innerHTML = `<div class="auth"><header class="auth-head">${LOGO}</header><main class="auth-body"><div class="auth-card">${inner}</div></main>
     <footer class="auth-foot"><span>© ${new Date().getFullYear()} Delivrie</span><a href="/help" data-native>Status</a><a href="/docs">Privacy</a><a href="/docs">Terms</a></footer></div>`;

@@ -20,7 +20,7 @@ export default async function admin(ctx) {
   const root = ctx.root;
   const tab = ctx.params.tab || "overview";
   root.innerHTML = `<div class="admin">
-    <header class="admin-top"><a href="/emails" class="row-flex" style="gap:10px"><img src="/assets/logo.svg" width="118" height="22" alt="Delivrie"></a>${badge("Admin", "yellow")}<span class="grow"></span><span class="dim" style="font-size:12.5px">${esc(state.user?.email || "")}</span><a class="btn btn-ghost btn-sm" href="/emails">Back to app ${icon("arrow-right", 12)}</a></header>
+    <header class="admin-top"><a href="/emails" class="row-flex" style="gap:10px"><img src="/assets/logo.svg" width="122" height="22" alt="Delivrie"></a>${badge("Admin", "yellow")}<span class="grow"></span><span class="dim" style="font-size:12.5px">${esc(state.user?.email || "")}</span><a class="btn btn-ghost btn-sm" href="/emails">Back to app ${icon("arrow-right", 12)}</a></header>
     <div class="page wide"><div class="ul-tabs">${TABS.map(([k, l]) => `<a class="ul-tab ${k === tab ? "on" : ""}" href="/admin/${k === "overview" ? "" : k}">${l}</a>`).join("")}</div><div data-body><div class="card card-pad row-flex"><span class="spinner"></span><span class="muted">Loading…</span></div></div></div></div>`;
   const body = root.querySelector("[data-body]");
 
