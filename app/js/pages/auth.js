@@ -1,6 +1,6 @@
 import { sb, state, loadTeams, setTeam, api } from "../lib/sb.js";
 import { esc, icon, toast, errToast, confirmModal, $ } from "../lib/ui.js";
-import { MARK } from "../lib/icons.js";
+import { MARK, brandIcon } from "../lib/icons.js";
 import { nextAfterAuth, takeNext } from "../lib/intent.js";
 
 const LOGO = `<a href="/" data-native><img src="/assets/logo.svg" width="100" height="18" alt="Delivrie"></a>`;
@@ -20,7 +20,7 @@ async function oauth(provider) {
 }
 function sso(last) {
   const lu = (p) => last === p ? '<span class="last-used">Last used</span>' : "";
-  return `<div class="sso"><button class="btn btn-secondary" style="position:relative" data-oauth="google">${icon("google", 14)} Continue with Google${lu("google")}</button><button class="btn btn-secondary" style="position:relative" data-oauth="github">${icon("github", 14)} Continue with GitHub${lu("github")}</button></div><div class="or">or</div>`;
+  return `<div class="sso"><button class="btn btn-secondary" style="position:relative" data-oauth="google">${brandIcon("google", 16)} Continue with Google${lu("google")}</button><button class="btn btn-secondary" style="position:relative" data-oauth="github">${brandIcon("github", 16)} Continue with GitHub${lu("github")}</button></div><div class="or">or</div>`;
 }
 function bindSso(card) { card.querySelectorAll("[data-oauth]").forEach((b) => b.addEventListener("click", () => oauth(b.dataset.oauth))); }
 

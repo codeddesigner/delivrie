@@ -170,3 +170,34 @@
   if (mq && mq.addEventListener) mq.addEventListener("change", function () { if (get() === "system") apply("system", true); });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { apply(get()); }); else apply(get());
 })();
+
+// Mobile menu (Figma: Mobile · Menu open) and the mobile light/dark button.
+(function () {
+  if (window.DLV_V) return;
+  function $(s) { return document.querySelector(s); }
+  function open(on) {
+    var m = $("#mmenu"), b = $(".m-menu"); if (!m) return;
+    if (on) {
+      var sys = document.getElementById("sys"), st = m.querySelector(".mm-status");
+      if (sys && st) { st.querySelector("span").textContent = sys.textContent.trim() || "All systems operational"; st.className = "mm-status " + (sys.className.replace(/\bsys\b/, "").trim()); }
+      m.hidden = false; document.documentElement.classList.add("mm-open");
+      var c = m.querySelector(".mm-close"); if (c) c.focus();
+    } else {
+      m.hidden = true; document.documentElement.classList.remove("mm-open");
+      if (b) b.focus();
+    }
+    if (b) b.setAttribute("aria-expanded", on ? "true" : "false");
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target : null; if (!t) return;
+    if (t.closest(".m-menu")) { open(true); return; }
+    if (t.closest(".mm-close")) { open(false); return; }
+    var g = t.closest(".mm-toggle");
+    if (g) { var grp = g.parentNode; var on = !grp.classList.contains("open"); grp.classList.toggle("open", on); g.setAttribute("aria-expanded", on ? "true" : "false"); return; }
+    if (t.closest(".mmenu a")) { open(false); return; }
+    var f = t.closest("[data-theme-flip]");
+    if (f) { var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"; var btn = document.querySelector('.theme-sw [data-theme-set="' + next + '"]'); if (btn) btn.click(); }
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && $("#mmenu") && !$("#mmenu").hidden) open(false); });
+  window.addEventListener("resize", function () { if (window.innerWidth > 900 && $("#mmenu") && !$("#mmenu").hidden) open(false); });
+})();

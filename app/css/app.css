@@ -275,6 +275,7 @@ table.t { width: 100%; border-collapse: collapse; table-layout: auto; }
 .auth-card h1 { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
 .auth-card .sub { color: var(--fg-2); }
 .auth-card .sub a, .auth-card a.y { color: var(--yellow); }
+:root[data-theme="light"] .auth-card .sub a, :root[data-theme="light"] .auth-card a.y { color: #876800; }
 .auth-card form { display: flex; flex-direction: column; gap: 12px; text-align: left; }
 .auth-card .sso { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .auth-card .or { display: flex; align-items: center; gap: 12px; color: var(--fg-3); font-size: 12px; }
