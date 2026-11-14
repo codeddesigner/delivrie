@@ -45,6 +45,7 @@
 :root[data-theme="dark"] img[src$="/assets/logo.svg"] { content: url("/assets/logo-dark.svg"); }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   margin: 0;
@@ -1037,3 +1038,6 @@ html.mm-open, html.mm-open body { overflow: hidden; }
   .m-menu { order: 3; }
 }
 @media (min-width: 901px) { .mmenu { display: none !important; } }
+.s-hero.center .eyebrow { align-self: center; }
+.s-hero.center .lede { margin-left: auto; margin-right: auto; }
+.p-head p { max-width: 640px; margin-left: auto; margin-right: auto; }

@@ -77,7 +77,7 @@ function shellHtml() {
       ${NAV.map((n) => n.section ? `<div class="nav-sec ${closed[n.section] ? "closed" : ""}" data-sec="${n.section}">${n.section}<span class="caret"></span></div><div class="nav-group ${closed[n.section] ? "closed" : ""}" data-group="${n.section}">${n.items.map(navLink).join("")}</div>` : navLink(n)).join("")}
       <div class="side-spacer"></div>
       <a class="whatsnew" href="/changelog" data-native><span class="k">What’s new</span><span class="v">Automations and Inbox are live</span></a>
-      <div class="side-foot"><button class="who" id="who-btn"><span class="avatar" style="width:22px;height:22px;font-size:10px">${esc(initials(state.profile?.full_name || state.user?.email || "?"))}</span><span>${esc(state.profile?.full_name || state.user?.email?.split("@")[0] || "")}</span></button>${themeSwitch()}</div>
+      <div class="side-foot"><button class="who" id="who-btn"><span class="avatar me">${esc(initials(state.profile?.full_name || state.user?.email || "?"))}</span><span class="who-t"><span>${esc(state.profile?.full_name || state.user?.email?.split("@")[0] || "")}</span><small>${esc(state.user?.email || "")}</small></span></button>${themeSwitch()}</div>
     </nav>
     <div class="main"><section class="panel">
       <header class="topbar"><button class="ibtn mobile-only" id="side-toggle">${icon("sidebar", 15)}</button><div class="crumbs" id="crumbs"></div>

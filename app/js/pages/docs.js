@@ -122,7 +122,7 @@ export default async function docs(ctx) {
   root.innerHTML = `<div class="docs">
     <header class="d-top"><a href="/" data-native class="d-logo"><img src="/assets/logo.svg" width="122" height="22" alt="Delivrie"></a><span class="d-badge">Docs</span>
       <div class="d-search"><span class="lead">${icon("search", 13)}</span><input data-q placeholder="Search docs, API and MCP tools…" autocomplete="off"><kbd>⌘K</kbd><div class="d-results" data-results hidden></div></div>
-      <nav class="d-links"><a href="/status" data-native class="hide-sm">API status</a><a href="/help" class="hide-sm">Support</a>${themeSwitch()}<a class="d-dash" href="${state.user ? "/emails" : "/login"}">${state.user ? "Dashboard" : "Log in"}</a></nav></header>
+      <nav class="d-links"><a href="/status" data-native class="hide-sm">API status</a><a href="/help" class="hide-sm">Support</a><span class="d-theme-top">${themeSwitch()}</span><a class="d-dash" href="${state.user ? "/emails" : "/login"}">${state.user ? "Dashboard" : "Log in"}</a></nav></header>
     <nav class="d-tabs">${[["guides", "/docs", "book", "Guides"], ["api", "/docs/api", "code", "API reference"], ["mcp", "/docs/mcp", "sparkle", "MCP server"], ["changelog", "/docs/changelog", "clock", "Changelog"]].map(([k, h, ic, l]) => `<a href="${h}" class="${k === tab ? "on" : ""}">${icon(ic, 13)}${l}</a>`).join("")}</nav>
     <div class="d-body" data-body></div></div>`;
   const body = root.querySelector("[data-body]");
@@ -139,7 +139,7 @@ export default async function docs(ctx) {
 
 // ---------------------------------------------------------------- shared bits
 function sidebar(groups, active) {
-  return `<aside class="d-side">${groups.map(([g, items]) => `<div class="d-grp">${esc(g)}</div>${items.map((i) => `<a href="${i.href}" class="${i.key === active ? "on" : ""}">${i.pre || ""}<span>${esc(i.label)}</span></a>`).join("")}`).join("")}</aside>`;
+  return `<aside class="d-side">${groups.map(([g, items]) => `<div class="d-grp">${esc(g)}</div>${items.map((i) => `<a href="${i.href}" class="${i.key === active ? "on" : ""}">${i.pre || ""}<span>${esc(i.label)}</span></a>`).join("")}`).join("")}<div class="d-theme"><span>Theme</span>${themeSwitch()}</div></aside>`;
 }
 function toc(items, extra = "") {
   return `<aside class="d-toc"><div class="d-grp">On this page</div>${items.map(([id, l]) => `<a href="#${id}" data-toc="${id}">${esc(l)}</a>`).join("")}${extra}</aside>`;

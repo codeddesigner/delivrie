@@ -100,13 +100,14 @@
     if (!document.getElementById('dlv-banner-css')) {
       var st = document.createElement('style'); st.id = 'dlv-banner-css';
       st.textContent = '.dlv-banner{position:relative;z-index:60;display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 44px;font:500 13.5px/1.4 Inter,system-ui,sans-serif;text-align:center}' +
+        '.dlv-banner.warm{margin:16px 24px 0;border-radius:10px;background:var(--warm,#f4eee4);color:var(--fg,#1f1d1e);font-family:var(--sans,Inter,system-ui,sans-serif)}.dlv-banner.warm:before{content:"";width:6px;height:6px;border-radius:50%;background:#fad600;flex:none}.dlv-banner.warm a{color:var(--fg-2,#67625f);text-decoration:none;font-weight:400}.dlv-banner.warm a:hover{color:var(--fg,#1f1d1e)}' +
         '.dlv-banner.yellow{background:#fad600;color:#1b1a1a}.dlv-banner.dark{background:#2a2829;color:#f4f2f0;border-bottom:1px solid rgba(255,255,255,.08)}' +
         '.dlv-banner a{color:inherit;text-decoration:underline;text-underline-offset:3px;font-weight:600}' +
         '.dlv-banner button{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;border-radius:6px;background:transparent;color:inherit;opacity:.7;cursor:pointer;font-size:18px;line-height:1}.dlv-banner button:hover{opacity:1}';
       document.head.appendChild(st);
     }
     var el = old || document.createElement('div');
-    el.className = 'dlv-banner ' + (b.tone === 'dark' ? 'dark' : 'yellow');
+    el.className = 'dlv-banner ' + (b.tone === 'dark' ? 'dark' : b.tone === 'yellow' ? 'yellow' : 'warm');
     el.setAttribute('role', 'region'); el.setAttribute('aria-label', 'Announcement');
     var t = document.createElement('span'); t.textContent = b.text;
     el.innerHTML = ''; el.appendChild(t);

@@ -180,7 +180,7 @@ def cards(items, cols=4):
     return f'<div class="grid{cols} reveal-stagger">' + "".join(f'<article class="fcard"><span class="fic">{ICON.get(i, ICON["spark"])}</span><h3>{E(t)}</h3><p>{E(d)}</p></article>' for i, t, d in items) + "</div>"
 
 def about():
-    body = hero("About", "Email infrastructure,<br> built for builders.", "Delivrie is built in Lagos by South Circle, because sending a receipt should not need a deliverability team. Developers, and their agents, ship email with us.", [("Start for free", "/signup", "b-primary"), ("Read the docs", "/docs", "b-secondary")])
+    body = hero("About", "Email infrastructure,<br> built for builders.", "Delivrie is built in Lagos by South Circle, because sending a receipt should not need a deliverability team. Developers, and their agents, ship email with us.", [("Start for free", "/signup", "b-primary"), ("Read the docs", "/docs", "b-secondary")], center=True)
     body += """<section class="section"><div class="wrap"><div class="stats reveal-stagger">
       <div><b>6,000</b><span>free emails every month</span></div><div><b>₦ and $</b><span>pricing in your currency</span></div><div><b>64</b><span>MCP tools for AI agents</span></div><div><b>1 call</b><span>to send an email</span></div></div></div></section>"""
     body += f"""<section class="section"><div class="wrap split-2">

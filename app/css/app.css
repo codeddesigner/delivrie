@@ -1064,3 +1064,36 @@ tr.revoked td { opacity: .5; }
 .sp-conv .sc-m.them .sc-b { background: var(--yellow); color: var(--yellow-ink); border: 0; border-bottom-left-radius: 4px; }
 .sp-empty { margin: auto; color: var(--fg-2); font-size: 13px; text-align: center; padding: 20px; }
 @media (max-width: 860px) { .sp { grid-template-columns: 1fr; height: auto; } .sp-list { border-right: 0; max-height: 260px; } .sp-conv { height: 70vh; } }
+
+/* Sidebar account (Figma: App/Sidebar · Account) */
+.side-foot { border-top: 0; padding: 6px 4px 2px 8px; }
+.side-foot .avatar.me { width: 18px; height: 18px; border-radius: 5px; font-size: 9px; background: var(--yellow); color: #1f1d1e; flex: none; }
+.side-foot .who-t { display: flex; flex-direction: column; min-width: 0; text-align: left; line-height: 1.25; }
+.side-foot .who-t > span { font-size: 12px; font-weight: 500; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-foot .who-t small { font-size: 11px; color: var(--fg-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Settings · Usage and SMTP (Figma 9.1 / 9.4) */
+.u-card { display: grid; grid-template-columns: minmax(200px, 300px) minmax(0, 1fr); gap: 24px; padding: 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+.u-card + .u-card { margin-top: 12px; }
+.u-side h3 { margin: 0; font-size: 14px; font-weight: 500; }
+.u-side p { margin: 6px 0 0; font-size: 13px; color: var(--fg-2); line-height: 1.45; }
+.u-plan { margin: 10px 0 8px; }
+.u-rows { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.u-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.u-val { color: var(--fg); font-variant-numeric: tabular-nums; }
+.u-bar { height: 4px; border-radius: 4px; background: var(--muted); margin-top: 8px; overflow: hidden; }
+.u-bar i { display: block; height: 100%; background: var(--yellow); border-radius: inherit; }
+.u-bar.over i { background: var(--red); }
+.btn-ink { background: var(--fg); color: var(--bg); }
+.btn-ink:hover:not(:disabled) { opacity: .88; }
+.copy-field { position: relative; display: flex; align-items: center; }
+.copy-field .input { padding-right: 36px; }
+.copy-field .ibtn { position: absolute; right: 2px; }
+@media (max-width: 760px) { .u-card { grid-template-columns: 1fr; gap: 14px; } }
+
+/* Docs (Figma: Marketing · Docs): ink Dashboard button, theme switch at the foot of the sidebar */
+.d-dash { background: var(--fg); color: var(--bg) !important; border-radius: 999px; padding: 6px 14px; }
+@media (min-width: 901px) { .d-side { display: flex; flex-direction: column; } }
+.d-theme { margin-top: auto; padding: 16px 8px 0; display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; color: var(--fg-2); position: sticky; bottom: 0; background: var(--bg); }
+.d-theme-top { display: none; }
+@media (max-width: 900px) { .d-theme { display: none; } .d-theme-top { display: inline-flex; } }

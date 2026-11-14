@@ -26,11 +26,19 @@ async function usage(body) {
   const [{ data: u, error }, status] = await Promise.all([sb.rpc("team_usage", { p_team: T() }), api("GET", "/dashboard/status").catch(() => null)]);
   if (error) throw error;
   const L = status?.limits || { month: 6000, day: 200, contacts: 1000, segments: 3, domains: 5 };
-  const meter = (label, used, limit, sub) => { const p = limit ? Math.min(1, used / limit) : 0; return `<div class="stat"><div class="row-flex"><div class="k">${label}</div><span class="grow"></span><span class="dim" style="font-size:12px">${num(used)} / ${limit ? num(limit) : "∞"}</span></div><div class="meter ${p >= 0.9 ? "red" : ""}"><i style="width:${p * 100}%"></i></div>${sub ? `<div class="dim" style="font-size:11.5px;margin-top:6px">${sub}</div>` : ""}</div>`; };
-  const aws = status?.aws;
-  body.innerHTML = `<h3 class="section-title" style="margin-top:0">Transactional</h3><div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">${meter("Monthly emails", u.month, L.month, "Resets on the 1st")}${meter("Daily emails", u.day, L.day, "Resets at midnight UTC")}${meter("Domains", u.domains, L.domains)}</div>
-    <h3 class="section-title">Marketing</h3><div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">${meter("Contacts", u.contacts, L.contacts)}${meter("Segments", u.segments, L.segments)}${meter("Broadcasts", u.broadcasts, 0)}</div>
-    <h3 class="section-title">Team</h3><div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">${meter("Members", u.members, 0)}${meter("API keys", u.api_keys, 0)}${meter("Webhooks", u.webhooks, 0)}</div>
+  // Figma 9.1 Usage: one card per area, plan on the left, limits on the right.
+  const tPlan = state.team?.plan_transactional || status?.plan || "free", mPlan = state.team?.plan_marketing || "free";
+  const cap = (x) => String(x || "free").replace(/^./, (c) => c.toUpperCase());
+  const row = (label, used, limit) => {
+    if (!limit) return `<div class="u-row"><div class="u-head"><span>${label}</span><span class="u-val">${used == null ? "Unlimited" : `${num(used)} / Unlimited`}</span></div></div>`;
+    const p = used / limit;
+    return `<div class="u-row"><div class="u-head"><span>${label}</span><span class="u-val">${num(used)} / ${num(limit)}</span></div><div class="u-bar ${p > 1 ? "over" : ""}"><i style="width:${Math.min(1, p) * 100}%"></i></div></div>`;
+  };
+  const card = (title, desc, plan, rows) => `<section class="u-card"><div class="u-side"><h3>${title}</h3><p>${desc}</p>${plan ? `<div class="u-plan">${badge(cap(plan), "gray")}</div>${plan === "free" ? `<a class="btn btn-ink btn-sm" href="/billing">Upgrade</a>` : `<a class="btn btn-secondary btn-sm" href="/billing">Manage plan</a>`}` : ""}</div><div class="u-rows">${rows}</div></section>`;
+  body.innerHTML = card("Transactional", "Emails sent from the API and SMTP.", tPlan, row("Monthly limit", u.month, L.month) + row("Daily limit", u.day, L.day))
+    + card("Marketing", "Broadcasts to contacts and segments.", mPlan, row("Contacts", u.contacts, L.contacts) + row("Segments", u.segments, L.segments) + row("Broadcasts", null, 0))
+    + card("Team", "Domains, members and keys on this team.", null, row("Domains", u.domains, L.domains) + row("Members", u.members, 0) + row("API keys", u.api_keys, 0) + row("Webhooks", u.webhooks, 0))
+    + `
     ${status && !status.limits_enforced ? `<p class="hint" style="margin-top:12px">Limits are shown for reference and aren’t enforced on this workspace.</p>` : ""}
     ${state.platformAdmin ? `<h3 class="section-title">Platform sending <span class="dim" style="font-weight:400">· only platform admins see this</span></h3><div class="card card-pad">${!aws?.configured ? `<div class="row-flex">${icon("alert", 14)} <span>Sending isn’t set up on this workspace yet. Contact support@delivrie.io.</span></div>` : aws.error ? `<div class="row-flex" style="color:var(--orange)">${icon("alert", 14)} ${esc(aws.error)}</div>` : `<div class="kv"><span class="k">Account</span><span>${aws.production ? badge("Production", "green") : badge("Sandbox — verified recipients only", "yellow")}</span><span class="k">Sending</span><span>${aws.sending ? "Enabled" : "Paused"}</span><span class="k">Rate</span><span>${num(aws.max_send_rate)} emails / second</span><span class="k">24h quota</span><span>${num(aws.sent_24h)} of ${num(aws.max_24h)} used</span></div>`}</div>` : ""}`;
 }
@@ -97,10 +105,11 @@ async function suppressions(body) {
 }
 
 async function smtp(body) {
-  const row = (k, v, copy) => `<span class="k">${k}</span><span class="row-flex" style="gap:6px"><span class="mono">${esc(v)}</span>${copy ? `<button class="ibtn" data-copy="${esc(v)}" title="Copy">${icon("copy", 12)}</button>` : ""}</span>`;
-  body.innerHTML = `<div class="card card-pad"><h3>SMTP relay</h3><p class="muted" style="margin:6px 0 12px">For tools that can’t call an API, like WordPress, Laravel, Django, Ghost or Supabase Auth. Mail sent over SMTP gets the same limits, logs, webhooks and suppressions as the API.</p>
-      <div class="kv">${row("Host", "smtp.delivrie.io", true)}${row("Port", "587 (STARTTLS) or 465 (SSL/TLS)")}${row("Backup ports", "2587 (STARTTLS) or 2465 (SSL/TLS), if your host blocks the usual ones")}${row("Username", "delivrie", true)}<span class="k">Password</span><span>A Delivrie API key. A sending-only key is enough. <a href="/api-keys">Create one</a></span></div>
-      <p class="hint" style="margin-top:12px">Send from an address on a verified domain. Add <span class="mono">X-Delivrie-Tags: name=value</span> to tag messages.</p></div>
+  // Figma 9.4 SMTP: description on the left, copyable fields on the right.
+  const field = (k, v, hint) => `<div class="field"><label>${k}</label><div class="copy-field"><input class="input mono" readonly value="${esc(v)}" aria-label="${k}"><button class="ibtn" data-copy="${esc(v)}" title="Copy ${k.toLowerCase()}">${icon("copy", 14)}</button></div>${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
+  body.innerHTML = `<section class="u-card"><div class="u-side"><h3>SMTP</h3><p>Send with SMTP instead of the REST API, from tools like WordPress, Laravel, Django, Ghost or Supabase Auth. Use an API key as the password.</p></div>
+      <div class="u-rows" style="gap:14px">${field("Host", "smtp.delivrie.io")}${field("Port", "587")}${field("Username", "delivrie")}${field("Password", "YOUR_API_KEY", `A Delivrie API key; a sending-only key is enough. <a href="/api-keys">Create one</a>`)}
+      <p class="hint">Use 465 or 2465 for implicit TLS, 587 or 2587 for STARTTLS. Send from an address on a verified domain; add <span class="mono">X-Delivrie-Tags: name=value</span> to tag messages. SMTP mail gets the same limits, logs, webhooks and suppressions as the API.</p></div></section>
     <h3 class="section-title">Or send with the API</h3>${codeBlock(`curl -X POST ${location.origin}/api/emails \\\n  -H "Authorization: Bearer dlv_xxxxxxxxx" \\\n  -H "Content-Type: application/json" \\\n  -d '{"from":"You <you@yourdomain.com>","to":["them@example.com"],"subject":"Hi","html":"<p>Hello</p>"}'`, { lang: "sh" })}`;
 }
 
