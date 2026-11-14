@@ -54,12 +54,14 @@
 <main>
   <section class="hero">
     <div class="wrap">
+      <span class="m-eyebrow m-only"><i></i>Email API · built in Lagos</span>
       <h1 class="reveal-h"><span>Email for people building</span><br><span>with intelligence</span></h1>
       <p class="hero-lede reveal-sub">Transactional email, broadcasts and an inbox, with an API your agents can use. Priced in Naira, built in Lagos.</p>
       <div class="hero-cta reveal-sub">
-        <a class="b-primary pill" href="/signup">Start for free</a>
+        <a class="b-primary pill" href="/signup">Start for free<span class="m-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12H19M13 6L19 12L13 18"/></svg></span></a>
         <a class="b-secondary pill" href="/docs"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 1 4 17.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 0 1.5-1.5z"/></svg>Read the docs</a>
       </div>
+      <p class="m-note m-only">6,000 free emails a month · no card</p>
     </div>
   </section>
 
@@ -127,7 +129,7 @@
   <section class="section" id="integrate">
     <div class="wrap split">
       <div class="split-l reveal">
-        <span class="eyebrow"><i></i>API</span>
+        <span class="eyebrow" data-m="01 · Integrate"><i></i>API</span>
         <h2>Integrate<br> this weekend</h2>
         <p class="lede">A simple REST API that works from every major runtime. One call sends an email; webhooks tell you what happened next.</p>
         <div class="langs">
@@ -154,11 +156,11 @@
   <section class="section" id="developers">
     <div class="wrap">
       <div class="section-head reveal">
-        <div><span class="eyebrow"><i></i>Developer experience</span><h2>Built like the tools<br> you already love</h2></div>
+        <div><span class="eyebrow" data-m="02 · Platform"><i></i>Developer experience</span><h2>Built like the tools<br> you already love</h2></div>
         <div class="grow"></div>
         <p class="lede">The details that make email boring in the best way: predictable, debuggable and safe to retry.</p>
       </div>
-      <div class="grid3 reveal-stagger">
+      <div class="grid3 reveal-stagger m-hide">
         <article class="fcard"><span class="fic"><svg viewBox="0 0 24 24"><path d="M13 3L4.5 13.5H12L11 21L19.5 10.5H12L13 3Z"/></svg></span><h3>Test mode</h3><p>Send to delivered@, bounced@ and complained@test.delivrie.io without touching reputation.</p></article>
         <article class="fcard"><span class="fic"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.5"/><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M11 8.2L7.2 14.8M13 8.2l3.8 6.6M8.5 17h7"/></svg></span><h3>Modular webhooks</h3><p>Subscribe to exactly the events you need. Every payload is signed and retried with backoff.</p></article>
         <article class="fcard"><span class="fic"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M20 20v-4h-4"/></svg></span><h3>Idempotent requests</h3><p>Pass an Idempotency-Key and retries never double-send.</p></article>
@@ -166,10 +168,11 @@
         <article class="fcard"><span class="fic"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><h3>Batch sending</h3><p>Up to 100 emails in a single request, each with its own variables.</p></article>
         <article class="fcard"><span class="fic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span><h3>Scheduled sends</h3><p>Schedule in natural language or ISO time, and cancel any time before it sends.</p></article>
       </div>
+      <div class="m-feats m-only"><div class="m-feat"><span class="m-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5Z"/><path d="M3.5 6.5L12 13L20.5 6.5"/></svg></span><div><b>Transactional</b><p>API and SMTP, idempotent sends, scheduled delivery.</p></div></div><div class="m-feat"><span class="m-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3L10.5 13.5M10.5 13.5L3 9.5L21 3L14.5 21L10.5 13.5Z"/></svg></span><div><b>Broadcasts</b><p>Segments, topics and one-click unsubscribe.</p></div></div><div class="m-feat"><span class="m-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18.5 3.5H5.5C4.39543 3.5 3.5 4.39543 3.5 5.5V18.5C3.5 19.6046 4.39543 20.5 5.5 20.5H18.5C19.6046 20.5 20.5 19.6046 20.5 18.5V5.5C20.5 4.39543 19.6046 3.5 18.5 3.5Z"/><path d="M3.5 9H20.5M9 9V20.5"/></svg></span><div><b>Templates</b><p>Visual or HTML editor. Version and publish every change.</p></div></div><div class="m-feat"><span class="m-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/><path d="M7 10.5V14C7 15.66 8.34 17 10 17H13.5"/></svg></span><div><b>Automations</b><p>Trigger flows from events. Wait, branch, send.</p></div></div><div class="m-feat"><span class="m-tile"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 13.5L6 5.5H18L20.5 13.5V18.5H3.5V13.5Z"/><path d="M3.5 13.5H8.5L9.5 15.5H14.5L15.5 13.5H20.5"/></svg></span><div><b>Inbox</b><p>Receive replies and let an agent draft the answer.</p></div></div></div>
     </div>
   </section>
 
-  <section class="section" id="editor">
+  <section class="section m-hide" id="editor">
     <div class="wrap">
       <div class="section-head reveal">
         <div><span class="eyebrow"><i></i>Templates &amp; broadcasts</span><h2>Write emails,<br> not markup</h2></div>
@@ -200,12 +203,12 @@
   <section class="section" id="deliverability">
     <div class="wrap">
       <div class="section-head reveal">
-        <div><span class="eyebrow"><i></i>Deliverability</span><h2>Reach humans,<br> not spam folders</h2></div>
+        <div><span class="eyebrow" data-m="03 · Deliverability"><i></i>Deliverability</span><h2>Reach humans,<br> not spam folders</h2></div>
         <div class="grow"></div>
         <p class="lede">Authentication set up for you, insights on every message, and bounce and complaint rates watched against provider limits.</p>
       </div>
       <div class="deliv-row">
-        <div class="dns-card reveal">
+        <div class="dns-card reveal m-hide">
           <h3>kora.ng</h3>
           <div class="dns-row"><span class="ty">TXT</span><span class="nm">delivrie._domainkey</span><span class="vl">p=MIGfMA0GCSqGSIb3…</span><span class="ok">Verified</span></div>
           <div class="dns-row"><span class="ty">MX</span><span class="nm">send</span><span class="vl">feedback-smtp.delivrie.io</span><span class="ok">Verified</span></div>
@@ -227,7 +230,7 @@
     </div>
   </section>
 
-  <section class="section" id="observability">
+  <section class="section m-hide" id="observability">
     <div class="wrap">
       <div class="section-head reveal">
         <div><span class="eyebrow"><i></i>Observability</span><h2>Everything in<br> your control</h2></div>
@@ -257,12 +260,13 @@
   <section class="section mcp" id="mcp">
     <div class="wrap">
       <div class="section-head reveal">
-        <div><span class="eyebrow"><i></i>MCP server</span><h2>Let your agents<br> send the email</h2></div>
+        <div><span class="eyebrow" data-m="04 · Agents"><i></i>MCP server</span><h2>Let your agents<br> send the email</h2></div>
         <div class="grow"></div>
         <p class="lede">The Delivrie MCP server gives Claude, Cursor and any MCP client the same API you use: send, schedule, verify domains and read the logs, scoped to a key you control.</p>
       </div>
 
-      <div class="mcp-grid reveal">
+      <div class="m-chat m-only"><p class="m-ask">“Send Ada the welcome email and tell me if it bounced.”</p><div class="m-call"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5L11 15L15.5 9.5"/></svg><span>send_email · welcome → ada@gmail.com</span></div><div class="m-call"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5L11 15L15.5 9.5"/></svg><span>get_email · delivered in 1.2s</span></div></div>
+      <div class="mcp-grid reveal m-hide">
         <div class="pane">
           <div class="tabs" role="tablist" aria-label="MCP client">
             <button class="tab" role="tab" aria-selected="true" data-client="claude"><img class="ti" src="assets/clients/claude.svg" width="12" height="12" alt="">Claude Code</button>
@@ -318,7 +322,7 @@
         </div>
       </div>
 
-      <div class="works reveal">
+      <div class="works reveal m-hide">
         <div class="tools-h"><p>Works with</p><span class="rule"></span></div>
         <div class="works-grid reveal-stagger">
           <div class="wcard"><span class="wl"><img src="assets/clients/claude.svg" width="18" height="18" alt=""></span><div><b>Claude</b><span>Claude Code · Desktop</span></div></div>
@@ -328,7 +332,7 @@
           <div class="wcard"><span class="wl"><img src="assets/clients/antigravity.svg" width="18" height="18" alt=""></span><div><b>Antigravity</b><span>Agent manager</span></div></div>
         </div>
       </div>
-      <div class="tools reveal">
+      <div class="tools reveal m-hide">
         <div class="tools-h"><p>64 tools</p><span class="rule"></span></div>
         <ul class="tool-list">
           <li>send_email</li><li>send_batch</li><li>reschedule_email</li><li>cancel_email</li><li>get_email</li><li>list_emails</li><li>reply_to_thread</li><li>list_inbox_threads</li><li>create_broadcast</li><li>send_broadcast</li><li>create_template</li><li>publish_template</li><li>create_automation</li><li>send_event</li><li>create_contact</li><li>create_segment</li><li>create_domain</li><li>verify_domain</li><li>create_webhook</li><li>test_webhook</li><li>get_metrics</li><li>list_logs</li><li>add_suppression</li><li>get_usage</li>
@@ -340,18 +344,19 @@
   <section class="section" id="pricing">
     <div class="wrap">
       <div class="section-head reveal">
-        <div><span class="eyebrow"><i></i>Pricing</span><h2>Half the price.<br> All of the platform.</h2></div>
+        <div><span class="eyebrow" data-m="05 · Pricing"><i></i>Pricing</span><h2>We make sure you<br> don’t have to resend.</h2></div>
         <div class="grow"></div>
         <p class="lede">Start free, pay monthly or yearly, or only for what you send. No seat fees, no setup fees.</p>
       </div>
       <div class="cur-toggle reveal" role="group" aria-label="Currency"><button data-cur="NGN">₦ NGN</button><button data-cur="USD">$ USD</button></div>
-      <div class="grid4 reveal-stagger">
+      <div class="m-plans m-only"><div class="m-plan"><h3>Free</h3><div class="pp"><b data-price="free">₦0</b><span>/month</span></div><ul><li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5L9.5 17L19 7.5"/></svg>6,000 emails a month</li><li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5L9.5 17L19 7.5"/></svg>1 domain, 1 day of logs</li></ul><a class="m-btn sec" href="/signup">Start for free</a></div><div class="m-plan pop"><h3>Pro <span class="mp">Most popular</span></h3><div class="pp"><b data-price="pro">₦10,000</b><span>/month</span></div><ul><li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5L9.5 17L19 7.5"/></svg>20,000 emails a month, no daily limit</li><li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5L9.5 17L19 7.5"/></svg>10 domains, 3 days of logs</li><li><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5L9.5 17L19 7.5"/></svg>Automations and Inbox</li></ul><a class="m-btn pri" href="/signup?plan=pro">Start with Pro</a></div><a class="m-compare" href="/pricing">Compare all plans <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12H19M13 6L19 12L13 18"/></svg></a></div>
+      <div class="grid4 reveal-stagger m-hide">
         <div class="pcard"><h3>Free</h3><div class="pp"><b data-price="free">₦0</b><span>/month</span></div><p>6,000 emails a month to build and test.</p></div>
         <div class="pcard pop"><h3>Pro <span class="mp">Most popular</span></h3><div class="pp"><b data-price="pro">₦10,000</b><span>/month</span></div><p>20,000 emails, no daily limit, 10 domains.</p></div>
         <div class="pcard"><h3>Scale</h3><div class="pp"><b data-price="scale">₦45,000</b><span>/month</span></div><p>100,000 emails, dedicated IP option.</p></div>
         <div class="pcard"><h3>Pay as you go</h3><div class="pp"><b data-price="payg">₦600</b><span>/1,000 emails</span></div><p>No monthly fee. Credits never expire.</p></div>
       </div>
-      <div class="center reveal"><a class="b-ghost" href="/pricing">→ Compare plans</a></div>
+      <div class="center reveal m-hide"><a class="b-ghost" href="/pricing">→ Compare plans</a></div>
     </div>
   </section>
 
@@ -360,7 +365,7 @@
       <img class="cta-mark" src="assets/mark.svg" width="72" height="51" alt="">
       <h2>Email for builders.<br> Ready when you are.</h2>
       <p>6,000 free emails every month. No card required.</p>
-      <div class="btn-row"><a class="b-primary" href="/signup">Start for free</a><a class="b-secondary" href="/contact-sales">Talk to sales</a></div>
+      <div class="btn-row"><a class="b-primary" href="/signup">Start for free<span class="m-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12H19M13 6L19 12L13 18"/></svg></span></a><a class="b-secondary m-hide" href="/contact-sales">Talk to sales</a></div>
     </div>
   </section>
 </main>

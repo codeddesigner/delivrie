@@ -91,7 +91,15 @@ function bindShell(root) {
   root.querySelector("#nav-search").addEventListener("click", () => palette());
   root.querySelector("#who-btn")?.addEventListener("click", (e) => accountMenu(e.currentTarget));
   root.querySelector("#feedback-btn").addEventListener("click", (e) => feedback(e.currentTarget));
-  root.querySelector("#side-toggle").addEventListener("click", () => root.querySelector("#side").classList.toggle("open"));
+  // Phones: the sidebar slides in over the page; tap outside, pick a page or press Escape to close it.
+  const side = root.querySelector("#side");
+  let scrim = root.querySelector(".side-scrim");
+  if (!scrim) { scrim = document.createElement("div"); scrim.className = "side-scrim"; side.after(scrim); }
+  const setSide = (open) => { side.classList.toggle("open", open); scrim.classList.toggle("on", open); };
+  root.querySelector("#side-toggle").addEventListener("click", () => setSide(!side.classList.contains("open")));
+  scrim.addEventListener("click", () => setSide(false));
+  side.addEventListener("click", (e) => { if (e.target.closest("a.nav-item")) setSide(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && side.classList.contains("open")) setSide(false); });
   on(root, "click", "[data-sec]", (_e, s) => {
     const name = s.dataset.sec; const closed = JSON.parse(localStorage.getItem("dlv_nav_closed") || "{}");
     closed[name] = !closed[name]; localStorage.setItem("dlv_nav_closed", JSON.stringify(closed));
