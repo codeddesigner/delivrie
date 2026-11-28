@@ -20,6 +20,18 @@ async function vercel(token: string, method: string, path: string, teamId: strin
   return j;
 }
 
+// New integrations only get tokens that expire within an hour, and no refresh token. Ask for a fresh one for the
+// installation whenever we act on it later; fall back to the stored token if that fails.
+async function freshToken(conn: Any): Promise<string> {
+  const { id, secret } = creds();
+  if (id && secret && conn.configuration_id) {
+    const res = await fetch(`${API}/v2/oauth/access_token`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "client_credentials", installation_id: conn.configuration_id, client_id: id, client_secret: secret }), signal: AbortSignal.timeout(20_000) }).catch(() => null);
+    const j = res ? await res.json().catch(() => ({})) : {};
+    if (res?.ok && j.access_token) return j.access_token;
+  }
+  return conn.access_token;
+}
+
 function dashOnly(c: Any) {
   if (c.via !== "dashboard" || !c.userId) throw new HttpError(403, "forbidden", "Connect Vercel from the Delivrie dashboard");
 }
@@ -65,11 +77,12 @@ export function registerVercel(route: Route) {
     const token = "dlv_" + randomToken(24);
     const { data: key, error } = await db.from("api_keys").insert({ team_id: c.teamId, name: `Vercel (${projects.length === 1 ? projects[0].name : `${projects.length} projects`})`.slice(0, 100), prefix: token.slice(0, 8), key_hash: await sha256(token), permission, domain_id: b?.domain_id || null, created_by: c.userId }).select("id").single();
     if (error) throw bad(error.message);
+    const accessToken = await freshToken(conn);
     const targets = ["production", "preview", "development"];
     const done: Any[] = [], failed: Any[] = [];
     for (const pr of projects) {
       try {
-        const out = await vercel(conn.access_token, "POST", `/v10/projects/${encodeURIComponent(pr.id)}/env?upsert=true`, conn.vercel_team_id, { key: "DELIVRIE_API_KEY", value: token, type: "encrypted", target: targets, comment: "Added by the Delivrie integration" });
+        const out = await vercel(accessToken, "POST", `/v10/projects/${encodeURIComponent(pr.id)}/env?upsert=true`, conn.vercel_team_id, { key: "DELIVRIE_API_KEY", value: token, type: "encrypted", target: targets, comment: "Added by the Delivrie integration" });
         const created = Array.isArray(out.created) ? out.created : out.created ? [out.created] : [];
         done.push({ id: pr.id, name: pr.name, env_ids: created.map((e: Any) => e.id).filter(Boolean) });
       } catch (e) { failed.push({ id: pr.id, name: pr.name, error: (e as Error).message }); }
@@ -88,8 +101,9 @@ export function registerVercel(route: Route) {
   route("DELETE", "/dashboard/vercel/:id", async (_r, c, p) => {
     dashOnly(c);
     const conn = await getConn(c.teamId, p.id);
-    for (const pr of conn.projects || []) for (const envId of pr.env_ids || []) await vercel(conn.access_token, "DELETE", `/v9/projects/${encodeURIComponent(pr.id)}/env/${encodeURIComponent(envId)}`, conn.vercel_team_id).catch(() => {});
-    await vercel(conn.access_token, "DELETE", `/v1/integrations/configuration/${encodeURIComponent(conn.configuration_id)}`, conn.vercel_team_id).catch(() => {});
+    const accessToken = await freshToken(conn);
+    for (const pr of conn.projects || []) for (const envId of pr.env_ids || []) await vercel(accessToken, "DELETE", `/v9/projects/${encodeURIComponent(pr.id)}/env/${encodeURIComponent(envId)}`, conn.vercel_team_id).catch(() => {});
+    await vercel(accessToken, "DELETE", `/v1/integrations/configuration/${encodeURIComponent(conn.configuration_id)}`, conn.vercel_team_id).catch(() => {});
     if (conn.api_key_id) await db.from("api_keys").delete().eq("team_id", c.teamId).eq("id", conn.api_key_id);
     await db.from("vercel_connections").delete().eq("id", conn.id);
     return { object: "vercel_connection", id: conn.id, deleted: true };
