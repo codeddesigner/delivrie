@@ -1,5 +1,6 @@
 # Tests the Ruby SDK (sdk/ruby) on every change, and publishes the gem to RubyGems when run by hand from main with
-# "publish" ticked. Publishing needs the RUBYGEMS_API_KEY repository secret (a RubyGems API key with push rights).
+# "publish" ticked. Publishing uses RubyGems trusted publishing: a trusted publisher on rubygems.org for this repo
+# and sdk-ruby.yml, so no API key or one-time code is needed.
 name: Ruby SDK
 
 on:
@@ -11,45 +12,22 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the version in sdk/ruby/lib/delivrie/version.rb to RubyGems
-        type: boolean
-        default: false
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        ruby: ["3.1", "3.2", "3.3", "3.4"]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Resource methods match tools/sdk_spec.py
-        run: python3 tools/gen_sdks.py --check
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: ${{ matrix.ruby }}
-      - working-directory: sdk/ruby
-        run: |
-          gem install minitest --no-document
-          ruby -Ilib -e 'Dir["test/test_*.rb"].each { |f| require_relative f }'
-          gem build delivrie.gemspec
-
-  publish:
     needs: test
     if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     defaults:
       run:
         working-directory: sdk/ruby
-    env:
-      GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
+      - name: Sign in to RubyGems (trusted publishing)
+        uses: rubygems/configure-rubygems-credentials@v1.0.0
       - run: |
-          if [ -z "$GEM_HOST_API_KEY" ]; then echo "::error::Add the RUBYGEMS_API_KEY secret to publish."; exit 1; fi
           gem build delivrie.gemspec
           gem push delivrie-*.gem
