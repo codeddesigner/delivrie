@@ -74,6 +74,8 @@ jobs:
     needs: test
     if: github.event_name == 'workflow_dispatch' && inputs.push_zapier && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: integrations/zapier
@@ -88,4 +90,13 @@ jobs:
           if [ -z "$ZAPIER_DEPLOY_KEY" ]; then echo "::error::Add the ZAPIER_DEPLOY_KEY secret (developer.zapier.com → Settings → Deploy keys)."; exit 1; fi
           npm install --no-audit --no-fund
           npx -y zapier-platform-cli@latest validate
+          if [ ! -f .zapierapprc ]; then
+            # First push: create the (private) integration on Zapier, then keep its id in the repo.
+            npx -y zapier-platform-cli@latest register "Delivrie" \
+              --desc "Email API for transactional email, broadcasts, automations and an inbox. Send email and sync contacts from any app." \
+              --url "https://delivrie.io" --audience private --role employee --category email --no-subscribe --yes
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .zapierapprc && git commit -m "Zapier: keep the registered integration id" && git push
+          fi
           npx -y zapier-platform-cli@latest push

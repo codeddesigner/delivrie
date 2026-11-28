@@ -68,7 +68,7 @@ const creates = [
         { key: "cc", label: "Cc", list: true },
         { key: "bcc", label: "Bcc", list: true },
         { key: "scheduled_at", label: "Send at", type: "datetime", helpText: "Leave empty to send now. Up to 30 days ahead." },
-        { key: "attachment_url", label: "Attachment URL", helpText: "A public https:// link to a file to attach." },
+        { key: "attachment_url", label: "Attachment URL", helpText: "A public HTTPS link to a file to attach." },
         { key: "idempotency_key", label: "Idempotency key", helpText: "Optional. Repeating a send with the same key returns the first email instead of sending again." },
       ],
       perform: async (z, bundle) => {
@@ -151,6 +151,7 @@ const searches = [
 module.exports = {
   version,
   platformVersion,
+  flags: { cleanInputData: false },
   authentication,
   beforeRequest: [addAuth],
   afterResponse: [handleErrors],
