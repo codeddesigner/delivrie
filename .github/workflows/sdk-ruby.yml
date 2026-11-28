@@ -52,7 +52,11 @@ jobs:
         with:
           ruby-version: "3.3"
       - name: Sign in to RubyGems (trusted publishing)
-        uses: rubygems/configure-rubygems-credentials@v1.0.0
+        uses: rubygems/configure-rubygems-credentials@main
+        with:
+          # The RubyGems.org account that owns the gem. Needed for the first release through the pending trusted
+          # publisher; harmless after that.
+          owner: "257076"
       - run: |
           gem build delivrie.gemspec
           gem push delivrie-*.gem
