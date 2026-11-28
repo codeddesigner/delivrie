@@ -128,20 +128,24 @@ await delivrie.emails.send({
 
 | Resource | Methods |
 | --- | --- |
-| `emails` | `send(email, opts?)`, `batch(emails, opts?)`, `get(id)`, `list({ limit, offset, direction })`, `listReceived()`, `update(id, { scheduled_at })`, `cancel(id)`, `forward(id, { to, from, note })` |
+| `emails` | `send(email, opts?)`, `batch(emails, opts?)`, `get(id)`, `list({ limit, offset, direction })`, `listReceived()`, `update(id, { scheduled_at })`, `cancel(id)`, `forward(id, { to, from, note })`, `attachments(id)`, `receivedAttachments(id)`, `share(id, { expires_in_hours })`, `unshare(id)` |
 | `domains` | `create({ name })`, `get(id)`, `verify(id)`, `update(id, {...})`, `list()`, `remove(id)` |
-| `apiKeys` | `create({ name, permission, domain_id })`, `list()`, `remove(id)` |
-| `webhooks` | `create({ endpoint, events })`, `list()`, `deliveries(id)`, `test(id)`, `replay(deliveryId)`, `verify(opts)` |
+| `apiKeys` | `create({ name, permission, domain_id })`, `list()`, `update(id, { name })`, `remove(id)` |
+| `webhooks` | `create({ endpoint, events })`, `list()`, `update(id, {...})`, `remove(id)`, `deliveries(id)`, `test(id)`, `replay(deliveryId)`, `verify(opts)` |
 | `contacts` | `create({...})`, `get(idOrEmail)`, `update(idOrEmail, {...})`, `list({...})`, `remove(idOrEmail)` |
-| `segments` | `create({ name })`, `list()`, `remove(id)`, `addContacts(id, contacts)` |
+| `contacts.imports` | `create({ csv \| contacts, segment_ids, columns, update_existing })`, `get(id)`, `list()` |
+| `segments` | `create({ name })`, `get(id)`, `list()`, `update(id, { name })`, `remove(id)`, `contacts(id, { limit, offset })`, `addContacts(id, contacts)`, `removeContacts(id, contacts)` |
 | `topics`, `contactProperties` | `list()` |
-| `broadcasts` | `create({...})`, `get(id)`, `list()`, `send(id, { scheduled_at })`, `cancel(id)`, `recipients(id)`, `remove(id)` |
-| `templates` | `create({...})`, `get(idOrAlias)`, `list()`, `publish(id)` |
+| `broadcasts` | `create({...})`, `get(id)`, `list()`, `update(id, {...})`, `duplicate(id, { name })`, `send(id, { scheduled_at })`, `cancel(id)`, `recipients(id, { status, limit })`, `links(id)`, `getContent(id)`, `editContent(id, { ops })`, `remove(id)` |
+| `templates` | `create({...})`, `get(idOrAlias)`, `list()`, `update(idOrAlias, {...})`, `duplicate(idOrAlias)`, `publish(id)`, `getContent(idOrAlias)`, `editContent(idOrAlias, { ops })`, `remove(idOrAlias)` |
 | `suppressions` | `add(email \| emails)`, `list()`, `remove(email)` |
 | `events` | `send({ event, email, data })`, `list()` |
-| `automations` | `list()`, `get(id)`, `create({...})`, `runs(id)`, `publish(id)`, `pause(id)`, `resume(id)` |
-| `inbox.threads` | `list({...})`, `get(id)`, `update(id, {...})`, `reply(id, { text \| html })` |
+| `automations` | `list()`, `get(id)`, `create({...})`, `runs(id)`, `publish(id)`, `pause(id)`, `resume(id)`, `duplicate(id)`, `update(id, { name, reentry })`, `remove(id)` |
+| `inbox.threads` | `list({...})`, `get(id)`, `update(id, {...})`, `reply(id, { text \| html })`, `runAgent(id)`, `notes(id)`, `addNote(id, body)` |
+| `inbox.drafts` | `list({...})`, `create({...})`, `update(id, {...})`, `send(id)`, `remove(id)` |
 | `inbox.labels` | `list()` |
+| `inboxes` | `list()`, `create({ address, name })`, `get(idOrAddress)`, `update(idOrAddress, {...})`, `remove(idOrAddress)`, `agentRuns(idOrAddress)` |
+| `ai` | `draft({ url, brief, target })`, `rewrite({ blocks, instruction })`, `subjects({ text })` |
 | `metrics` | `get({ days, domain_id })` |
 | `logs` | `list({ limit, offset })`, `get(id)` |
 | `usage` | `get()` |

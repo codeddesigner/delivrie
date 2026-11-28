@@ -72,7 +72,7 @@ if err != nil {
 
 ## Everything else
 
-The client covers the whole API: `client.Domains`, `client.APIKeys`, `client.Webhooks`, `client.Contacts`, `client.Segments`, `client.Broadcasts`, `client.Templates`, `client.Suppressions`, `client.Events`, `client.Automations`, `client.Inbox`, `client.Metrics`, `client.Logs` and `client.Usage`.
+The client covers the whole API: `client.Domains`, `client.APIKeys`, `client.Webhooks`, `client.Contacts`, `client.Segments`, `client.Broadcasts`, `client.Templates`, `client.Suppressions`, `client.Events`, `client.Automations`, `client.Inbox` (threads, drafts, notes), `client.Inboxes`, `client.AI`, `client.Metrics`, `client.Logs` and `client.Usage`. For example, `client.Broadcasts.Duplicate`, `client.Contacts.Import`, `client.Emails.ReceivedAttachments` and `client.Templates.EditContent`.
 
 ```go
 domain, _ := client.Domains.Create(ctx, &delivrie.CreateDomainRequest{Name: "mail.acme.com"})

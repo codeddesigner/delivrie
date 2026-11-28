@@ -21,4 +21,10 @@ final class ApiKeys extends Resource
     {
         return $this->client->request('DELETE', '/api-keys/' . self::id($id));
     }
+
+    /** Rename a key. */
+    public function update(string $id, string $name): array
+    {
+        return $this->client->request('PATCH', '/api-keys/' . self::id($id), ['name' => $name]);
+    }
 }

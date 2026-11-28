@@ -40,4 +40,21 @@ final class Automations extends Resource
     {
         return $this->client->request('POST', '/automations/' . self::id($id) . '/resume', new \stdClass());
     }
+
+    /** Copy it, with its trigger and steps, as a new draft. */
+    public function duplicate(string $id, ?string $name = null): array
+    {
+        return $this->client->request('POST', '/automations/' . self::id($id) . '/duplicate', $name === null ? new \stdClass() : ['name' => $name]);
+    }
+
+    /** Rename it or change re-entry: ['name' => ..., 'reentry' => 'once' | 'always']. */
+    public function update(string $id, array $changes): array
+    {
+        return $this->client->request('PATCH', '/automations/' . self::id($id), $changes);
+    }
+
+    public function remove(string $id): array
+    {
+        return $this->client->request('DELETE', '/automations/' . self::id($id));
+    }
 }

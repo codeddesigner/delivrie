@@ -24,7 +24,7 @@ use Delivrie\Exception\DelivrieException;
  */
 final class Delivrie
 {
-    public const VERSION = '0.1.0';
+    public const VERSION = '0.2.0';
     public const DEFAULT_BASE_URL = 'https://delivrie.io/api';
 
     public readonly Resources\Emails $emails;
@@ -39,6 +39,8 @@ final class Delivrie
     public readonly Resources\Events $events;
     public readonly Resources\Automations $automations;
     public readonly Resources\Inbox $inbox;
+    public readonly Resources\Inboxes $inboxes;
+    public readonly Resources\Ai $ai;
     public readonly Resources\Logs $logs;
 
     private string $apiKey;
@@ -80,6 +82,8 @@ final class Delivrie
         $this->events = new Resources\Events($this);
         $this->automations = new Resources\Automations($this);
         $this->inbox = new Resources\Inbox($this);
+        $this->inboxes = new Resources\Inboxes($this);
+        $this->ai = new Resources\Ai($this);
         $this->logs = new Resources\Logs($this);
     }
 

@@ -41,9 +41,12 @@ export interface Tag {
 }
 
 export interface Attachment {
-  filename: string;
-  /** File contents as a base64 string (or a Buffer/Uint8Array, which the SDK encodes for you). Up to 40 MB per email. */
-  content: string | Uint8Array;
+  /** Defaults to the file name in `path`. */
+  filename?: string;
+  /** File contents as a base64 string (or a Buffer/Uint8Array, which the SDK encodes for you). Up to 40 MB per email. Provide `content` or `path`. */
+  content?: string | Uint8Array;
+  /** A public https:// URL that Delivrie downloads when the email is accepted. */
+  path?: string;
   content_type?: string;
   /** Set to reference the file inline from HTML with `cid:<content_id>`. */
   content_id?: string;
@@ -442,6 +445,138 @@ export interface ReplyToThreadRequest {
   html?: string;
 }
 
+/** GET /broadcasts/:id/recipients. `total`, `topic_opt_out` and `recipients` are counts; `data` lists people. */
+export interface BroadcastRecipients {
+  object: "list";
+  data: Array<{ object: "broadcast_recipient"; email: string; contact_id: string | null; email_id?: string; status: string; sent_at?: string | null; delivered?: boolean; opened?: boolean; clicked?: boolean; bounced?: boolean; complained?: boolean; unsubscribed?: boolean }>;
+  has_more: boolean;
+  /** Contacts in the segment (before sending) or emails sent. */
+  total: number;
+  topic_opt_out: number;
+  /** How many it reaches after unsubscribes, topic opt-outs and suppressions. */
+  recipients: number;
+}
+
+export interface BroadcastLink {
+  object: "broadcast_link";
+  link: string;
+  clicks: number;
+  unique_clicks: number;
+}
+
+/** A sent or received email's file. `download_url` works until `expires_at` (an hour). */
+export interface AttachmentDownload {
+  object: "attachment";
+  id: string;
+  filename: string;
+  content_type: string;
+  size: number | null;
+  content_id?: string;
+  download_url: string | null;
+  expires_at: string | null;
+  /** Why there's no download_url: the file is older than storage, or past the 30-day retention. */
+  note?: string;
+}
+
+export interface EmailShare {
+  object: "email_share";
+  email_id: string;
+  url: string;
+  token: string;
+  expires_at: string;
+}
+
+export interface CreateContactImportRequest {
+  /** CSV text with a header row and an email column. Provide csv or contacts. */
+  csv?: string;
+  /** Contacts as objects, or plain email addresses. */
+  contacts?: Array<string | CreateContactRequest>;
+  /** Map CSV headers to fields: { "E-mail": "email", "Company": "property:company", "Notes": null }. */
+  columns?: Record<string, string | null>;
+  /** Add everyone to these segments. */
+  segment_ids?: string[];
+  /** Update contacts that already exist. Default true. */
+  update_existing?: boolean;
+}
+
+export interface ContactImport {
+  object: "contact_import";
+  id: string;
+  status: "queued" | "processing" | "completed" | "failed";
+  segment_ids: string[];
+  update_existing: boolean;
+  total: number;
+  processed: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  /** The first 100 problems. */
+  errors: Array<{ row: number | null; email: string | null; message: string }>;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+/** An editor block: title, heading, eyebrow, text, bulleted, numbered, callout, button, image, rows, divider, spacer, otp, footer. */
+export interface EmailBlock {
+  id?: string;
+  type: string;
+  [field: string]: unknown;
+}
+
+export type EditOperation =
+  | { op: "replace"; id: string; block: EmailBlock }
+  | { op: "update"; id: string; set: Record<string, unknown> }
+  | { op: "insert"; after?: string | null; before?: string; block?: EmailBlock; blocks?: EmailBlock[] }
+  | { op: "delete"; id: string }
+  | { op: "move"; id: string; after?: string | null; before?: string };
+
+export interface EditContentRequest {
+  ops?: EditOperation[];
+  /** Replace every block. */
+  blocks?: EmailBlock[];
+  subject?: string;
+  /** Broadcasts only. */
+  preview_text?: string;
+  /** One line on what changed, shown in the editor. */
+  summary?: string;
+}
+
+export interface EmailContent {
+  object: "template_content" | "broadcast_content";
+  id: string;
+  name: string;
+  subject: string | null;
+  preview_text?: string | null;
+  content: { page: Record<string, unknown> | null; blocks: EmailBlock[] };
+  agent_edit: { by: string; at: string; rev: number; summary?: string } | null;
+  editor_url: string;
+}
+
+export interface AiDraftRequest {
+  /** A page to write from: a blog post, changelog, product or event page. */
+  url?: string;
+  /** What the email is for. Provide url, brief or both. */
+  brief?: string;
+  kind?: "broadcast" | "template";
+  length?: "short" | "medium" | "long";
+  tone?: string;
+  variables?: string[];
+  /** Write it straight into this template or draft broadcast. */
+  target?: { type: "template" | "broadcast"; id: string };
+}
+
+export interface AiDraft {
+  object: "ai_draft";
+  subject: string;
+  preview_text: string;
+  content: { blocks: EmailBlock[] };
+  notes: string | null;
+  source: { url: string; title: string } | null;
+  target?: { type: "template" | "broadcast"; id: string };
+}
+
+/** @deprecated Use BroadcastRecipients. */
 export interface BroadcastRecipientCount {
   /** Contacts in the segment. */
   total: number;

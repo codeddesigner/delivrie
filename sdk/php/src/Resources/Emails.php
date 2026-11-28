@@ -88,4 +88,28 @@ final class Emails extends Resource
     {
         return $v instanceof \DateTimeInterface ? $v->format(\DateTimeInterface::ATOM) : $v;
     }
+
+    /** A sent email's files with download links that work for an hour. */
+    public function attachments(string $id): array
+    {
+        return $this->client->request('GET', '/emails/' . self::id($id) . '/attachments');
+    }
+
+    /** A received email's files with download links that work for an hour. */
+    public function receivedAttachments(string $id): array
+    {
+        return $this->client->request('GET', '/emails/received/' . self::id($id) . '/attachments');
+    }
+
+    /** A public link to the email and its delivery timeline (1 to 720 hours, default 24). */
+    public function share(string $id, ?int $expiresInHours = null): array
+    {
+        return $this->client->request('POST', '/emails/' . self::id($id) . '/share', $expiresInHours === null ? new \stdClass() : ['expires_in_hours' => $expiresInHours]);
+    }
+
+    /** Revoke every share link for the email. */
+    public function unshare(string $id): array
+    {
+        return $this->client->request('DELETE', '/emails/' . self::id($id) . '/share');
+    }
 }

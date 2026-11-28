@@ -30,7 +30,7 @@ import (
 )
 
 // Version is the SDK version, sent in the User-Agent header.
-const Version = "0.2.0"
+const Version = "0.3.0"
 
 // DefaultBaseURL is the Delivrie API address.
 const DefaultBaseURL = "https://delivrie.io/api"
@@ -56,6 +56,8 @@ type Client struct {
 	Events       *EventsService
 	Automations  *AutomationsService
 	Inbox        *InboxService
+	Inboxes      *InboxesService
+	AI           *AIService
 	Metrics      *MetricsService
 	Logs         *LogsService
 	Usage        *UsageService
@@ -110,6 +112,8 @@ func New(apiKey string, opts ...Option) *Client {
 	c.Events = &EventsService{c}
 	c.Automations = &AutomationsService{c}
 	c.Inbox = &InboxService{c}
+	c.Inboxes = &InboxesService{c}
+	c.AI = &AIService{c}
 	c.Metrics = &MetricsService{c}
 	c.Logs = &LogsService{c}
 	c.Usage = &UsageService{c}

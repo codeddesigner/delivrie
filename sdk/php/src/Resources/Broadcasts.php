@@ -35,13 +35,43 @@ final class Broadcasts extends Resource
     }
 
     /** How many contacts the broadcast will reach. */
-    public function recipients(string $id): array
+    /** Who it went to (with delivered/opened/clicked/bounced flags), or before sending, who it will reach. */
+    public function recipients(string $id, array $params = []): array
     {
-        return $this->client->request('GET', '/broadcasts/' . self::id($id) . '/recipients');
+        return $this->client->request('GET', '/broadcasts/' . self::id($id) . '/recipients', null, self::page($params));
     }
 
     public function remove(string $id): array
     {
         return $this->client->request('DELETE', '/broadcasts/' . self::id($id));
+    }
+
+    /** Edit a draft. */
+    public function update(string $id, array $changes): array
+    {
+        return $this->client->request('PATCH', '/broadcasts/' . self::id($id), $changes);
+    }
+
+    /** Copy it as a new draft. */
+    public function duplicate(string $id, ?string $name = null): array
+    {
+        return $this->client->request('POST', '/broadcasts/' . self::id($id) . '/duplicate', $name === null ? new \stdClass() : ['name' => $name]);
+    }
+
+    /** Clicked links with total and unique clicks. */
+    public function links(string $id): array
+    {
+        return $this->client->request('GET', '/broadcasts/' . self::id($id) . '/links');
+    }
+
+    public function getContent(string $id): array
+    {
+        return $this->client->request('GET', '/broadcasts/' . self::id($id) . '/content');
+    }
+
+    /** Edit a draft block by block: ['ops' => [...]] or ['blocks' => [...]]. Shows up live in the editor. */
+    public function editContent(string $id, array $edit): array
+    {
+        return $this->client->request('POST', '/broadcasts/' . self::id($id) . '/content', $edit);
     }
 }

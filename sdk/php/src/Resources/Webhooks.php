@@ -42,4 +42,15 @@ final class Webhooks extends Resource
     {
         return Webhook::verify($payload, $headers, $secret, $toleranceSeconds);
     }
+
+    /** Change the endpoint, events or status (enabled, disabled). */
+    public function update(string $id, array $changes): array
+    {
+        return $this->client->request('PATCH', '/webhooks/' . self::id($id), $changes);
+    }
+
+    public function remove(string $id): array
+    {
+        return $this->client->request('DELETE', '/webhooks/' . self::id($id));
+    }
 }

@@ -28,4 +28,31 @@ final class Templates extends Resource
     {
         return $this->client->request('POST', '/templates/' . self::id($id) . '/publish', new \stdClass());
     }
+
+    /** Change it. Saved as a draft until published. */
+    public function update(string $idOrAlias, array $changes): array
+    {
+        return $this->client->request('PATCH', '/templates/' . self::id($idOrAlias), $changes);
+    }
+
+    public function duplicate(string $idOrAlias, array $params = []): array
+    {
+        return $this->client->request('POST', '/templates/' . self::id($idOrAlias) . '/duplicate', $params ?: new \stdClass());
+    }
+
+    public function remove(string $idOrAlias): array
+    {
+        return $this->client->request('DELETE', '/templates/' . self::id($idOrAlias));
+    }
+
+    public function getContent(string $idOrAlias): array
+    {
+        return $this->client->request('GET', '/templates/' . self::id($idOrAlias) . '/content');
+    }
+
+    /** Edit it block by block: ['ops' => [...]] or ['blocks' => [...]]. Shows up live in the editor. */
+    public function editContent(string $idOrAlias, array $edit): array
+    {
+        return $this->client->request('POST', '/templates/' . self::id($idOrAlias) . '/content', $edit);
+    }
 }

@@ -173,3 +173,44 @@ test("react is never sent to the API", async () => {
   await d.emails.send({ from: "a@x.io", to: "b@y.io", subject: "s", html: "<p>hi</p>", react: null });
   assert.ok(!("react" in fetch.calls[0].body));
 });
+
+test("new endpoints: paths, methods and bodies", async () => {
+  const fetch = mock({ body: {} });
+  const d = new Delivrie("k", { fetch });
+  await d.broadcasts.duplicate("b1", { name: "Copy" });
+  await d.broadcasts.links("b1");
+  await d.broadcasts.recipients("b1", { status: "bounced", limit: 10 });
+  await d.broadcasts.update("b1", { subject: "New" });
+  await d.templates.editContent("welcome", { ops: [{ op: "delete", id: "x" }], summary: "s" });
+  await d.templates.duplicate("welcome");
+  await d.templates.remove("welcome");
+  await d.apiKeys.update("k1", { name: "Prod" });
+  await d.emails.receivedAttachments("e1");
+  await d.emails.share("e1", { expires_in_hours: 48 });
+  await d.segments.removeContacts("s1", ["a@b.com"]);
+  await d.segments.contacts("s1", { limit: 5 });
+  await d.contacts.imports.create({ csv: "email\na@b.com", segment_ids: ["s1"] });
+  await d.contacts.imports.get("i1");
+  await d.automations.duplicate("a1");
+  await d.webhooks.remove("w1");
+  await d.inboxes.list();
+  await d.inbox.drafts.send("dr1");
+  await d.ai.draft({ url: "https://acme.com", target: { type: "template", id: "welcome" } });
+  const got = fetch.calls.map((c) => `${c.init.method} ${c.url.replace("https://delivrie.io/api", "")}`);
+  assert.deepEqual(got, [
+    "POST /broadcasts/b1/duplicate", "GET /broadcasts/b1/links", "GET /broadcasts/b1/recipients?status=bounced&limit=10", "PATCH /broadcasts/b1",
+    "POST /templates/welcome/content", "POST /templates/welcome/duplicate", "DELETE /templates/welcome", "PATCH /api-keys/k1",
+    "GET /emails/received/e1/attachments", "POST /emails/e1/share", "DELETE /segments/s1/contacts", "GET /segments/s1/contacts?limit=5",
+    "POST /contacts/imports", "GET /contacts/imports/i1", "POST /automations/a1/duplicate", "DELETE /webhooks/w1", "GET /inboxes",
+    "POST /inbox/drafts/dr1/send", "POST /ai/draft",
+  ]);
+  assert.deepEqual(fetch.calls[10].body, { contacts: ["a@b.com"] });
+  assert.deepEqual(fetch.calls[0].body, { name: "Copy" });
+});
+
+test("attachments by URL pass through without content", async () => {
+  const fetch = mock({ body: { id: "em_3" } });
+  const d = new Delivrie("k", { fetch });
+  await d.emails.send({ from: "a@x.io", to: "b@y.io", subject: "s", text: "t", attachments: [{ path: "https://acme.com/a.pdf" }] });
+  assert.deepEqual(fetch.calls[0].body.attachments, [{ path: "https://acme.com/a.pdf" }]);
+});

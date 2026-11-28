@@ -35,4 +35,21 @@ final class Contacts extends Resource
     {
         return $this->client->request('DELETE', '/contacts/' . self::id($idOrEmail));
     }
+
+    /** Import up to 50,000 contacts: ['csv' => '...'] or ['contacts' => [...]], with optional segment_ids, columns, update_existing. */
+    public function import(array $params): array
+    {
+        return $this->client->request('POST', '/contacts/imports', $params);
+    }
+
+    /** An import's progress: created, updated, skipped and errors. */
+    public function getImport(string $id): array
+    {
+        return $this->client->request('GET', '/contacts/imports/' . self::id($id));
+    }
+
+    public function listImports(array $params = []): array
+    {
+        return $this->client->request('GET', '/contacts/imports', null, self::page($params));
+    }
 }

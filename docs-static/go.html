@@ -81,7 +81,7 @@ func main() {
 }</code></pre>
 <p><code>delivrie.IsNotFound(err)</code> and <code>delivrie.IsRateLimited(err)</code> cover the common checks. See <a href="/docs/errors">Errors</a> for every name.</p>
 <h2 id="everything-else">Everything else</h2>
-<p>The client covers the whole API: <code>client.Domains</code>, <code>client.APIKeys</code>, <code>client.Webhooks</code>, <code>client.Contacts</code>, <code>client.Segments</code>, <code>client.Broadcasts</code>, <code>client.Templates</code>, <code>client.Suppressions</code>, <code>client.Events</code>, <code>client.Automations</code>, <code>client.Inbox</code>, <code>client.Metrics</code>, <code>client.Logs</code> and <code>client.Usage</code>.</p>
+<p>The client covers the whole API: <code>client.Domains</code>, <code>client.APIKeys</code>, <code>client.Webhooks</code>, <code>client.Contacts</code>, <code>client.Segments</code>, <code>client.Broadcasts</code>, <code>client.Templates</code>, <code>client.Suppressions</code>, <code>client.Events</code>, <code>client.Automations</code>, <code>client.Inbox</code> (threads, drafts, notes), <code>client.Inboxes</code>, <code>client.AI</code>, <code>client.Metrics</code>, <code>client.Logs</code> and <code>client.Usage</code>. For example, <code>client.Broadcasts.Duplicate</code>, <code>client.Contacts.Import</code>, <code>client.Emails.ReceivedAttachments</code> and <code>client.Templates.EditContent</code>.</p>
 <pre><code class="language-go">domain, _ := client.Domains.Create(ctx, &amp;delivrie.CreateDomainRequest{Name: &quot;mail.acme.com&quot;})
 for _, r := range domain.Records {
 	fmt.Println(r.Type, r.Name, r.Value)

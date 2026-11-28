@@ -145,3 +145,46 @@ func TestIsNotFound(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+func TestNewEndpoints(t *testing.T) {
+	c, calls := server(t, func(w http.ResponseWriter, r *http.Request, _ int) { w.Write([]byte(`{"object":"list","data":[]}`)) })
+	ctx := context.Background()
+	steps := []func() error{
+		func() error { _, err := c.Broadcasts.Duplicate(ctx, "b1", "Copy"); return err },
+		func() error { _, err := c.Broadcasts.Links(ctx, "b1"); return err },
+		func() error { _, err := c.Broadcasts.RecipientList(ctx, "b1", nil, "bounced"); return err },
+		func() error {
+			_, err := c.Templates.EditContent(ctx, "welcome", Raw{"ops": []Raw{{"op": "delete", "id": "x"}}})
+			return err
+		},
+		func() error { _, err := c.APIKeys.Update(ctx, "k1", "Prod"); return err },
+		func() error { _, err := c.Emails.ReceivedAttachments(ctx, "e1"); return err },
+		func() error { _, err := c.Emails.Share(ctx, "e1", 48); return err },
+		func() error { _, err := c.Segments.RemoveContacts(ctx, "s1", "a@b.com"); return err },
+		func() error { _, err := c.Contacts.Import(ctx, Raw{"csv": "email\na@b.com"}); return err },
+		func() error { _, err := c.Automations.Duplicate(ctx, "a1", ""); return err },
+		func() error { _, err := c.Webhooks.Delete(ctx, "w1"); return err },
+		func() error { _, err := c.Inboxes.List(ctx); return err },
+		func() error { _, err := c.Inbox.SendDraft(ctx, "dr1"); return err },
+		func() error { _, err := c.AI.Draft(ctx, Raw{"url": "https://acme.com"}); return err },
+	}
+	for i, f := range steps {
+		if err := f(); err != nil {
+			t.Fatalf("step %d: %v", i, err)
+		}
+	}
+	want := []string{"POST /broadcasts/b1/duplicate", "GET /broadcasts/b1/links", "GET /broadcasts/b1/recipients", "POST /templates/welcome/content",
+		"PATCH /api-keys/k1", "GET /emails/received/e1/attachments", "POST /emails/e1/share", "DELETE /segments/s1/contacts", "POST /contacts/imports",
+		"POST /automations/a1/duplicate", "DELETE /webhooks/w1", "GET /inboxes", "POST /inbox/drafts/dr1/send", "POST /ai/draft"}
+	for i, w := range want {
+		if got := (*calls)[i].method + " " + (*calls)[i].path; got != w {
+			t.Fatalf("call %d: got %q, want %q", i, got, w)
+		}
+	}
+	if (*calls)[2].query != "status=bounced" {
+		t.Fatalf("query %q", (*calls)[2].query)
+	}
+	if got := (*calls)[7].body["contacts"].([]any)[0]; got != "a@b.com" {
+		t.Fatalf("remove contacts body %v", (*calls)[7].body)
+	}
+}

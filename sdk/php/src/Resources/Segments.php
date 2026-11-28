@@ -33,4 +33,28 @@ final class Segments extends Resource
     {
         return $this->client->request('GET', '/topics');
     }
+
+    /** A segment with its contact count. */
+    public function get(string $id): array
+    {
+        return $this->client->request('GET', '/segments/' . self::id($id));
+    }
+
+    /** Rename a segment. */
+    public function update(string $id, string $name): array
+    {
+        return $this->client->request('PATCH', '/segments/' . self::id($id), ['name' => $name]);
+    }
+
+    /** The contacts in a segment. */
+    public function contacts(string $id, array $params = []): array
+    {
+        return $this->client->request('GET', '/segments/' . self::id($id) . '/contacts', null, self::page($params));
+    }
+
+    /** Take contacts (emails or ids) out of a segment. The contacts aren't deleted. */
+    public function removeContacts(string $id, array $contacts): array
+    {
+        return $this->client->request('DELETE', '/segments/' . self::id($id) . '/contacts', ['contacts' => array_values($contacts)]);
+    }
 }

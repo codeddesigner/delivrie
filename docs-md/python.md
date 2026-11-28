@@ -144,7 +144,7 @@ In Django pass `request.body` and `request.headers`; in FastAPI, `await request.
 
 ## Everything else
 
-The client uses the same names as the [Node.js SDK](/docs/sdks), in snake_case: `client.domains`, `client.api_keys`, `client.webhooks`, `client.contacts`, `client.segments`, `client.broadcasts`, `client.templates`, `client.suppressions`, `client.events`, `client.automations`, `client.inbox.threads`, `client.metrics`, `client.logs` and `client.usage`. For anything else, `client.request("GET", "/path")` calls the API directly.
+The client uses the same names as the [Node.js SDK](/docs/sdks), in snake_case: `client.domains`, `client.api_keys`, `client.webhooks`, `client.contacts`, `client.segments`, `client.broadcasts`, `client.templates`, `client.suppressions`, `client.events`, `client.automations`, `client.inbox` (threads, drafts, notes), `client.inboxes`, `client.ai`, `client.metrics`, `client.logs` and `client.usage`. For example, `client.broadcasts.duplicate(id)`, `client.contacts.import_contacts(csv=...)`, `client.emails.received_attachments(id)` and `client.templates.edit_content(id, ops=[...])`. For anything else, `client.request("GET", "/path")` calls the API directly.
 
 ## Without the SDK
 

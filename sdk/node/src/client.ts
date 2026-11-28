@@ -4,11 +4,12 @@ import type {
   CreateWebhookResponse, DelivrieErrorResponse, Domain, Email, EmailSummary, ForwardEmailRequest, InboxThread, List,
   ListContactsParams, ListEmailsParams, Log, LogSummary, Metrics, Pagination, ReplyToThreadRequest, RequestOptions, Result,
   Segment, SendEmailRequest, SendEventRequest, Suppression, Template, Topic, UpdateContactRequest, UpdateDomainRequest,
-  Usage, Webhook, WebhookDelivery, Deleted, BroadcastRecipientCount,
+  Usage, Webhook, WebhookDelivery, Deleted, BroadcastRecipients, BroadcastLink, AttachmentDownload, EmailShare,
+  ContactImport, CreateContactImportRequest, EmailContent, EmailBlock, EditContentRequest, AiDraftRequest, AiDraft,
 } from "./types.js";
 import { verifyWebhook, type VerifyWebhookOptions } from "./webhooks.js";
 
-export const VERSION = "0.2.1";
+export const VERSION = "0.3.0";
 const DEFAULT_BASE_URL = "https://delivrie.io/api";
 
 export interface DelivrieOptions {
@@ -72,7 +73,7 @@ function normalizeEmail(e: SendEmailRequest): Record<string, unknown> {
   if (out.reply_to === undefined && replyTo !== undefined) out.reply_to = replyTo;
   const when = rest.scheduled_at ?? scheduledAt;
   if (when !== undefined) out.scheduled_at = when instanceof Date ? when.toISOString() : when;
-  if (attachments) out.attachments = attachments.map((a: Attachment) => ({ ...a, content: typeof a.content === "string" ? a.content : toBase64(a.content) }));
+  if (attachments) out.attachments = attachments.map((a: Attachment) => (a.content === undefined || typeof a.content === "string" ? { ...a } : { ...a, content: toBase64(a.content) }));
   return out;
 }
 
@@ -182,6 +183,14 @@ export class Delivrie {
     /** Cancel a scheduled email. */
     cancel: (id: string) => this.request<{ object: "email"; id: string }>("POST", `/emails/${enc(id)}/cancel`),
     forward: (id: string, params: ForwardEmailRequest) => this.request<CreateEmailResponse>("POST", `/emails/${enc(id)}/forward`, params),
+    /** A sent email's files with download links that work for an hour. */
+    attachments: (id: string) => this.request<List<AttachmentDownload>>("GET", `/emails/${enc(id)}/attachments`),
+    /** A received email's files with download links that work for an hour. */
+    receivedAttachments: (id: string) => this.request<List<AttachmentDownload>>("GET", `/emails/received/${enc(id)}/attachments`),
+    /** A public link to the email and its delivery timeline. */
+    share: (id: string, params: { expires_in_hours?: number } = {}) => this.request<EmailShare>("POST", `/emails/${enc(id)}/share`, params),
+    /** Revoke every share link for the email. */
+    unshare: (id: string) => this.request<Record<string, unknown>>("DELETE", `/emails/${enc(id)}/share`),
   };
 
   readonly domains = {
@@ -197,12 +206,17 @@ export class Delivrie {
   readonly apiKeys = {
     create: (params: CreateApiKeyRequest) => this.request<CreateApiKeyResponse>("POST", "/api-keys", params),
     list: () => this.request<List<ApiKey>>("GET", "/api-keys"),
+    /** Rename a key. */
+    update: (id: string, params: { name: string }) => this.request<ApiKey>("PATCH", `/api-keys/${enc(id)}`, params),
     remove: (id: string) => this.request<Deleted>("DELETE", `/api-keys/${enc(id)}`),
   };
 
   readonly webhooks = {
     create: (params: CreateWebhookRequest) => this.request<CreateWebhookResponse>("POST", "/webhooks", params),
     list: () => this.request<List<Webhook>>("GET", "/webhooks"),
+    /** Change the endpoint, events or status (enabled, disabled). */
+    update: (id: string, params: { endpoint?: string; events?: string[]; status?: "enabled" | "disabled" }) => this.request<Webhook>("PATCH", `/webhooks/${enc(id)}`, params),
+    remove: (id: string) => this.request<Deleted>("DELETE", `/webhooks/${enc(id)}`),
     /** Recent delivery attempts for a webhook. */
     deliveries: (id: string) => this.request<List<WebhookDelivery>>("GET", `/webhooks/${enc(id)}/events`),
     /** Send a test event to the endpoint. */
@@ -220,12 +234,25 @@ export class Delivrie {
     update: (idOrEmail: string, params: UpdateContactRequest) => this.request<{ object: "contact"; id: string }>("PATCH", `/contacts/${enc(idOrEmail)}`, params),
     list: (params: ListContactsParams = {}) => this.request<List<Contact>>("GET", "/contacts", undefined, { query: { ...params } }),
     remove: (idOrEmail: string) => this.request<Deleted>("DELETE", `/contacts/${enc(idOrEmail)}`),
+    imports: {
+      /** Import up to 50,000 contacts from CSV text or a list. Runs in the background. */
+      create: (params: CreateContactImportRequest) => this.request<ContactImport>("POST", "/contacts/imports", params),
+      get: (id: string) => this.request<ContactImport>("GET", `/contacts/imports/${enc(id)}`),
+      list: (params: { limit?: number } = {}) => this.request<List<ContactImport>>("GET", "/contacts/imports", undefined, { query: { ...params } }),
+    },
   };
 
   readonly segments = {
     create: (params: { name: string }) => this.request<{ object: "segment"; id: string }>("POST", "/segments", params),
     list: () => this.request<List<Segment>>("GET", "/segments"),
+    get: (id: string) => this.request<Segment & { contacts: number }>("GET", `/segments/${enc(id)}`),
+    /** Rename a segment. */
+    update: (id: string, params: { name: string }) => this.request<Segment>("PATCH", `/segments/${enc(id)}`, params),
     remove: (id: string) => this.request<Deleted>("DELETE", `/segments/${enc(id)}`),
+    /** The contacts in a segment. */
+    contacts: (id: string, params: Pagination = {}) => this.request<List<Contact> & { total: number }>("GET", `/segments/${enc(id)}/contacts`, undefined, { query: { ...params } }),
+    /** Take contacts (emails or ids) out of a segment. The contacts aren't deleted. */
+    removeContacts: (id: string, contacts: string[]) => this.request<{ object: "segment"; id: string; removed: number }>("DELETE", `/segments/${enc(id)}/contacts`, { contacts }),
     /** Add contacts by email (they're created if needed). */
     addContacts: (id: string, contacts: Array<string | CreateContactRequest>) =>
       this.request<Record<string, unknown>>("POST", `/segments/${enc(id)}/contacts`, { contacts: contacts.map((c) => (typeof c === "string" ? { email: c } : c)) }),
@@ -243,7 +270,18 @@ export class Delivrie {
       this.request<Broadcast>("POST", `/broadcasts/${enc(id)}/send`, params.scheduled_at === undefined ? {} : { scheduled_at: params.scheduled_at instanceof Date ? params.scheduled_at.toISOString() : params.scheduled_at }),
     cancel: (id: string) => this.request<Broadcast>("POST", `/broadcasts/${enc(id)}/cancel`),
     /** How many contacts the broadcast will reach. */
-    recipients: (id: string) => this.request<BroadcastRecipientCount>("GET", `/broadcasts/${enc(id)}/recipients`),
+    /** Who it went to (with delivered/opened/clicked/bounced flags), or before sending, who it will reach. */
+    recipients: (id: string, params: Pagination & { status?: string } = {}) => this.request<BroadcastRecipients>("GET", `/broadcasts/${enc(id)}/recipients`, undefined, { query: { ...params } }),
+    /** Clicked links with total and unique clicks. */
+    links: (id: string) => this.request<List<BroadcastLink> & { total_clicks: number }>("GET", `/broadcasts/${enc(id)}/links`),
+    /** Edit a draft. */
+    update: (id: string, params: Partial<CreateBroadcastRequest>) => this.request<{ object: "broadcast"; id: string }>("PATCH", `/broadcasts/${enc(id)}`, params),
+    /** Copy it as a new draft. */
+    duplicate: (id: string, params: { name?: string } = {}) => this.request<{ object: "broadcast"; id: string; name: string; status: string }>("POST", `/broadcasts/${enc(id)}/duplicate`, params),
+    /** A draft's subject and blocks with ids. */
+    getContent: (id: string) => this.request<EmailContent>("GET", `/broadcasts/${enc(id)}/content`),
+    /** Edit a draft block by block. Anyone with it open in the editor sees the change live. */
+    editContent: (id: string, params: EditContentRequest) => this.request<EmailContent>("POST", `/broadcasts/${enc(id)}/content`, params),
     remove: (id: string) => this.request<Deleted>("DELETE", `/broadcasts/${enc(id)}`),
   };
 
@@ -254,6 +292,13 @@ export class Delivrie {
     list: () => this.request<List<Template>>("GET", "/templates"),
     /** Publish the current draft so sends use it. */
     publish: (id: string) => this.request<Template>("POST", `/templates/${enc(id)}/publish`),
+    /** Change it. Saved as a draft until published. */
+    update: (idOrAlias: string, params: Partial<CreateTemplateRequest> & Record<string, unknown>) => this.request<{ object: "template"; id: string }>("PATCH", `/templates/${enc(idOrAlias)}`, params),
+    duplicate: (idOrAlias: string, params: { name?: string; alias?: string } = {}) => this.request<{ object: "template"; id: string; name: string }>("POST", `/templates/${enc(idOrAlias)}/duplicate`, params),
+    remove: (idOrAlias: string) => this.request<Deleted>("DELETE", `/templates/${enc(idOrAlias)}`),
+    getContent: (idOrAlias: string) => this.request<EmailContent>("GET", `/templates/${enc(idOrAlias)}/content`),
+    /** Edit it block by block. Anyone with it open in the editor sees the change live. */
+    editContent: (idOrAlias: string, params: EditContentRequest) => this.request<EmailContent>("POST", `/templates/${enc(idOrAlias)}/content`, params),
   };
 
   readonly suppressions = {
@@ -277,6 +322,10 @@ export class Delivrie {
     publish: (id: string) => this.request<Automation>("POST", `/automations/${enc(id)}/publish`),
     pause: (id: string) => this.request<Automation>("POST", `/automations/${enc(id)}/pause`),
     resume: (id: string) => this.request<Automation>("POST", `/automations/${enc(id)}/resume`),
+    /** Copy it, with its trigger and steps, as a new draft. */
+    duplicate: (id: string, params: { name?: string } = {}) => this.request<Automation>("POST", `/automations/${enc(id)}/duplicate`, params),
+    update: (id: string, params: { name?: string; reentry?: "once" | "always" }) => this.request<Automation>("PATCH", `/automations/${enc(id)}`, params),
+    remove: (id: string) => this.request<Deleted>("DELETE", `/automations/${enc(id)}`),
   };
 
   readonly inbox = {
@@ -285,8 +334,40 @@ export class Delivrie {
       get: (id: string) => this.request<InboxThread>("GET", `/inbox/threads/${enc(id)}`),
       update: (id: string, params: Record<string, unknown>) => this.request<InboxThread>("PATCH", `/inbox/threads/${enc(id)}`, params),
       reply: (id: string, params: ReplyToThreadRequest) => this.request<CreateEmailResponse>("POST", `/inbox/threads/${enc(id)}/reply`, params),
+      /** Run the inbox's agent on this thread now. */
+      runAgent: (id: string) => this.request<Record<string, unknown>>("POST", `/inbox/threads/${enc(id)}/agent`),
+      notes: (id: string) => this.request<List<Record<string, unknown>>>("GET", `/inbox/threads/${enc(id)}/notes`),
+      addNote: (id: string, body: string) => this.request<Record<string, unknown>>("POST", `/inbox/threads/${enc(id)}/notes`, { body }),
+    },
+    notes: { remove: (id: string) => this.request<Deleted>("DELETE", `/inbox/notes/${enc(id)}`) },
+    drafts: {
+      list: (params: { thread_id?: string; inbox?: string; source?: "user" | "agent" } = {}) => this.request<List<Record<string, unknown>>>("GET", "/inbox/drafts", undefined, { query: { ...params } }),
+      create: (params: Record<string, unknown>) => this.request<Record<string, unknown>>("POST", "/inbox/drafts", params),
+      update: (id: string, params: Record<string, unknown>) => this.request<Record<string, unknown>>("PATCH", `/inbox/drafts/${enc(id)}`, params),
+      send: (id: string) => this.request<CreateEmailResponse>("POST", `/inbox/drafts/${enc(id)}/send`),
+      remove: (id: string) => this.request<Deleted>("DELETE", `/inbox/drafts/${enc(id)}`),
     },
     labels: { list: () => this.request<List<Record<string, unknown>>>("GET", "/inbox/labels") },
+  };
+
+  /** Inboxes (addresses on receiving domains) and their agent settings. */
+  readonly inboxes = {
+    list: () => this.request<List<Record<string, unknown>>>("GET", "/inboxes"),
+    create: (params: { address: string; name?: string; description?: string }) => this.request<Record<string, unknown>>("POST", "/inboxes", params),
+    get: (idOrAddress: string) => this.request<Record<string, unknown>>("GET", `/inboxes/${enc(idOrAddress)}`),
+    update: (idOrAddress: string, params: Record<string, unknown>) => this.request<Record<string, unknown>>("PATCH", `/inboxes/${enc(idOrAddress)}`, params),
+    remove: (idOrAddress: string) => this.request<Deleted>("DELETE", `/inboxes/${enc(idOrAddress)}`),
+    agentRuns: (idOrAddress: string, params: { limit?: number } = {}) => this.request<List<Record<string, unknown>>>("GET", `/inboxes/${enc(idOrAddress)}/agent-runs`, undefined, { query: { ...params } }),
+  };
+
+  /** AI writing in the team's brand voice. */
+  readonly ai = {
+    /** Write an email from a url and/or brief. With target, writes it into a template or draft broadcast. */
+    draft: (params: AiDraftRequest) => this.request<AiDraft>("POST", "/ai/draft", params),
+    /** Rewrite blocks with an instruction. */
+    rewrite: (params: { blocks: EmailBlock[]; instruction: string; kind?: "broadcast" | "template"; context?: string }) => this.request<{ object: "ai_rewrite"; blocks: EmailBlock[] }>("POST", "/ai/rewrite", params),
+    /** Subject line ideas for an email's text. */
+    subjects: (params: { text: string; current?: string }) => this.request<List<{ subject: string; preview_text: string }>>("POST", "/ai/subjects", params),
   };
 
   readonly metrics = {

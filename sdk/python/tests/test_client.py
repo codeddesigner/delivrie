@@ -135,6 +135,33 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(p[6], ("POST", "/api/inbox/threads/th_1/reply"))
         self.assertEqual(self.s.requests[7]["body"], {"scheduled_at": "in 1 hour"})
 
+    def test_new_endpoints(self):
+        c = self.c
+        c.broadcasts.duplicate("b1", name="Copy")
+        c.broadcasts.links("b1")
+        c.broadcasts.recipients("b1", status="bounced")
+        c.templates.edit_content("welcome", ops=[{"op": "delete", "id": "x"}], summary="s")
+        c.api_keys.update("k1", name="Prod")
+        c.emails.received_attachments("e1")
+        c.emails.share("e1", expires_in_hours=48)
+        c.segments.remove_contacts("s1", ["a@b.com"])
+        c.contacts.import_contacts(csv="email\na@b.com", segment_ids=["s1"])
+        c.automations.duplicate("a1")
+        c.webhooks.remove("w1")
+        c.inboxes.list()
+        c.inbox.drafts.send("dr1")
+        c.ai.draft(url="https://acme.com", target={"type": "template", "id": "welcome"})
+        got = [f'{r["method"]} {r["path"][4:]}' for r in self.s.requests]
+        self.assertEqual(got, [
+            "POST /broadcasts/b1/duplicate", "GET /broadcasts/b1/links", "GET /broadcasts/b1/recipients?status=bounced",
+            "POST /templates/welcome/content", "PATCH /api-keys/k1", "GET /emails/received/e1/attachments", "POST /emails/e1/share",
+            "DELETE /segments/s1/contacts", "POST /contacts/imports", "POST /automations/a1/duplicate", "DELETE /webhooks/w1",
+            "GET /inboxes", "POST /inbox/drafts/dr1/send", "POST /ai/draft",
+        ])
+        self.assertEqual(self.s.requests[7]["body"], {"contacts": ["a@b.com"]})
+        self.assertEqual(self.s.requests[8]["body"], {"csv": "email\na@b.com", "segment_ids": ["s1"]})
+        self.assertEqual(self.s.requests[6]["body"], {"expires_in_hours": 48})
+
     def test_network_error(self):
         c = Delivrie("dlv_test", base_url="http://127.0.0.1:9/api", max_retries=0, timeout=2)
         with self.assertRaises(DelivrieError) as cm:

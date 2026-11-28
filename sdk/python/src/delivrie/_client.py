@@ -110,6 +110,8 @@ class Delivrie:
         self.events = Events(self)
         self.automations = Automations(self)
         self.inbox = Inbox(self)
+        self.inboxes = Inboxes(self)
+        self.ai = Ai(self)
         self.metrics = Metrics(self)
         self.logs = Logs(self)
         self.usage = Usage(self)
@@ -253,6 +255,22 @@ class Emails(_Resource):
     def forward(self, email_id: str, params: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> JSON:
         return self._r("POST", f"/emails/{_q(email_id)}/forward", _prepare_email(params, kwargs))
 
+    def attachments(self, email_id: str) -> JSON:
+        """A sent email's files with download links that work for an hour."""
+        return self._r("GET", f"/emails/{_q(email_id)}/attachments")
+
+    def received_attachments(self, email_id: str) -> JSON:
+        """A received email's files with download links that work for an hour."""
+        return self._r("GET", f"/emails/received/{_q(email_id)}/attachments")
+
+    def share(self, email_id: str, *, expires_in_hours: Optional[int] = None) -> JSON:
+        """A public link to the email and its delivery timeline (1 to 720 hours, default 24)."""
+        return self._r("POST", f"/emails/{_q(email_id)}/share", {"expires_in_hours": expires_in_hours} if expires_in_hours else {})
+
+    def unshare(self, email_id: str) -> JSON:
+        """Revoke every share link for the email."""
+        return self._r("DELETE", f"/emails/{_q(email_id)}/share")
+
 
 class Domains(_Resource):
     def create(self, name: str, **params: Any) -> JSON:
@@ -281,6 +299,10 @@ class ApiKeys(_Resource):
     def list(self) -> JSON:
         return self._r("GET", "/api-keys")
 
+    def update(self, key_id: str, *, name: str) -> JSON:
+        """Rename a key."""
+        return self._r("PATCH", f"/api-keys/{_q(key_id)}", {"name": name})
+
     def remove(self, key_id: str) -> JSON:
         return self._r("DELETE", f"/api-keys/{_q(key_id)}")
 
@@ -291,6 +313,13 @@ class Webhooks(_Resource):
 
     def list(self) -> JSON:
         return self._r("GET", "/webhooks")
+
+    def update(self, webhook_id: str, **params: Any) -> JSON:
+        """Change the endpoint, events or status (enabled, disabled)."""
+        return self._r("PATCH", f"/webhooks/{_q(webhook_id)}", params)
+
+    def remove(self, webhook_id: str) -> JSON:
+        return self._r("DELETE", f"/webhooks/{_q(webhook_id)}")
 
     def deliveries(self, webhook_id: str) -> JSON:
         return self._r("GET", f"/webhooks/{_q(webhook_id)}/events")
@@ -325,6 +354,21 @@ class Contacts(_Resource):
     def remove(self, id_or_email: str) -> JSON:
         return self._r("DELETE", f"/contacts/{_q(id_or_email)}")
 
+    def import_contacts(self, *, csv: Optional[str] = None, contacts: Optional[Iterable[Any]] = None, **params: Any) -> JSON:
+        """Import up to 50,000 contacts from CSV text or a list. Runs in the background; check it with get_import()."""
+        body: Dict[str, Any] = dict(params)
+        if csv is not None:
+            body["csv"] = csv
+        if contacts is not None:
+            body["contacts"] = list(contacts)
+        return self._r("POST", "/contacts/imports", body)
+
+    def get_import(self, import_id: str) -> JSON:
+        return self._r("GET", f"/contacts/imports/{_q(import_id)}")
+
+    def list_imports(self, **params: Any) -> JSON:
+        return self._r("GET", "/contacts/imports", query=params)
+
 
 class Segments(_Resource):
     def create(self, name: str) -> JSON:
@@ -332,6 +376,21 @@ class Segments(_Resource):
 
     def list(self) -> JSON:
         return self._r("GET", "/segments")
+
+    def get(self, segment_id: str) -> JSON:
+        return self._r("GET", f"/segments/{_q(segment_id)}")
+
+    def update(self, segment_id: str, *, name: str) -> JSON:
+        """Rename a segment."""
+        return self._r("PATCH", f"/segments/{_q(segment_id)}", {"name": name})
+
+    def contacts(self, segment_id: str, **params: Any) -> JSON:
+        """The contacts in a segment."""
+        return self._r("GET", f"/segments/{_q(segment_id)}/contacts", query=params)
+
+    def remove_contacts(self, segment_id: str, contacts: Iterable[str]) -> JSON:
+        """Take contacts (emails or ids) out of a segment. The contacts aren't deleted."""
+        return self._r("DELETE", f"/segments/{_q(segment_id)}/contacts", {"contacts": list(contacts)})
 
     def remove(self, segment_id: str) -> JSON:
         return self._r("DELETE", f"/segments/{_q(segment_id)}")
@@ -369,9 +428,29 @@ class Broadcasts(_Resource):
     def cancel(self, broadcast_id: str) -> JSON:
         return self._r("POST", f"/broadcasts/{_q(broadcast_id)}/cancel")
 
-    def recipients(self, broadcast_id: str) -> JSON:
-        """How many contacts the broadcast will reach."""
-        return self._r("GET", f"/broadcasts/{_q(broadcast_id)}/recipients")
+    def update(self, broadcast_id: str, params: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> JSON:
+        """Edit a draft."""
+        return self._r("PATCH", f"/broadcasts/{_q(broadcast_id)}", {**dict(params or {}), **kwargs})
+
+    def duplicate(self, broadcast_id: str, *, name: Optional[str] = None) -> JSON:
+        """Copy it as a new draft."""
+        return self._r("POST", f"/broadcasts/{_q(broadcast_id)}/duplicate", {"name": name} if name else {})
+
+    def links(self, broadcast_id: str) -> JSON:
+        """Clicked links with total and unique clicks."""
+        return self._r("GET", f"/broadcasts/{_q(broadcast_id)}/links")
+
+    def get_content(self, broadcast_id: str) -> JSON:
+        return self._r("GET", f"/broadcasts/{_q(broadcast_id)}/content")
+
+    def edit_content(self, broadcast_id: str, params: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> JSON:
+        """Edit a draft block by block ({ops} or {blocks}). Anyone with it open in the editor sees the change live."""
+        return self._r("POST", f"/broadcasts/{_q(broadcast_id)}/content", {**dict(params or {}), **kwargs})
+
+    def recipients(self, broadcast_id: str, **params: Any) -> JSON:
+        """Who it went to (with delivered/opened/clicked/bounced flags), or before sending, who it will reach.
+        `recipients` is the count after unsubscribes, topic opt-outs and suppressions."""
+        return self._r("GET", f"/broadcasts/{_q(broadcast_id)}/recipients", query=params)
 
     def remove(self, broadcast_id: str) -> JSON:
         return self._r("DELETE", f"/broadcasts/{_q(broadcast_id)}")
@@ -386,6 +465,23 @@ class Templates(_Resource):
 
     def list(self) -> JSON:
         return self._r("GET", "/templates")
+
+    def update(self, id_or_alias: str, **params: Any) -> JSON:
+        """Change it. Saved as a draft until published."""
+        return self._r("PATCH", f"/templates/{_q(id_or_alias)}", params)
+
+    def duplicate(self, id_or_alias: str, **params: Any) -> JSON:
+        return self._r("POST", f"/templates/{_q(id_or_alias)}/duplicate", params)
+
+    def remove(self, id_or_alias: str) -> JSON:
+        return self._r("DELETE", f"/templates/{_q(id_or_alias)}")
+
+    def get_content(self, id_or_alias: str) -> JSON:
+        return self._r("GET", f"/templates/{_q(id_or_alias)}/content")
+
+    def edit_content(self, id_or_alias: str, params: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> JSON:
+        """Edit it block by block ({ops} or {blocks}). Anyone with it open in the editor sees the change live."""
+        return self._r("POST", f"/templates/{_q(id_or_alias)}/content", {**dict(params or {}), **kwargs})
 
     def publish(self, id_or_alias: str) -> JSON:
         return self._r("POST", f"/templates/{_q(id_or_alias)}/publish")
@@ -434,6 +530,17 @@ class Automations(_Resource):
     def pause(self, automation_id: str) -> JSON:
         return self._r("POST", f"/automations/{_q(automation_id)}/pause")
 
+    def duplicate(self, automation_id: str, *, name: Optional[str] = None) -> JSON:
+        """Copy it, with its trigger and steps, as a new draft."""
+        return self._r("POST", f"/automations/{_q(automation_id)}/duplicate", {"name": name} if name else {})
+
+    def update(self, automation_id: str, **params: Any) -> JSON:
+        """Rename it or change re-entry: name, reentry."""
+        return self._r("PATCH", f"/automations/{_q(automation_id)}", params)
+
+    def remove(self, automation_id: str) -> JSON:
+        return self._r("DELETE", f"/automations/{_q(automation_id)}")
+
     def resume(self, automation_id: str) -> JSON:
         return self._r("POST", f"/automations/{_q(automation_id)}/resume")
 
@@ -451,6 +558,38 @@ class _Threads(_Resource):
     def reply(self, thread_id: str, params: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> JSON:
         return self._r("POST", f"/inbox/threads/{_q(thread_id)}/reply", _prepare_email(params, kwargs))
 
+    def run_agent(self, thread_id: str) -> JSON:
+        """Run the inbox's agent on this thread now."""
+        return self._r("POST", f"/inbox/threads/{_q(thread_id)}/agent")
+
+    def notes(self, thread_id: str) -> JSON:
+        return self._r("GET", f"/inbox/threads/{_q(thread_id)}/notes")
+
+    def add_note(self, thread_id: str, body: str) -> JSON:
+        return self._r("POST", f"/inbox/threads/{_q(thread_id)}/notes", {"body": body})
+
+
+class _Drafts(_Resource):
+    def list(self, **params: Any) -> JSON:
+        return self._r("GET", "/inbox/drafts", query=params)
+
+    def create(self, params: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> JSON:
+        return self._r("POST", "/inbox/drafts", {**dict(params or {}), **kwargs})
+
+    def update(self, draft_id: str, **params: Any) -> JSON:
+        return self._r("PATCH", f"/inbox/drafts/{_q(draft_id)}", params)
+
+    def send(self, draft_id: str) -> JSON:
+        return self._r("POST", f"/inbox/drafts/{_q(draft_id)}/send")
+
+    def remove(self, draft_id: str) -> JSON:
+        return self._r("DELETE", f"/inbox/drafts/{_q(draft_id)}")
+
+
+class _Notes(_Resource):
+    def remove(self, note_id: str) -> JSON:
+        return self._r("DELETE", f"/inbox/notes/{_q(note_id)}")
+
 
 class _Labels(_Resource):
     def list(self) -> JSON:
@@ -462,6 +601,46 @@ class Inbox(_Resource):
         super().__init__(client)
         self.threads = _Threads(client)
         self.labels = _Labels(client)
+        self.drafts = _Drafts(client)
+        self.notes = _Notes(client)
+
+
+class Inboxes(_Resource):
+    """Inboxes (addresses on receiving domains) and their agent settings."""
+
+    def list(self) -> JSON:
+        return self._r("GET", "/inboxes")
+
+    def create(self, address: str, **params: Any) -> JSON:
+        return self._r("POST", "/inboxes", {"address": address, **params})
+
+    def get(self, id_or_address: str) -> JSON:
+        return self._r("GET", f"/inboxes/{_q(id_or_address)}")
+
+    def update(self, id_or_address: str, **params: Any) -> JSON:
+        return self._r("PATCH", f"/inboxes/{_q(id_or_address)}", params)
+
+    def remove(self, id_or_address: str) -> JSON:
+        return self._r("DELETE", f"/inboxes/{_q(id_or_address)}")
+
+    def agent_runs(self, id_or_address: str, **params: Any) -> JSON:
+        return self._r("GET", f"/inboxes/{_q(id_or_address)}/agent-runs", query=params)
+
+
+class Ai(_Resource):
+    """AI writing in the team's brand voice."""
+
+    def draft(self, params: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> JSON:
+        """Write an email from url and/or brief. With target={"type": ..., "id": ...}, writes it into that email."""
+        return self._r("POST", "/ai/draft", {**dict(params or {}), **kwargs})
+
+    def rewrite(self, blocks: Iterable[Mapping[str, Any]], instruction: str, **params: Any) -> JSON:
+        """Rewrite blocks with an instruction, like "shorter"."""
+        return self._r("POST", "/ai/rewrite", {"blocks": list(blocks), "instruction": instruction, **params})
+
+    def subjects(self, text: str, **params: Any) -> JSON:
+        """Subject line ideas for an email's text."""
+        return self._r("POST", "/ai/subjects", {"text": text, **params})
 
 
 class Metrics(_Resource):

@@ -134,5 +134,31 @@ check('webhook verification rejects tampering, replays and missing headers', fun
     }
 });
 
+check('new endpoints: paths, methods and bodies', function () {
+    [$d, $calls] = fake([[200, '{}', []]]);
+    $d->broadcasts->duplicate('b1', 'Copy');
+    $d->broadcasts->links('b1');
+    $d->broadcasts->recipients('b1', ['status' => 'bounced']);
+    $d->templates->editContent('welcome', ['ops' => [['op' => 'delete', 'id' => 'x']]]);
+    $d->apiKeys->update('k1', 'Prod');
+    $d->emails->receivedAttachments('e1');
+    $d->emails->share('e1', 48);
+    $d->segments->removeContacts('s1', ['a@b.com']);
+    $d->contacts->import(['csv' => "email\na@b.com"]);
+    $d->automations->duplicate('a1');
+    $d->webhooks->remove('w1');
+    $d->inboxes->list();
+    $d->inbox->sendDraft('dr1');
+    $d->ai->draft(['url' => 'https://acme.com']);
+    $got = array_map(static fn ($c) => $c['method'] . ' ' . str_replace('https://api.test', '', $c['url']), $calls->getArrayCopy());
+    same([
+        'POST /broadcasts/b1/duplicate', 'GET /broadcasts/b1/links', 'GET /broadcasts/b1/recipients?status=bounced', 'POST /templates/welcome/content',
+        'PATCH /api-keys/k1', 'GET /emails/received/e1/attachments', 'POST /emails/e1/share', 'DELETE /segments/s1/contacts', 'POST /contacts/imports',
+        'POST /automations/a1/duplicate', 'DELETE /webhooks/w1', 'GET /inboxes', 'POST /inbox/drafts/dr1/send', 'POST /ai/draft',
+    ], $got);
+    same(['contacts' => ['a@b.com']], $calls[7]['body']);
+    same(['expires_in_hours' => 48], $calls[6]['body']);
+});
+
 echo "\n{$passed} passed, {$failed} failed\n";
 exit($failed ? 1 : 0);

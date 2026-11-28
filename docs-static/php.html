@@ -74,7 +74,7 @@ echo $email[&#39;id&#39;];</code></pre>
     &#39;scheduled_at&#39; =&gt; &#39;tomorrow at 9am&#39;,
 ]);</code></pre>
 <p>With a template, <code>from</code> and <code>subject</code> are optional: the template&#39;s own are used. <code>path</code> reads the file and encodes it for you.</p>
-<p>The SDK covers the whole API: <code>$delivrie-&gt;domains</code>, <code>apiKeys</code>, <code>webhooks</code>, <code>contacts</code>, <code>segments</code>, <code>broadcasts</code>, <code>templates</code>, <code>suppressions</code>, <code>events</code>, <code>automations</code>, <code>inbox</code>, <code>logs</code>, plus <code>usage()</code> and <code>metrics()</code>.</p>
+<p>The SDK covers the whole API: <code>$delivrie-&gt;domains</code>, <code>apiKeys</code>, <code>webhooks</code>, <code>contacts</code>, <code>segments</code>, <code>broadcasts</code>, <code>templates</code>, <code>suppressions</code>, <code>events</code>, <code>automations</code>, <code>inbox</code> (threads, drafts, notes), <code>inboxes</code>, <code>ai</code>, <code>logs</code>, plus <code>usage()</code> and <code>metrics()</code>. For example, <code>$delivrie-&gt;broadcasts-&gt;duplicate($id)</code>, <code>$delivrie-&gt;contacts-&gt;import([&#39;csv&#39; =&gt; $csv])</code>, <code>$delivrie-&gt;emails-&gt;receivedAttachments($id)</code> and <code>$delivrie-&gt;templates-&gt;editContent($id, [&#39;ops&#39; =&gt; [...]])</code>.</p>
 <p>In Laravel, bind it once in a service provider:</p>
 <pre><code class="language-php">$this-&gt;app-&gt;singleton(\Delivrie\Delivrie::class, fn () =&gt; new \Delivrie\Delivrie(env(&#39;DELIVRIE_API_KEY&#39;)));</code></pre>
 <h2 id="wordpress">WordPress</h2>

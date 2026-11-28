@@ -67,7 +67,7 @@ $delivrie->emails->send([
 
 With a template, `from` and `subject` are optional: the template's own are used. `path` reads the file and encodes it for you.
 
-The SDK covers the whole API: `$delivrie->domains`, `apiKeys`, `webhooks`, `contacts`, `segments`, `broadcasts`, `templates`, `suppressions`, `events`, `automations`, `inbox`, `logs`, plus `usage()` and `metrics()`.
+The SDK covers the whole API: `$delivrie->domains`, `apiKeys`, `webhooks`, `contacts`, `segments`, `broadcasts`, `templates`, `suppressions`, `events`, `automations`, `inbox` (threads, drafts, notes), `inboxes`, `ai`, `logs`, plus `usage()` and `metrics()`. For example, `$delivrie->broadcasts->duplicate($id)`, `$delivrie->contacts->import(['csv' => $csv])`, `$delivrie->emails->receivedAttachments($id)` and `$delivrie->templates->editContent($id, ['ops' => [...]])`.
 
 In Laravel, bind it once in a service provider:
 
