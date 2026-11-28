@@ -9,7 +9,7 @@
   <description>Java client for the Delivrie email API: transactional email, broadcasts, templates, contacts, automations, the Inbox and webhooks. No dependencies.</description>
   <url>https://delivrie.io/docs/java</url>
   <licenses><license><name>MIT</name><url>https://opensource.org/licenses/MIT</url></license></licenses>
-  <developers><developer><name>South Circle</name><email>support@delivrie.io</email></developer></developers>
+  <developers><developer><name>Surce Inc</name><email>support@delivrie.io</email></developer></developers>
   <scm>
     <url>https://github.com/bysurce/delivrie/tree/main/sdk/java</url>
     <connection>scm:git:https://github.com/bysurce/delivrie.git</connection>

@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.version = Delivrie::VERSION
   s.summary = "Ruby client for the Delivrie email API"
   s.description = "Send transactional email and broadcasts, manage domains, contacts, templates and automations, work the Inbox and verify webhooks with Delivrie. No runtime dependencies."
-  s.authors = ["South Circle"]
+  s.authors = ["Surce Inc"]
   s.email = "support@delivrie.io"
   s.homepage = "https://delivrie.io/docs/ruby"
   s.license = "MIT"

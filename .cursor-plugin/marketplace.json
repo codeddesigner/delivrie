@@ -1,6 +1,6 @@
 {
   "name": "delivrie",
-  "owner": { "name": "South Circle" },
+  "owner": { "name": "Surce Inc" },
   "plugins": [
     { "name": "delivrie", "source": "integrations/agent-plugin", "description": "Add email to your app with Delivrie, and work your Delivrie account from Cursor." }
   ]

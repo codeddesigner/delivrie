@@ -5,7 +5,7 @@
   "keywords": ["n8n-community-node-package", "delivrie", "email", "transactional-email"],
   "license": "MIT",
   "homepage": "https://delivrie.io/docs/n8n",
-  "author": { "name": "South Circle", "email": "support@delivrie.io" },
+  "author": { "name": "Surce Inc", "email": "support@delivrie.io" },
   "repository": { "type": "git", "url": "git+https://github.com/bysurce/delivrie.git", "directory": "integrations/n8n" },
   "main": "index.js",
   "scripts": {

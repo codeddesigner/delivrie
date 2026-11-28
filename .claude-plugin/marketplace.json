@@ -1,6 +1,6 @@
 {
   "name": "delivrie",
-  "owner": { "name": "South Circle", "email": "support@delivrie.io" },
+  "owner": { "name": "Surce Inc", "email": "support@delivrie.io" },
   "metadata": { "description": "Delivrie's plugins: add email to your app and work your Delivrie account from your coding agent." },
   "plugins": [
     {
