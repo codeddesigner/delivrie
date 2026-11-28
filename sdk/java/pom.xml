@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.delivrie</groupId>
   <artifactId>delivrie-java</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <packaging>jar</packaging>
   <name>Delivrie Java SDK</name>
   <description>Java client for the Delivrie email API: transactional email, broadcasts, templates, contacts, automations, the Inbox and webhooks. No dependencies.</description>

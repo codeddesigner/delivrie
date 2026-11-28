@@ -10,12 +10,12 @@ The Delivrie Java SDK has no dependencies and runs on Java 17 and later, includi
 <dependency>
   <groupId>io.delivrie</groupId>
   <artifactId>delivrie-java</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
 ```kotlin build.gradle.kts
-implementation("io.delivrie:delivrie-java:0.1.0")
+implementation("io.delivrie:delivrie-java:0.1.1")
 ```
 
 ## Send an email

@@ -35,7 +35,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * sends only with an idempotency key, so a retry never sends an email twice. The client is thread-safe.
  */
 public final class Delivrie {
-  public static final String VERSION = "0.1.0";
+  public static final String VERSION = "0.1.1";
   public static final String DEFAULT_BASE_URL = "https://delivrie.io/api";
 
   /** Replaces the HTTP call, for tests. Returns the status, lower-cased response headers and body. */

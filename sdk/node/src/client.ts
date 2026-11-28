@@ -9,7 +9,7 @@ import type {
 } from "./types.js";
 import { verifyWebhook, type VerifyWebhookOptions } from "./webhooks.js";
 
-export const VERSION = "0.3.0";
+export const VERSION = "0.3.1";
 const DEFAULT_BASE_URL = "https://delivrie.io/api";
 
 export interface DelivrieOptions {

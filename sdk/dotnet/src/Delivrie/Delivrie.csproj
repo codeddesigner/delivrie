@@ -9,7 +9,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <RootNamespace>Delivrie</RootNamespace>
     <PackageId>Delivrie</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Surce Inc</Authors>
     <Description>.NET client for the Delivrie email API: transactional email, broadcasts, templates, contacts, automations, the Inbox and webhooks. No dependencies beyond the .NET runtime.</Description>
     <PackageTags>email;transactional-email;delivrie;smtp;api</PackageTags>

@@ -46,7 +46,7 @@ public sealed class DelivrieClientOptions
 public sealed partial class DelivrieClient
 {
     /// <summary>The SDK version.</summary>
-    public const string Version = "0.1.0";
+    public const string Version = "0.1.1";
 
     /// <summary>The default API address.</summary>
     public const string DefaultBaseUrl = "https://delivrie.io/api";

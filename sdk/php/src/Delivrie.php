@@ -24,7 +24,7 @@ use Delivrie\Exception\DelivrieException;
  */
 final class Delivrie
 {
-    public const VERSION = '0.2.0';
+    public const VERSION = '0.2.1';
     public const DEFAULT_BASE_URL = 'https://delivrie.io/api';
 
     public readonly Resources\Emails $emails;
