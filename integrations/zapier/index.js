@@ -151,7 +151,6 @@ const searches = [
 module.exports = {
   version,
   platformVersion,
-  flags: { cleanInputData: false },
   authentication,
   beforeRequest: [addAuth],
   afterResponse: [handleErrors],
