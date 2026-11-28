@@ -1,5 +1,7 @@
 # Builds and tests the .NET SDK (sdk/dotnet) on every change, and publishes the Delivrie package to NuGet when run
-# by hand from main with "publish" ticked. Publishing needs the NUGET_API_KEY repository secret.
+# by hand from main with "publish" ticked. Publishing uses NuGet trusted publishing (a policy on nuget.org for this
+# repo and sdk-dotnet.yml) and needs the NUGET_USER repository variable: the nuget.org profile name that owns the
+# policy. A NUGET_API_KEY secret, if set, is used instead.
 name: .NET SDK
 
 on:
@@ -38,14 +40,25 @@ jobs:
     needs: test
     if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     env:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      HAS_NUGET_KEY: ${{ secrets.NUGET_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
-      - run: |
-          if [ -z "$NUGET_API_KEY" ]; then echo "::error::Add the NUGET_API_KEY secret to publish."; exit 1; fi
+      - name: Sign in to NuGet (trusted publishing)
+        id: login
+        if: env.HAS_NUGET_KEY != 'true'
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY || steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then echo "::error::Set the NUGET_USER variable (trusted publishing) or the NUGET_API_KEY secret."; exit 1; fi
           dotnet pack src/Delivrie/Delivrie.csproj -c Release -o out
-          dotnet nuget push "out/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+          dotnet nuget push "out/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
