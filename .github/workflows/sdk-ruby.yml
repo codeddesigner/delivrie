@@ -12,6 +12,31 @@ on:
   workflow_dispatch:
     inputs:
       publish:
+        description: Publish the version in sdk/ruby/lib/delivrie/version.rb to RubyGems
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.1", "3.2", "3.3", "3.4"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resource methods match tools/sdk_spec.py
+        run: python3 tools/gen_sdks.py --check
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - working-directory: sdk/ruby
+        run: |
+          gem install minitest --no-document
+          ruby -Ilib -e 'Dir["test/test_*.rb"].each { |f| require_relative f }'
+          gem build delivrie.gemspec
+
+  publish:
     needs: test
     if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
