@@ -1,5 +1,7 @@
 # Tests the integrations in integrations/ on every change: the Zapier app, the n8n nodes (built against
 # n8n-workflow), the Auth0 action, the Make app definition and the agent plugin manifests.
+# Run by hand with "publish_n8n" to publish n8n-nodes-delivrie to npm (with provenance, which n8n's verification
+# needs) using the NPM_TOKEN secret, and with "push_zapier" to push the Zapier app using ZAPIER_DEPLOY_KEY.
 name: Integrations
 
 on:
@@ -8,6 +10,16 @@ on:
     paths: ["integrations/**", ".claude-plugin/**", ".cursor-plugin/**", ".agents/**", ".github/workflows/integrations.yml"]
   pull_request:
     paths: ["integrations/**"]
+  workflow_dispatch:
+    inputs:
+      publish_n8n:
+        description: Publish integrations/n8n to npm as n8n-nodes-delivrie
+        type: boolean
+        default: false
+      push_zapier:
+        description: Push integrations/zapier to Zapier (needs ZAPIER_DEPLOY_KEY)
+        type: boolean
+        default: false
 
 jobs:
   test:
@@ -31,3 +43,49 @@ jobs:
           for f in $(find integrations .claude-plugin .cursor-plugin .agents -name '*.json' -o -name '*.imljson' | grep -v node_modules); do
             python3 -m json.tool "$f" > /dev/null || { echo "Invalid JSON: $f"; exit 1; }
           done
+
+  publish-n8n:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_n8n && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: integrations/n8n
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then echo "::error::Add the NPM_TOKEN repository secret to publish."; exit 1; fi
+          v="$(node -p 'require("./package.json").version')"
+          if npm view "n8n-nodes-delivrie@$v" version >/dev/null 2>&1; then echo "::notice::n8n-nodes-delivrie@$v is already on npm. Bump the version to publish again."; exit 0; fi
+          npm install --no-audit --no-fund
+          npm run build
+          npm publish --provenance --access public
+
+  push-zapier:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' && inputs.push_zapier && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: integrations/zapier
+    env:
+      ZAPIER_DEPLOY_KEY: ${{ secrets.ZAPIER_DEPLOY_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          if [ -z "$ZAPIER_DEPLOY_KEY" ]; then echo "::error::Add the ZAPIER_DEPLOY_KEY secret (developer.zapier.com → Settings → Deploy keys)."; exit 1; fi
+          npm install --no-audit --no-fund
+          npx -y zapier-platform-cli@latest validate
+          npx -y zapier-platform-cli@latest push
